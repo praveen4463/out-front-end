@@ -9,6 +9,7 @@ import StopIcon from '@material-ui/icons/Stop';
 import BuildIcon from '@material-ui/icons/Build';
 import Box from '@material-ui/core/Box';
 import PropTypes from 'prop-types';
+import {makeStyles} from '@material-ui/core/styles';
 import MainMenu from './MainMenu';
 import EditMenu from './EditMenu';
 import HelpMenu from './HelpMenu';
@@ -16,8 +17,15 @@ import TestVersionManager from './TestVersionManager';
 import UserAvatar from './UserAvatar';
 import Tooltip from '../TooltipCustom';
 
+const useStyles = makeStyles({
+  fontSizeSmall: {
+    fontSize: '1.05rem',
+  },
+});
+
 const TopNavigation = (props) => {
   const {testVersionDetail, newVersionHandler} = props;
+  const classes = useStyles();
   return (
     <AppBar color="default">
       {/* ToolBar is a flexbox and default alignItems=center. When it's center,
@@ -43,31 +51,44 @@ const TopNavigation = (props) => {
         </div>
         <Tooltip title="Run Build R">
           <IconButton aria-label="Run Build">
-            <PlayArrowIcon color="primary" />
+            <PlayArrowIcon color="primary" fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title="Start Debug Mode D">
           <IconButton aria-label="Start Debug Mode">
-            <BugReportIcon color="primary" />
+            <BugReportIcon color="primary" fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title="Stop Build ^C">
           <IconButton aria-label="Stop Build">
-            <StopIcon color="disabled" />
+            <StopIcon color="disabled" fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title="Parse P">
           <IconButton aria-label="Parse">
-            <BuildIcon color="primary" fontSize="small" />
+            <BuildIcon
+              color="primary"
+              fontSize="small"
+              classes={{fontSizeSmall: classes.fontSizeSmall}}
+            />
           </IconButton>
         </Tooltip>
         <Tooltip title="Dry Run ⇧D">
           <IconButton aria-label="Dry Run">
-            <CheckCircleIcon color="secondary" fontSize="small" />
+            <CheckCircleIcon
+              color="primary"
+              fontSize="small"
+              classes={{fontSizeSmall: classes.fontSizeSmall}}
+            />
           </IconButton>
         </Tooltip>
-        <EditMenu />
-        <Box display="flex" flex={1} justifyContent="center" mx={1}>
+        <EditMenu editIconClasses={{fontSizeSmall: classes.fontSizeSmall}} />
+        <Box
+          display="flex"
+          flex={1}
+          justifyContent="center"
+          flexWrap="wrap"
+          mx={1}>
           <TestVersionManager
             testVersionDetail={testVersionDetail}
             newVersionHandler={newVersionHandler}

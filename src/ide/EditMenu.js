@@ -4,9 +4,11 @@ import EditIcon from '@material-ui/icons/Edit';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import Divider from '@material-ui/core/Divider';
+import PropTypes from 'prop-types';
 import Tooltip from '../TooltipCustom';
 
-const EditMenu = () => {
+const EditMenu = (props) => {
+  const {editIconClasses} = props;
   const [anchorEl, setAnchorEl] = React.useState(null);
 
   const handleClick = (event) => {
@@ -24,7 +26,11 @@ const EditMenu = () => {
           aria-haspopup="true"
           aria-label="edit menu"
           onClick={handleClick}>
-          <EditIcon color="secondary" fontSize="small" />
+          <EditIcon
+            color="primary"
+            fontSize="small"
+            classes={editIconClasses}
+          />
         </IconButton>
       </Tooltip>
       <Menu
@@ -50,6 +56,12 @@ const EditMenu = () => {
       </Menu>
     </>
   );
+};
+
+EditMenu.propTypes = {
+  editIconClasses: PropTypes.shape({
+    fontSizeSmall: PropTypes.string,
+  }).isRequired,
 };
 
 export default EditMenu;

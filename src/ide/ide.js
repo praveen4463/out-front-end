@@ -60,11 +60,17 @@ const darkTheme = createMuiTheme({
   overrides: {
     MuiMenuItem: {
       root: {
-        fontWeight: 100,
+        fontWeight: 400,
         fontSize: '0.8125rem',
         lineHeight: 1,
         minHeight: '0px',
         opacity: highEmphasisOpacity,
+      },
+    },
+    MuiListItem: {
+      gutters: {
+        paddingLeft: defTheme.spacing(4),
+        paddingRight: defTheme.spacing(4),
       },
     },
     MuiTooltip: {

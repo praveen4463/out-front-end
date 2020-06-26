@@ -22,7 +22,7 @@ const testDetailType = {
 const useStyles = makeStyles((theme) => ({
   text: {
     fontWeight: 400,
-    fontSize: '0.8125rem',
+    fontSize: '0.9rem',
     lineHeight: 1,
     opacity: theme.textOpacity.highEmphasis,
   },
@@ -30,7 +30,7 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(1),
   },
   addIconFont: {
-    fontSize: '1rem',
+    fontSize: '0.9rem',
   },
 }));
 
@@ -56,9 +56,11 @@ const FormTextInput = (props) => {
   });
 
   function submit(e) {
+    e.preventDefault();
     const {value} = txInputRef.current;
     if (!value.trim()) {
       postSubmitCallback(type, defaultValue);
+      return;
     }
     if (value.length > maxTextLength) {
       postSubmitCallback(
@@ -66,6 +68,7 @@ const FormTextInput = (props) => {
         defaultValue,
         "Test or Version name can't be that long."
       );
+      return;
     }
     // send to db async but don't wait for it to complete, if some error occurs,
     // retry, and report it. If still fails, call the callback with the
@@ -76,7 +79,6 @@ const FormTextInput = (props) => {
     // call callback to show user updated name without waiting for
     // network requst to complete as no user action depends on the new name.
     postSubmitCallback(type, value);
-    e.preventDefault();
   }
 
   return (
@@ -90,9 +92,11 @@ const FormTextInput = (props) => {
           inputProps={{'aria-label': 'naked'}}
           inputRef={txInputRef}
           id="txTestDetail"
-          onBlur="this.form.submit()"
+          onBlur={submit}
         />
       </form>
+      {/* submitting form using submit() doesn't fire the submit handler 
+          thus we need to invoke the handler form onBlur */}
     </Box>
   );
 };
@@ -105,8 +109,8 @@ FormTextInput.propTypes = {
   defaultValue: PropTypes.string.isRequired,
   postSubmitCallback: PropTypes.func.isRequired,
   classes: PropTypes.shape({
-    text: PropTypes.object,
-    input: PropTypes.object,
+    text: PropTypes.string,
+    input: PropTypes.string,
   }).isRequired,
 };
 
@@ -153,10 +157,10 @@ const TestVersionManager = (props) => {
     let defaultValue;
     if (editModeForType === testDetailType.name) {
       dbId = testVersionDetail.testId;
-      defaultValue = testVersionDetail.testName;
+      defaultValue = testName;
     } else {
       dbId = testVersionDetail.testVersionId;
-      defaultValue = testVersionDetail.testVersion;
+      defaultValue = testVersion;
     }
     return (
       <FormTextInput

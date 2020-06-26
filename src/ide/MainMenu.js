@@ -10,6 +10,7 @@ import Tooltip from '../TooltipCustom';
 const useStyles = makeStyles((theme) => ({
   menuIcon: {
     opacity: theme.textOpacity.highEmphasis,
+    height: '100%',
   },
 }));
 
@@ -33,7 +34,7 @@ const MainMenu = () => {
           aria-label="main menu"
           onClick={handleClick}>
           {/* Set some opacity on the menu icon */}
-          <MenuIcon />
+          <MenuIcon fontSize="small" />
         </IconButton>
       </Tooltip>
       <Menu
