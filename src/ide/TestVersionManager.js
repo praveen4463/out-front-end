@@ -11,7 +11,8 @@ import Tooltip from '../TooltipCustom';
 
 // ==============================GLOBALS========================================
 
-const maxTextLength = 100;
+const maxTextNameLength = 200;
+const maxTextVersionLength = 50;
 const testDetailType = {
   name: 'testName',
   version: 'testVersion',
@@ -28,15 +29,19 @@ const useStyles = makeStyles((theme) => ({
   },
   input: {
     padding: theme.spacing(1),
+    textAlign: 'center',
   },
   addIconFont: {
     fontSize: '0.9rem',
+  },
+  errorSnackBarMessage: {
+    color: theme.palette.error.contrastText,
   },
 }));
 
 // ==============================FORM-TEXT-INPUT================================
 
-// uncontrolled component because we don't want to keep a state.
+// uncontrolled component because we don't want to keep a state for form state.
 const FormTextInput = (props) => {
   const {
     // eslint-disable-next-line no-unused-vars
@@ -62,11 +67,16 @@ const FormTextInput = (props) => {
       postSubmitCallback(type, defaultValue);
       return;
     }
-    if (value.length > maxTextLength) {
+    if (
+      value.length >
+      (type === testDetailType.name ? maxTextNameLength : maxTextVersionLength)
+    ) {
       postSubmitCallback(
         type,
         defaultValue,
-        "Test or Version name can't be that long."
+        `Test ${
+          type === testDetailType.name ? 'name' : 'version'
+        } can't be that long.`
       );
       return;
     }
@@ -82,12 +92,17 @@ const FormTextInput = (props) => {
   }
 
   return (
-    <Box display="flex" alignItems="center">
-      <form noValidate autoComplete="off" onSubmit={submit}>
+    <Box display="flex" alignItems="center" flex={1}>
+      <form
+        noValidate
+        autoComplete="off"
+        onSubmit={submit}
+        style={{width: '100%'}}>
         <InputBase
           classes={{
             input: `${classes.text} ${classes.input}`,
           }}
+          fullWidth
           defaultValue={defaultValue}
           inputProps={{'aria-label': 'naked'}}
           inputRef={txInputRef}
@@ -176,6 +191,11 @@ const TestVersionManager = (props) => {
     <>
       {/* !! We will show auto saved messages in the message bar below the app
           bar in form of SnackBar. */}
+      {/* TODO: There is a bug in the following flex, when test name or version
+          grows to a big string that can't fit in single line, the entire
+          thing wraps together making testname/version stack each other
+          whereas we want name and version to wrap separately. Look into it
+          later. */}
       <Tooltip title="Test Name, Click To Rename">
         <Box display="flex" alignItems="center" className={classes.text}>
           <Box
@@ -218,7 +238,8 @@ const TestVersionManager = (props) => {
           elevation={6}
           variant="filled"
           onClose={handleErrorClose}
-          severity="error">
+          severity="error"
+          classes={{root: classes.errorSnackBarMessage}}>
           {error}
         </MuiAlert>
       </Snackbar>

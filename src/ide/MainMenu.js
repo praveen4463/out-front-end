@@ -55,8 +55,11 @@ const MainMenu = () => {
         <MenuItem onClick={handleClose}>New Test</MenuItem>
         <MenuItem onClick={handleClose}>Open Test</MenuItem>
         <Divider variant="middle" component="li" />
+        <MenuItem onClick={handleClose}>Switch Another Version</MenuItem>
+        <MenuItem onClick={handleClose}>Compare Versions</MenuItem>
+        <Divider variant="middle" component="li" />
+        <MenuItem onClick={handleClose}>Switch Project</MenuItem>
         <MenuItem onClick={handleClose}>Preferences</MenuItem>
-        <MenuItem onClick={handleClose}>Settings</MenuItem>
         <Divider variant="middle" component="li" />
         <MenuItem onClick={handleClose}>Exit IDE</MenuItem>
       </Menu>
