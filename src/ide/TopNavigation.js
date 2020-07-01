@@ -13,7 +13,7 @@ import {makeStyles} from '@material-ui/core/styles';
 import MainMenu from './MainMenu';
 import EditMenu from './EditMenu';
 import HelpMenu from './HelpMenu';
-import TestVersionManager from './TestVersionManager';
+import ProjectSelector from './ProjectSelector';
 import UserAvatar from './UserAvatar';
 import Tooltip from '../TooltipCustom';
 
@@ -24,7 +24,7 @@ const useStyles = makeStyles({
 });
 
 const TopNavigation = (props) => {
-  const {testVersionDetail, newVersionHandler} = props;
+  const {selectedProject, changeProjectHandler} = props;
   const classes = useStyles();
   return (
     <AppBar color="default">
@@ -89,9 +89,9 @@ const TopNavigation = (props) => {
           justifyContent="center"
           flexWrap="wrap"
           mx={1}>
-          <TestVersionManager
-            testVersionDetail={testVersionDetail}
-            newVersionHandler={newVersionHandler}
+          <ProjectSelector
+            selectedProject={selectedProject}
+            changeProjectHandler={changeProjectHandler}
           />
         </Box>
         <HelpMenu />
@@ -104,13 +104,8 @@ const TopNavigation = (props) => {
 };
 
 TopNavigation.propTypes = {
-  testVersionDetail: PropTypes.exact({
-    testId: PropTypes.number,
-    testVersionId: PropTypes.number,
-    testName: PropTypes.string,
-    testVersion: PropTypes.string,
-  }).isRequired,
-  newVersionHandler: PropTypes.func.isRequired,
+  selectedProject: PropTypes.number.isRequired,
+  changeProjectHandler: PropTypes.func.isRequired,
 };
 
 export default TopNavigation;

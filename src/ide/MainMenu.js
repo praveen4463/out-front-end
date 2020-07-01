@@ -52,13 +52,12 @@ const MainMenu = () => {
           vertical: 'top',
           horizontal: 'left',
         }}>
+        <MenuItem onClick={handleClose}>New File</MenuItem>
+        <MenuItem onClick={handleClose}>Open File</MenuItem>
+        <Divider variant="middle" component="li" />
         <MenuItem onClick={handleClose}>New Test</MenuItem>
-        <MenuItem onClick={handleClose}>Open Test</MenuItem>
+        <MenuItem onClick={handleClose}>New Test Version</MenuItem>
         <Divider variant="middle" component="li" />
-        <MenuItem onClick={handleClose}>Switch Another Version</MenuItem>
-        <MenuItem onClick={handleClose}>Compare Versions</MenuItem>
-        <Divider variant="middle" component="li" />
-        <MenuItem onClick={handleClose}>Switch Project</MenuItem>
         <MenuItem onClick={handleClose}>Preferences</MenuItem>
         <Divider variant="middle" component="li" />
         <MenuItem onClick={handleClose}>Exit IDE</MenuItem>

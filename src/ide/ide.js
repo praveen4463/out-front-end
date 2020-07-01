@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {createMuiTheme} from '@material-ui/core/styles';
 import {ThemeProvider} from '@material-ui/styles';
 import TopNavigation from './TopNavigation';
@@ -94,25 +94,20 @@ const darkTheme = createMuiTheme({
   },
 });
 
-function newVersionHandler() {
-  // does nothing for now
-  console.log('newVersionHandler invoked');
-}
-
 const Ide = () => {
-  // get some dummy values for now
-  const testVersionDetail = {
-    testId: 1,
-    testVersionId: 1,
-    testName: 'SignIn-Test',
-    testVersion: 'v1',
-  };
+  // May also be null when there is no incoming project found on load, for
+  // example user visits IDE without selecting any project/file/test.
+  const [selectedProject, setSelectedProject] = useState(1);
+
+  function changeProjectHandler(value) {
+    setSelectedProject(value);
+  }
 
   return (
     <ThemeProvider theme={darkTheme}>
       <TopNavigation
-        testVersionDetail={testVersionDetail}
-        newVersionHandler={newVersionHandler}
+        selectedProject={selectedProject}
+        changeProjectHandler={changeProjectHandler}
       />
     </ThemeProvider>
   );
