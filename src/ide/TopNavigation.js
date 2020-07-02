@@ -17,11 +17,19 @@ import ProjectSelector from './ProjectSelector';
 import UserAvatar from './UserAvatar';
 import Tooltip from '../TooltipCustom';
 
-const useStyles = makeStyles({
+const useStyles = makeStyles((theme) => ({
   fontSizeSmall: {
     fontSize: '1.05rem',
   },
-});
+  toolbarRoot: {
+    alignItems: 'stretch',
+    // borderBottom: `1px solid ${theme.palette.background.paperBorder}`,
+  },
+  toolbarGutters: {
+    paddingLeft: theme.spacing(1),
+    paddingRight: theme.spacing(1),
+  },
+}));
 
 const TopNavigation = (props) => {
   const {selectedProject, changeProjectHandler} = props;
@@ -45,7 +53,9 @@ const TopNavigation = (props) => {
           do anything above for the icons but for things like TextInput in
           header this is required as long as we want a tooltip on it as it has
           to be in same plane with others in header. */}
-      <ToolBar variant="dense" style={{alignItems: 'stretch'}}>
+      <ToolBar
+        variant="dense"
+        classes={{root: classes.toolbarRoot, gutters: classes.toolbarGutters}}>
         <div className="MuiIconButton-edgeStart">
           <MainMenu />
         </div>

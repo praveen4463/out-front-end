@@ -1,7 +1,10 @@
 import React, {useState} from 'react';
 import {createMuiTheme} from '@material-ui/core/styles';
 import {ThemeProvider} from '@material-ui/styles';
+import Box from '@material-ui/core/Box';
 import TopNavigation from './TopNavigation';
+import LeftNavigation from './LeftNavigation';
+import BottomNavigation from './BottomNavigation';
 
 // https://material.io/design/color/dark-theme.html#ui-application
 const highEmphasisOpacity = 0.87;
@@ -49,7 +52,12 @@ const darkTheme = createMuiTheme({
     },
     background: {
       paper: '#212121',
+      paperBorder: '#363636',
       default: defaultBackground,
+      contrastBackground: `rgba(255, 255, 255, ${highEmphasisOpacity})`,
+      hoverBackground: 'rgb(255, 255, 255, 0.12)',
+      contrastText: `rgba(255, 255, 255, ${highEmphasisOpacity})`,
+      contrastBackgroundContrastText: '#000',
     },
   },
   textOpacity: {
@@ -75,11 +83,9 @@ const darkTheme = createMuiTheme({
     },
     MuiTooltip: {
       arrow: {
-        color: defaultBackground,
         marginTop: '0px',
       },
       tooltip: {
-        backgroundColor: defaultBackground,
         fontSize: '0.75rem',
         color: `rgba(255, 255, 255, ${highEmphasisOpacity})`,
       },
@@ -88,6 +94,13 @@ const darkTheme = createMuiTheme({
           // This style is different per the screen sizes, this breakpoint will
           // keep it same for all sizes under xl
           marginTop: '0.25rem', // using rem rather than px for responsiveness
+        },
+      },
+      tooltipPlacementRight: {
+        [defTheme.breakpoints.down('xl')]: {
+          // This style is different per the screen sizes, this breakpoint will
+          // keep it same for all sizes under xl
+          marginLeft: '0.25rem', // using rem rather than px for responsiveness
         },
       },
     },
@@ -109,6 +122,10 @@ const Ide = () => {
         selectedProject={selectedProject}
         changeProjectHandler={changeProjectHandler}
       />
+      <Box display="flex" flex={1} style={{height: '100%'}}>
+        <LeftNavigation />
+        <BottomNavigation />
+      </Box>
     </ThemeProvider>
   );
 };

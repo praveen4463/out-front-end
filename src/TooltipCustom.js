@@ -4,9 +4,13 @@ import Fade from '@material-ui/core/Fade';
 import PropTypes from 'prop-types';
 
 const TooltipCustom = (props) => {
-  const {title, children} = props;
+  const {title, placement, children} = props;
   return (
-    <Tooltip title={title} TransitionComponent={Fade} arrow>
+    <Tooltip
+      title={title}
+      TransitionComponent={Fade}
+      arrow
+      placement={placement}>
       {children}
     </Tooltip>
   );
@@ -15,6 +19,11 @@ const TooltipCustom = (props) => {
 TooltipCustom.propTypes = {
   children: PropTypes.node.isRequired,
   title: PropTypes.string.isRequired,
+  placement: PropTypes.string,
+};
+
+TooltipCustom.defaultProps = {
+  placement: 'bottom',
 };
 
 export default TooltipCustom;

@@ -9,7 +9,7 @@ import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
 import Tooltip from '../TooltipCustom';
 
-const useStyles = makeStyles(() => ({
+const useStyles = makeStyles((theme) => ({
   formControl: {
     minWidth: '25%',
   },
@@ -18,6 +18,7 @@ const useStyles = makeStyles(() => ({
   },
   input: {
     fontSize: '0.9rem',
+    opacity: theme.textOpacity.highEmphasis,
   },
 }));
 
