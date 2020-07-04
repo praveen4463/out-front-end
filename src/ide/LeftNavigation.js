@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import clsx from 'clsx';
 import {makeStyles} from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
 import Box from '@material-ui/core/Box';
@@ -17,12 +18,11 @@ const useStyles = makeStyles((theme) => ({
     left: 0,
     top: 48,
     bottom: 22,
-    // color: theme.palette.common.white,
     backgroundColor: theme.palette.background.paper,
     paddingTop: theme.spacing(1),
     paddingBottom: theme.spacing(1),
-    // borderRight: `1px solid ${theme.palette.background.paperBorder}`,
     zIndex: theme.zIndex.appBar,
+    maxWidth: 36,
   },
   iconButton: {
     padding: theme.spacing(1),
@@ -35,13 +35,31 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const NAV_ELEMENTS = {
+  EXPLORER: 1,
+};
+
+// this navigation element will be default active on mount, this should change
+// when we store UI state for page refresh and render page back using it where
+// this will come from the state instead. This will be used, for instance,
+// during updates to the app where a refresh is needed.
+const DEFAULT_ACTIVE_NAV = NAV_ELEMENTS.EXPLORER;
+
 const LeftNavigation = () => {
-  const [fileOn, setFileOn] = useState(true);
+  const [activeNav, setActiveNav] = useState(DEFAULT_ACTIVE_NAV);
   const classes = useStyles();
 
-  const toggleFiles = () => {
-    setFileOn((f) => !f);
+  const navClick = (navElement) => {
+    if (activeNav === navElement) {
+      setActiveNav(null);
+      return;
+    }
+    setActiveNav(navElement);
   };
+
+  /* const closePanel = () => {
+    setActiveNav(null);
+  }; */
 
   return (
     <Paper
@@ -50,17 +68,16 @@ const LeftNavigation = () => {
       elevation={4}
       direction="vertical"
       aria-label="Left Navigation"
-      classes={{root: classes.nav}}>
+      className={classes.nav}>
       <Box display="flex">
         <Tooltip title="Files" placement="right">
           <IconButton
             aria-label="Files"
-            onClick={toggleFiles}
-            classes={{root: classes.iconButton}}>
+            onClick={navClick}
+            className={classes.iconButton}>
             <FileIcon
               fontSize="small"
-              classes={{root: classes.icons}}
-              className={fileOn ? classes.activeIcon : ''}
+              className={clsx(classes.icons, true && classes.activeIcon)}
             />
           </IconButton>
         </Tooltip>

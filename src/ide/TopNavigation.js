@@ -23,7 +23,6 @@ const useStyles = makeStyles((theme) => ({
   },
   toolbarRoot: {
     alignItems: 'stretch',
-    // borderBottom: `1px solid ${theme.palette.background.paperBorder}`,
   },
   toolbarGutters: {
     paddingLeft: theme.spacing(1),

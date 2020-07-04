@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import Ide from './ide/ide';
+import Ide from './ide/Ide';
 import 'fontsource-roboto/latin-300.css';
 import 'fontsource-roboto/latin-400.css';
 import 'fontsource-roboto/latin-500.css';

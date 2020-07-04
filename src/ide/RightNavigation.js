@@ -12,28 +12,27 @@ const useStyles = makeStyles((theme) => ({
     boxSizing: 'border-box',
     display: 'flex',
     flexDirection: 'row',
-    alignItems: 'center',
     position: 'fixed',
-    left: 0,
     right: 0,
-    bottom: 0,
+    top: 48,
+    bottom: 22,
     color: theme.palette.background.contrastText,
     backgroundColor: theme.palette.background.paper,
-    height: 22,
     zIndex: theme.zIndex.appBar,
-    width: '100%',
+    width: 22,
+    writingMode: 'vertical-rl',
   },
   wrapper: {
-    height: '100%',
+    width: '100%',
   },
   typography: {
-    marginLeft: 5,
-    height: '100%',
+    marginTop: 5,
+    width: '100%',
   },
   link: {
     cursor: 'pointer',
-    padding: '0 5px',
-    height: '100%',
+    padding: '5px 0',
+    width: '100%',
     display: 'inline-block',
   },
   linkHover: {
@@ -55,15 +54,13 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const BottomNavigation = () => {
-  const [outputOn, setOutputOn] = useState(false);
+  const [completedBuildsOn, setCompletedBuildsOn] = useState(false);
+  const [livePreviewOn, setLivePreviewOn] = useState(false);
+  const [apiRefOn, setApiRefOn] = useState(false);
   const classes = useStyles();
 
-  const toggleOutput = () => {
-    setOutputOn((f) => !f);
-  };
-
-  const goLine = () => {
-    // go to the given line
+  const toggleState = (setBoolState) => {
+    setBoolState((f) => !f);
   };
 
   return (
@@ -71,34 +68,54 @@ const BottomNavigation = () => {
       square
       component="div"
       elevation={4}
-      aria-label="Bottom Navigation"
+      aria-label="Right Navigation"
       className={classes.nav}>
-      <Box display="flex" className={classes.wrapper}>
-        <Typography
-          variant="caption"
-          style={{marginLeft: 48}}
-          className={classes.typography}>
+      <Box display="flex" className={classes.wrapper} style={{paddingTop: 8}}>
+        <Typography variant="caption" className={classes.typography}>
           <Link
             color="inherit"
-            onClick={toggleOutput}
+            onClick={() => toggleState(setCompletedBuildsOn)}
             classes={{root: classes.link}}
             className={clsx(
               classes.link,
               classes.linkTab,
-              outputOn ? classes.activeTab : classes.linkHover
+              completedBuildsOn ? classes.activeTab : classes.linkHover
             )}>
-            Build Status and Output
+            Completed Builds
           </Link>
         </Typography>
       </Box>
-      <Box flex={1} className={classes.wrapper} />
-      <Box display="flex" className={classes.wrapper} style={{paddingRight: 8}}>
-        <Typography variant="caption">
+      <Box display="flex" className={classes.wrapper}>
+        <Typography variant="caption" className={classes.typography}>
           <Link
             color="inherit"
-            onClick={goLine}
-            className={clsx(classes.link, classes.linkHover)}>
-            Ln 1, Col 10
+            onClick={() => toggleState(setLivePreviewOn)}
+            classes={{root: classes.link}}
+            className={clsx(
+              classes.link,
+              classes.linkTab,
+              livePreviewOn ? classes.activeTab : classes.linkHover
+            )}>
+            Live Preview
+          </Link>
+        </Typography>
+      </Box>
+      <Box display="flex" flex={1} className={classes.wrapper} />
+      <Box
+        display="flex"
+        className={classes.wrapper}
+        style={{paddingBottom: 8}}>
+        <Typography variant="caption" className={classes.typography}>
+          <Link
+            color="inherit"
+            onClick={() => toggleState(setApiRefOn)}
+            classes={{root: classes.link}}
+            className={clsx(
+              classes.link,
+              classes.linkTab,
+              apiRefOn ? classes.activeTab : classes.linkHover
+            )}>
+            API Reference
           </Link>
         </Typography>
       </Box>

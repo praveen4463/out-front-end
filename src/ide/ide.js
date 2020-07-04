@@ -1,15 +1,16 @@
 import React, {useState} from 'react';
 import {createMuiTheme} from '@material-ui/core/styles';
 import {ThemeProvider} from '@material-ui/styles';
-import Box from '@material-ui/core/Box';
 import TopNavigation from './TopNavigation';
 import LeftNavigation from './LeftNavigation';
 import BottomNavigation from './BottomNavigation';
+import Content from './Content';
+import RightNavigation from './RightNavigation';
 
 // https://material.io/design/color/dark-theme.html#ui-application
 const highEmphasisOpacity = 0.87;
-const defaultBackground = '#121212';
-const defTheme = createMuiTheme();
+const defTheme = createMuiTheme(); // not using useTheme() hook because we're
+// not in a function, and I need this while creating theme.
 
 const darkTheme = createMuiTheme({
   palette: {
@@ -52,12 +53,14 @@ const darkTheme = createMuiTheme({
     },
     background: {
       paper: '#212121',
-      paperBorder: '#363636',
-      default: defaultBackground,
-      contrastBackground: `rgba(255, 255, 255, ${highEmphasisOpacity})`,
-      hoverBackground: 'rgb(255, 255, 255, 0.12)',
+      default: '#121212',
       contrastText: `rgba(255, 255, 255, ${highEmphasisOpacity})`,
-      contrastBackgroundContrastText: '#000',
+    },
+    linkTab: {
+      hoverBackground: '#424242',
+      background: '#323232',
+      activeBackground: '#646464',
+      activeBackgroundText: '#fff',
     },
   },
   textOpacity: {
@@ -118,14 +121,43 @@ const Ide = () => {
 
   return (
     <ThemeProvider theme={darkTheme}>
-      <TopNavigation
-        selectedProject={selectedProject}
-        changeProjectHandler={changeProjectHandler}
-      />
-      <Box display="flex" flex={1} style={{height: '100%'}}>
-        <LeftNavigation />
-        <BottomNavigation />
-      </Box>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          margin: 0,
+        }}>
+        <div style={{display: 'flex', flex: '1 1 auto'}}>
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              position: 'fixed',
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+            }}>
+            <TopNavigation
+              selectedProject={selectedProject}
+              changeProjectHandler={changeProjectHandler}
+            />
+            <div
+              style={{
+                display: 'flex',
+                flex: '1 1 auto',
+                height: '100%',
+                width: 'initial',
+              }}>
+              <LeftNavigation />
+              <Content />
+              <RightNavigation />
+              <BottomNavigation />
+            </div>
+          </div>
+        </div>
+      </div>
     </ThemeProvider>
   );
 };
