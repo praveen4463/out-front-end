@@ -21,6 +21,9 @@ const useStyles = makeStyles((theme) => ({
   fontSizeSmall: {
     fontSize: '1.05rem',
   },
+  appBarRoot: {
+    backgroundColor: theme.palette.background.navigations,
+  },
   toolbarRoot: {
     alignItems: 'stretch',
   },
@@ -34,7 +37,7 @@ const TopNavigation = (props) => {
   const {selectedProject, changeProjectHandler} = props;
   const classes = useStyles();
   return (
-    <AppBar color="default">
+    <AppBar classes={{root: classes.appBarRoot}}>
       {/* ToolBar is a flexbox and default alignItems=center. When it's center,
           items don't strech to full height but will remain in original and
           align vertically to center. If we want full height, we will need to

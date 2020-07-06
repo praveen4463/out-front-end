@@ -1,11 +1,13 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React, {useState} from 'react';
+import React from 'react';
 import clsx from 'clsx';
 import {makeStyles} from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
 import Box from '@material-ui/core/Box';
 import Link from '@material-ui/core/Link';
 import Typography from '@material-ui/core/Typography';
+import PropTypes from 'prop-types';
+import {RightNavs} from './NavigationEnum';
 
 const useStyles = makeStyles((theme) => ({
   nav: {
@@ -17,7 +19,7 @@ const useStyles = makeStyles((theme) => ({
     top: 48,
     bottom: 22,
     color: theme.palette.background.contrastText,
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: theme.palette.background.navigations,
     zIndex: theme.zIndex.appBar,
     width: 22,
     writingMode: 'vertical-rl',
@@ -53,15 +55,9 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const BottomNavigation = () => {
-  const [completedBuildsOn, setCompletedBuildsOn] = useState(false);
-  const [livePreviewOn, setLivePreviewOn] = useState(false);
-  const [apiRefOn, setApiRefOn] = useState(false);
+const RightNavigation = (props) => {
+  const {clickHandler, active} = props;
   const classes = useStyles();
-
-  const toggleState = (setBoolState) => {
-    setBoolState((f) => !f);
-  };
 
   return (
     <Paper
@@ -74,12 +70,14 @@ const BottomNavigation = () => {
         <Typography variant="caption" className={classes.typography}>
           <Link
             color="inherit"
-            onClick={() => toggleState(setCompletedBuildsOn)}
+            onClick={() => clickHandler(RightNavs.CompletedBuilds)}
             classes={{root: classes.link}}
             className={clsx(
               classes.link,
               classes.linkTab,
-              completedBuildsOn ? classes.activeTab : classes.linkHover
+              active === RightNavs.CompletedBuilds
+                ? classes.activeTab
+                : classes.linkHover
             )}>
             Completed Builds
           </Link>
@@ -89,12 +87,14 @@ const BottomNavigation = () => {
         <Typography variant="caption" className={classes.typography}>
           <Link
             color="inherit"
-            onClick={() => toggleState(setLivePreviewOn)}
+            onClick={() => clickHandler(RightNavs.LivePreview)}
             classes={{root: classes.link}}
             className={clsx(
               classes.link,
               classes.linkTab,
-              livePreviewOn ? classes.activeTab : classes.linkHover
+              active === RightNavs.LivePreview
+                ? classes.activeTab
+                : classes.linkHover
             )}>
             Live Preview
           </Link>
@@ -108,12 +108,14 @@ const BottomNavigation = () => {
         <Typography variant="caption" className={classes.typography}>
           <Link
             color="inherit"
-            onClick={() => toggleState(setApiRefOn)}
+            onClick={() => clickHandler(RightNavs.ApiRef)}
             classes={{root: classes.link}}
             className={clsx(
               classes.link,
               classes.linkTab,
-              apiRefOn ? classes.activeTab : classes.linkHover
+              active === RightNavs.ApiRef
+                ? classes.activeTab
+                : classes.linkHover
             )}>
             API Reference
           </Link>
@@ -123,4 +125,9 @@ const BottomNavigation = () => {
   );
 };
 
-export default BottomNavigation;
+RightNavigation.propTypes = {
+  clickHandler: PropTypes.func.isRequired,
+  active: PropTypes.number.isRequired,
+};
+
+export default RightNavigation;

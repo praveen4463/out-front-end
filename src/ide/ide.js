@@ -2,10 +2,8 @@ import React, {useState} from 'react';
 import {createMuiTheme} from '@material-ui/core/styles';
 import {ThemeProvider} from '@material-ui/styles';
 import TopNavigation from './TopNavigation';
-import LeftNavigation from './LeftNavigation';
-import BottomNavigation from './BottomNavigation';
 import Content from './Content';
-import RightNavigation from './RightNavigation';
+import './ide.css';
 
 // https://material.io/design/color/dark-theme.html#ui-application
 const highEmphasisOpacity = 0.87;
@@ -53,12 +51,13 @@ const darkTheme = createMuiTheme({
     },
     background: {
       paper: '#212121',
+      navigations: '#363636',
       default: '#121212',
       contrastText: `rgba(255, 255, 255, ${highEmphasisOpacity})`,
     },
     linkTab: {
-      hoverBackground: '#424242',
-      background: '#323232',
+      hoverBackground: '#525252',
+      background: '#424242',
       activeBackground: '#646464',
       activeBackgroundText: '#fff',
     },
@@ -143,18 +142,7 @@ const Ide = () => {
               selectedProject={selectedProject}
               changeProjectHandler={changeProjectHandler}
             />
-            <div
-              style={{
-                display: 'flex',
-                flex: '1 1 auto',
-                height: '100%',
-                width: 'initial',
-              }}>
-              <LeftNavigation />
-              <Content />
-              <RightNavigation />
-              <BottomNavigation />
-            </div>
+            <Content />
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React from 'react';
 import clsx from 'clsx';
 import {makeStyles} from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
@@ -7,7 +7,9 @@ import Link from '@material-ui/core/Link';
 import FileIcon from '@material-ui/icons/InsertDriveFile';
 import IconButton from '@material-ui/core/IconButton';
 import SvgIcon from '@material-ui/core/SvgIcon';
+import PropTypes from 'prop-types';
 import Tooltip from '../TooltipCustom';
+import {LeftNavs} from './NavigationEnum';
 
 const useStyles = makeStyles((theme) => ({
   nav: {
@@ -18,7 +20,7 @@ const useStyles = makeStyles((theme) => ({
     left: 0,
     top: 48,
     bottom: 22,
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: theme.palette.background.navigations,
     paddingTop: theme.spacing(1),
     paddingBottom: theme.spacing(1),
     zIndex: theme.zIndex.appBar,
@@ -35,31 +37,9 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const NAV_ELEMENTS = {
-  EXPLORER: 1,
-};
-
-// this navigation element will be default active on mount, this should change
-// when we store UI state for page refresh and render page back using it where
-// this will come from the state instead. This will be used, for instance,
-// during updates to the app where a refresh is needed.
-const DEFAULT_ACTIVE_NAV = NAV_ELEMENTS.EXPLORER;
-
-const LeftNavigation = () => {
-  const [activeNav, setActiveNav] = useState(DEFAULT_ACTIVE_NAV);
+const LeftNavigation = (props) => {
+  const {clickHandler, active} = props;
   const classes = useStyles();
-
-  const navClick = (navElement) => {
-    if (activeNav === navElement) {
-      setActiveNav(null);
-      return;
-    }
-    setActiveNav(navElement);
-  };
-
-  /* const closePanel = () => {
-    setActiveNav(null);
-  }; */
 
   return (
     <Paper
@@ -73,11 +53,14 @@ const LeftNavigation = () => {
         <Tooltip title="Files" placement="right">
           <IconButton
             aria-label="Files"
-            onClick={navClick}
+            onClick={() => clickHandler(LeftNavs.Explorer)}
             className={classes.iconButton}>
             <FileIcon
               fontSize="small"
-              className={clsx(classes.icons, true && classes.activeIcon)}
+              className={clsx(
+                classes.icons,
+                active === LeftNavs.Explorer && classes.activeIcon
+              )}
             />
           </IconButton>
         </Tooltip>
@@ -93,6 +76,11 @@ const LeftNavigation = () => {
       </Box>
     </Paper>
   );
+};
+
+LeftNavigation.propTypes = {
+  clickHandler: PropTypes.func.isRequired,
+  active: PropTypes.number.isRequired,
 };
 
 export default LeftNavigation;

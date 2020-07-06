@@ -9,17 +9,14 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-// take props with current state and functions to send updates to state,
-// handlers for starting the build. On re-render, always create using the
-// state.
-const Explorer = () => {
+const BuildOutput = () => {
   const classes = useStyles();
 
   return (
-    <Box p={1} className={classes.root}>
-      <span>File explorer appears here</span>
+    <Box m={1} className={classes.root}>
+      <span>Build ouput appears here</span>
     </Box>
   );
 };
 
-export default Explorer;
+export default BuildOutput;
