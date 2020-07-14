@@ -7,7 +7,7 @@ import Box from '@material-ui/core/Box';
 import Link from '@material-ui/core/Link';
 import Typography from '@material-ui/core/Typography';
 import PropTypes from 'prop-types';
-import {RightNavs} from './NavigationEnum';
+import {RightNavs} from './Constants';
 
 const useStyles = makeStyles((theme) => ({
   nav: {
@@ -70,12 +70,12 @@ const RightNavigation = (props) => {
         <Typography variant="caption" className={classes.typography}>
           <Link
             color="inherit"
-            onClick={() => clickHandler(RightNavs.CompletedBuilds)}
+            onClick={() => clickHandler(RightNavs.COMPLETED_BUILDS)}
             classes={{root: classes.link}}
             className={clsx(
               classes.link,
               classes.linkTab,
-              active === RightNavs.CompletedBuilds
+              active === RightNavs.COMPLETED_BUILDS
                 ? classes.activeTab
                 : classes.linkHover
             )}>
@@ -87,12 +87,12 @@ const RightNavigation = (props) => {
         <Typography variant="caption" className={classes.typography}>
           <Link
             color="inherit"
-            onClick={() => clickHandler(RightNavs.LivePreview)}
+            onClick={() => clickHandler(RightNavs.LIVE_PREVIEW)}
             classes={{root: classes.link}}
             className={clsx(
               classes.link,
               classes.linkTab,
-              active === RightNavs.LivePreview
+              active === RightNavs.LIVE_PREVIEW
                 ? classes.activeTab
                 : classes.linkHover
             )}>
@@ -108,12 +108,12 @@ const RightNavigation = (props) => {
         <Typography variant="caption" className={classes.typography}>
           <Link
             color="inherit"
-            onClick={() => clickHandler(RightNavs.ApiRef)}
+            onClick={() => clickHandler(RightNavs.API_REF)}
             classes={{root: classes.link}}
             className={clsx(
               classes.link,
               classes.linkTab,
-              active === RightNavs.ApiRef
+              active === RightNavs.API_REF
                 ? classes.activeTab
                 : classes.linkHover
             )}>

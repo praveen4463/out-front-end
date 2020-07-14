@@ -7,7 +7,7 @@ import CloseIcon from '@material-ui/icons/Close';
 import SplitPane from 'react-split-pane';
 import BuildOutput from './BuildOutput';
 import BuildStatus from './BuildStatus';
-import {BottomNavs} from './NavigationEnum';
+import {BottomNavs} from './Constants';
 import '../react-split-pane.css';
 
 const BottomPane = (props) => {
@@ -34,7 +34,7 @@ const BottomPane = (props) => {
         </IconButton>
       </Box>
       <Box flex={1}>
-        {selected === BottomNavs.BuildOutputStatus && (
+        {selected === BottomNavs.BUILD_OUTPUT_STATUS && (
           <SplitPane
             split="vertical"
             defaultSize="30%"

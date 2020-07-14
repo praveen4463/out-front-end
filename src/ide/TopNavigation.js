@@ -13,13 +13,12 @@ import {makeStyles} from '@material-ui/core/styles';
 import MainMenu from './MainMenu';
 import EditMenu from './EditMenu';
 import HelpMenu from './HelpMenu';
-import ProjectSelector from './ProjectSelector';
 import UserAvatar from './UserAvatar';
 import Tooltip from '../TooltipCustom';
 
 const useStyles = makeStyles((theme) => ({
   fontSizeSmall: {
-    fontSize: '1.05rem',
+    fontSize: '1.00rem',
   },
   appBarRoot: {
     backgroundColor: theme.palette.background.navigations,
@@ -34,7 +33,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const TopNavigation = (props) => {
-  const {selectedProject, changeProjectHandler} = props;
+  const {projectSelector} = props;
   const classes = useStyles();
   return (
     <AppBar classes={{root: classes.appBarRoot}}>
@@ -76,7 +75,7 @@ const TopNavigation = (props) => {
             <StopIcon color="disabled" fontSize="small" />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Parse P">
+        <Tooltip title="Parse All P">
           <IconButton aria-label="Parse">
             <BuildIcon
               color="primary"
@@ -85,7 +84,7 @@ const TopNavigation = (props) => {
             />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Dry Run ⇧D">
+        <Tooltip title="Dry Run All ⇧D">
           <IconButton aria-label="Dry Run">
             <CheckCircleIcon
               color="primary"
@@ -101,10 +100,7 @@ const TopNavigation = (props) => {
           justifyContent="center"
           flexWrap="wrap"
           mx={1}>
-          <ProjectSelector
-            selectedProject={selectedProject}
-            changeProjectHandler={changeProjectHandler}
-          />
+          {projectSelector}
         </Box>
         <HelpMenu />
         <div className="MuiIconButton-edgeEnd">
@@ -116,8 +112,7 @@ const TopNavigation = (props) => {
 };
 
 TopNavigation.propTypes = {
-  selectedProject: PropTypes.number.isRequired,
-  changeProjectHandler: PropTypes.func.isRequired,
+  projectSelector: PropTypes.node.isRequired,
 };
 
 export default TopNavigation;

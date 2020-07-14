@@ -5,7 +5,7 @@ import Box from '@material-ui/core/Box';
 import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import Explorer from './Explorer';
-import {LeftNavs} from './NavigationEnum';
+import {LeftNavs} from './Constants';
 
 const LeftPane = (props) => {
   const {closeHandler, selected} = props;
@@ -17,9 +17,13 @@ const LeftPane = (props) => {
         height: '100%',
         width: '100%',
         display: 'flex',
-        flexDirection: 'row-reverse',
+        flexDirection: 'column',
       }}>
-      <Box top={0} right={0} display="inline-block">
+      <Box
+        display="flex"
+        justifyContent="flex-end"
+        boxShadow={3}
+        style={{backgroundColor: theme.palette.background.panelClose}}>
         <IconButton
           aria-label="Close Panel"
           onClick={closeHandler}
@@ -31,7 +35,7 @@ const LeftPane = (props) => {
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
-      <Box flex={1}>{selected === LeftNavs.Explorer && <Explorer />}</Box>
+      <Box flex={1}>{selected === LeftNavs.EXPLORER && <Explorer />}</Box>
     </div>
   );
 };

@@ -7,7 +7,7 @@ import CloseIcon from '@material-ui/icons/Close';
 import CompletedBuilds from './CompletedBuilds';
 import LivePreview from './LivePreview';
 import ApiRef from './ApiRef';
-import {RightNavs} from './NavigationEnum';
+import {RightNavs} from './Constants';
 
 const useStyles = makeStyles((theme) => ({
   themeBackground: {
@@ -22,7 +22,7 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(0.5),
     '&:hover': {
       backgroundColor: (props) =>
-        props.selected === RightNavs.LivePreview
+        props.selected === RightNavs.LIVE_PREVIEW
           ? 'rgba(0, 0, 0, 0.28)'
           : theme.palette.action.hover,
     },
@@ -35,13 +35,13 @@ const RightPane = (props) => {
 
   let rendered;
   switch (selected) {
-    case RightNavs.CompletedBuilds:
+    case RightNavs.COMPLETED_BUILDS:
       rendered = <CompletedBuilds />;
       break;
-    case RightNavs.LivePreview:
+    case RightNavs.LIVE_PREVIEW:
       rendered = <LivePreview />;
       break;
-    case RightNavs.ApiRef:
+    case RightNavs.API_REF:
       rendered = <ApiRef />;
       break;
     default:
@@ -51,7 +51,7 @@ const RightPane = (props) => {
   return (
     <div
       className={
-        selected === RightNavs.LivePreview
+        selected === RightNavs.LIVE_PREVIEW
           ? classes.whiteBackground
           : classes.themeBackground
       }

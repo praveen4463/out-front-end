@@ -7,7 +7,7 @@ import Editor from './Editor';
 import RightPane from './RightPane';
 import BottomPane from './BottomPane';
 import LeftPane from './LeftPane';
-import {LeftNavs, None} from './NavigationEnum';
+import {LeftNavs, None} from './Constants';
 import '../react-split-pane.css';
 
 const navClick = (setSelectedState, activeIconState, setActiveIconState) => {
@@ -33,8 +33,8 @@ const Content = () => {
   // Default nav state on mount are specified, but in future this may come from
   // props, for example loading state from storage on page refresh/load.
 
-  const [leftNavSelected, setLeftNavSelected] = useState(LeftNavs.Explorer);
-  const [leftNavActiveIcon, setLeftNavActiveIcon] = useState(LeftNavs.Explorer);
+  const [leftNavSelected, setLeftNavSelected] = useState(LeftNavs.EXPLORER);
+  const [leftNavActiveIcon, setLeftNavActiveIcon] = useState(LeftNavs.EXPLORER);
 
   const [rightNavSelected, setRightNavSelected] = useState(None);
   const [rightNavActiveIcon, setRightNavActiveIcon] = useState(None);

@@ -9,7 +9,7 @@ import IconButton from '@material-ui/core/IconButton';
 import SvgIcon from '@material-ui/core/SvgIcon';
 import PropTypes from 'prop-types';
 import Tooltip from '../TooltipCustom';
-import {LeftNavs} from './NavigationEnum';
+import {LeftNavs} from './Constants';
 
 const useStyles = makeStyles((theme) => ({
   nav: {
@@ -53,13 +53,13 @@ const LeftNavigation = (props) => {
         <Tooltip title="Files" placement="right">
           <IconButton
             aria-label="Files"
-            onClick={() => clickHandler(LeftNavs.Explorer)}
+            onClick={() => clickHandler(LeftNavs.EXPLORER)}
             className={classes.iconButton}>
             <FileIcon
               fontSize="small"
               className={clsx(
                 classes.icons,
-                active === LeftNavs.Explorer && classes.activeIcon
+                active === LeftNavs.EXPLORER && classes.activeIcon
               )}
             />
           </IconButton>

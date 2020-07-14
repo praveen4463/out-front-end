@@ -7,7 +7,7 @@ import Box from '@material-ui/core/Box';
 import Link from '@material-ui/core/Link';
 import Typography from '@material-ui/core/Typography';
 import PropTypes from 'prop-types';
-import {BottomNavs} from './NavigationEnum';
+import {BottomNavs} from './Constants';
 
 const useStyles = makeStyles((theme) => ({
   nav: {
@@ -75,12 +75,12 @@ const BottomNavigation = (props) => {
           className={classes.typography}>
           <Link
             color="inherit"
-            onClick={() => clickHandler(BottomNavs.BuildOutputStatus)}
+            onClick={() => clickHandler(BottomNavs.BUILD_OUTPUT_STATUS)}
             classes={{root: classes.link}}
             className={clsx(
               classes.link,
               classes.linkTab,
-              active === BottomNavs.BuildOutputStatus
+              active === BottomNavs.BUILD_OUTPUT_STATUS
                 ? classes.activeTab
                 : classes.linkHover
             )}>
