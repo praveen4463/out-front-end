@@ -41,6 +41,10 @@ const LeftNavigation = (props) => {
   const {clickHandler, active} = props;
   const classes = useStyles();
 
+  const onFileClick = () => {
+    clickHandler(LeftNavs.EXPLORER);
+  };
+
   return (
     <Paper
       square
@@ -53,7 +57,7 @@ const LeftNavigation = (props) => {
         <Tooltip title="Files" placement="right">
           <IconButton
             aria-label="Files"
-            onClick={() => clickHandler(LeftNavs.EXPLORER)}
+            onClick={onFileClick}
             className={classes.iconButton}>
             <FileIcon
               fontSize="small"

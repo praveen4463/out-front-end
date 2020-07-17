@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState, useCallback, useRef} from 'react';
 import Box from '@material-ui/core/Box';
 import PropTypes from 'prop-types';
 import {makeStyles} from '@material-ui/styles';
@@ -11,6 +11,7 @@ import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ArrowRightIcon from '@material-ui/icons/ArrowRight';
 import {ExplorerItemType} from '../Constants';
+import TreeItemEditor from './TreeItemEditor';
 import Tooltip from '../../TooltipCustom';
 
 const useStyles = makeStyles((theme) => ({
@@ -30,11 +31,101 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const getExplorerParentTypeByChild = (childType) => {
+  let parentType;
+  switch (childType) {
+    case ExplorerItemType.TEST:
+      parentType = ExplorerItemType.FILE;
+      break;
+    case ExplorerItemType.VERSION:
+      parentType = ExplorerItemType.TEST;
+      break;
+    default:
+      throw new Error(`No parent for this child type ${childType}`);
+  }
+  return parentType;
+};
+
 // take props with current state and functions to send updates to state,
 // handlers for starting the build. On re-render, always create using the
 // state.
-const Explorer = ({files}) => {
+// const Explorer = ({files, onUnload, onNewItem}) => {
+const Explorer = ({files, onNewItem}) => {
+  const [addNewItem, setAddNewItem] = useState(null);
   const classes = useStyles();
+
+  // eslint-disable-next-line no-unused-vars
+  const onNewFile = () => {
+    const fileItemType = ExplorerItemType.FILE;
+    setAddNewItem({type: fileItemType, parentId: undefined});
+  };
+
+  // eslint-disable-next-line no-unused-vars
+  const newItemCallback = useCallback((itemType, parentItemId) => {
+    setAddNewItem({type: itemType, parent: parentItemId});
+  }, []);
+
+  const newItemCommitCallback = useCallback(
+    (newItemName, newItemType) => {
+      onNewItem(newItemName, newItemType, addNewItem.parentId);
+    },
+    [onNewItem, addNewItem.parentId]
+  );
+
+  const newItemCancelCallback = useCallback(() => {
+    setAddNewItem(null);
+  }, []);
+
+  const selectedNodes = useRef();
+
+  const onNodeSelect = (e, node) => {
+    selectedNodes.current = node;
+  };
+
+  // eslint-disable-next-line no-unused-vars
+  const getTotalSelected = useCallback(() => {
+    if (!Array.isArray(selectedNodes.current)) {
+      return 0;
+    }
+    return selectedNodes.current.length;
+  }, []);
+
+  const getItemEditorFormatted = (existingNames, itemType) => {
+    return (
+      <div className="MuiTreeItem-content">
+        <div className="MuiTreeItem-iconContainer" />
+        <div className="MuiTreeItem-label">
+          <TreeItemEditor
+            defaultName=""
+            existingNames={existingNames}
+            itemType={itemType}
+            onCommit={newItemCommitCallback}
+            onCancel={newItemCancelCallback}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const getItemNamesFromFiles = (itemType) => {
+    if (!Array.isArray(files)) {
+      return [];
+    }
+    let sourceArray;
+    if (itemType === ExplorerItemType.FILE) {
+      sourceArray = files;
+    } else if (itemType === ExplorerItemType.TEST) {
+      sourceArray = Array.isArray(files.tests) ? files.tests : [];
+    } else if (itemType === ExplorerItemType.VERSION) {
+      sourceArray = Array.isArray(files.tests.versions)
+        ? files.tests.versions
+        : [];
+    }
+    return sourceArray.reduce((a, c) => {
+      a.push(c.name);
+      return a;
+    }, []);
+  };
 
   return (
     <Box className={classes.root}>
@@ -63,50 +154,73 @@ const Explorer = ({files}) => {
         <TreeView
           defaultCollapseIcon={<ArrowDropDownIcon />}
           defaultExpandIcon={<ArrowRightIcon />}
-          multiSelect>
-          {files !== null &&
-            files.loadToTree &&
-            files.map((f) => (
-              <TreeItem
-                nodeId={`${ExplorerItemType.FILE}-${f.id}`}
-                key={f.id}
-                label={<Typography variant="caption">{f.name}</Typography>}>
-                {/* onNodeSelect passes nodeId as node parameter, we've
-                appeneded type to id because id's are not unique across
+          multiSelect
+          onNodeSelect={onNodeSelect}
+          expanded={
+            Boolean(addNewItem) && addNewItem.parentId !== undefined
+              ? [
+                  `${getExplorerParentTypeByChild(addNewItem.type)}-${
+                    addNewItem.parentId
+                  }`,
+                ]
+              : []
+          }>
+          {Boolean(addNewItem) &&
+            addNewItem.type === ExplorerItemType.FILE &&
+            getItemEditorFormatted(
+              getItemNamesFromFiles(ExplorerItemType.FILE),
+              ExplorerItemType.FILE
+            )}
+          {Array.isArray(files) &&
+            files
+              .filter((f) => f.loadToTree)
+              .map((f) => (
+                <TreeItem
+                  nodeId={`${ExplorerItemType.FILE}-${f.id}`}
+                  key={f.id}
+                  label={<Typography variant="caption">{f.name}</Typography>}>
+                  {/* onNodeSelect passes nodeId as node parameter, we've
+                appended type to id because id's are not unique across
                 file/test/version and also we need it to know what type of items
                 selected */}
-                {f.tests !== undefined &&
-                  f.tests.length &&
-                  f.tests.map((t) => (
-                    <TreeItem
-                      nodeId={`${ExplorerItemType.TEST}-${t.id}`}
-                      key={t.id}
-                      label={
-                        <Typography variant="caption">{t.name}</Typography>
-                      }>
-                      {t.versions !== undefined &&
-                        t.versions.length &&
-                        t.versions.map((v) => (
-                          <TreeItem
-                            nodeId={`${ExplorerItemType.VERSION}-${v.id}`}
-                            key={v.id}
-                            label={
-                              <Typography variant="caption">
-                                {v.name}
-                              </Typography>
-                            }
-                          />
-                        ))}
-                    </TreeItem>
-                  ))}
-              </TreeItem>
-            ))}
-          {/* <div className="MuiTreeItem-content">
-              <div className="MuiTreeItem-iconContainer" />
-              <div className="MuiTreeItem-label">
-                <input value="Test all are empty" readOnly />
-              </div>
-            </div> */}
+                  {Boolean(addNewItem) &&
+                    addNewItem.type === ExplorerItemType.TEST &&
+                    addNewItem.parentId === f.id &&
+                    getItemEditorFormatted(
+                      getItemNamesFromFiles(ExplorerItemType.TEST),
+                      ExplorerItemType.TEST
+                    )}
+                  {Array.isArray(f.tests) &&
+                    f.tests.map((t) => (
+                      <TreeItem
+                        nodeId={`${ExplorerItemType.TEST}-${t.id}`}
+                        key={t.id}
+                        label={
+                          <Typography variant="caption">{t.name}</Typography>
+                        }>
+                        {Boolean(addNewItem) &&
+                          addNewItem.type === ExplorerItemType.VERSION &&
+                          addNewItem.parentId === t.id &&
+                          getItemEditorFormatted(
+                            getItemNamesFromFiles(ExplorerItemType.VERSION),
+                            ExplorerItemType.VERSION
+                          )}
+                        {Array.isArray(t.versions) &&
+                          t.versions.map((v) => (
+                            <TreeItem
+                              nodeId={`${ExplorerItemType.VERSION}-${v.id}`}
+                              key={v.id}
+                              label={
+                                <Typography variant="caption">
+                                  {v.name}
+                                </Typography>
+                              }
+                            />
+                          ))}
+                      </TreeItem>
+                    ))}
+                </TreeItem>
+              ))}
         </TreeView>
       </Box>
     </Box>
@@ -115,6 +229,7 @@ const Explorer = ({files}) => {
 
 Explorer.propTypes = {
   files: PropTypes.arrayOf(PropTypes.object).isRequired,
+  onNewItem: PropTypes.func.isRequired,
 };
 
 export default Explorer;

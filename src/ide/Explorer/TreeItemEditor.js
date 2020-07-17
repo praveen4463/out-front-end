@@ -2,7 +2,9 @@ import React, {useState} from 'react';
 import InputBase from '@material-ui/core/InputBase';
 import Typography from '@material-ui/core/Typography';
 import PropTypes from 'prop-types';
+import Box from '@material-ui/core/Box';
 import validator from './treeItemValidator';
+import ColoredItemIcon from './ColoredItemIcon';
 
 const selectOnMount = (input) => {
   if (input !== null) {
@@ -43,7 +45,8 @@ const TreeItemEditor = ({
   };
 
   return (
-    <>
+    <Box display="flex" alignItems="center" flex={1}>
+      <ColoredItemIcon itemType={itemType} />
       <InputBase
         onBlur={commitHandler}
         onChange={(e) => setValue(e.target.value)}
@@ -58,7 +61,7 @@ const TreeItemEditor = ({
       {error !== null && (
         <Typography variant="caption" color="error" display="block" />
       )}
-    </>
+    </Box>
   );
 };
 
