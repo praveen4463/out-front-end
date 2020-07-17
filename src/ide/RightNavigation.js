@@ -127,7 +127,7 @@ const RightNavigation = (props) => {
 
 RightNavigation.propTypes = {
   clickHandler: PropTypes.func.isRequired,
-  active: PropTypes.number.isRequired,
+  active: PropTypes.string.isRequired,
 };
 
 export default RightNavigation;

@@ -78,7 +78,7 @@ const RightPane = (props) => {
 
 RightPane.propTypes = {
   closeHandler: PropTypes.func.isRequired,
-  selected: PropTypes.number.isRequired,
+  selected: PropTypes.string.isRequired,
 };
 
 export default RightPane;

@@ -5,7 +5,7 @@ import ProjectSelector from './ProjectSelector';
 import Content from './Content';
 import darkTheme from './Themes';
 import sampleFiles from './Explorer/sample';
-import './ide.css';
+import './index.css';
 
 const Ide = () => {
   // May also be null when there is no incoming project found on load, for
@@ -25,6 +25,7 @@ const Ide = () => {
     // 1. if testId, get all tests from corresponding file.
     // 2. if fileId, get all tests from file.
     // 3. when just projectId, do nothing.
+    // make sure all content is ordered.
     if (sampleFiles !== null && sampleFiles.length !== 0) {
       setFiles(sampleFiles); // Fill some sample data for now
     }
@@ -58,7 +59,7 @@ const Ide = () => {
                 />
               }
             />
-            <Content files={files} />
+            {files !== null && <Content files={files} />}
           </div>
         </div>
       </div>

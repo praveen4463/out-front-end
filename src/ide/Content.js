@@ -1,5 +1,6 @@
 import React, {useState} from 'react';
 import SplitPane from 'react-split-pane';
+import PropTypes from 'prop-types';
 import LeftNavigation from './LeftNavigation';
 import BottomNavigation from './BottomNavigation';
 import RightNavigation from './RightNavigation';
@@ -29,7 +30,7 @@ const closePane = (activeIconState, setActiveIconState) => {
   };
 };
 
-const Content = () => {
+const Content = ({files}) => {
   // Default nav state on mount are specified, but in future this may come from
   // props, for example loading state from storage on page refresh/load.
 
@@ -121,6 +122,7 @@ const Content = () => {
                     setLeftNavActiveIcon
                   )}
                   selected={leftNavSelected}
+                  files={files}
                 />
               )}
               <div
@@ -199,6 +201,10 @@ const Content = () => {
       />
     </div>
   );
+};
+
+Content.propTypes = {
+  files: PropTypes.arrayOf(PropTypes.object).isRequired,
 };
 
 export default Content;

@@ -104,7 +104,7 @@ const BottomNavigation = (props) => {
 
 BottomNavigation.propTypes = {
   clickHandler: PropTypes.func.isRequired,
-  active: PropTypes.number.isRequired,
+  active: PropTypes.string.isRequired,
 };
 
 export default BottomNavigation;

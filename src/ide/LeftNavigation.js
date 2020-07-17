@@ -80,7 +80,7 @@ const LeftNavigation = (props) => {
 
 LeftNavigation.propTypes = {
   clickHandler: PropTypes.func.isRequired,
-  active: PropTypes.number.isRequired,
+  active: PropTypes.string.isRequired,
 };
 
 export default LeftNavigation;
