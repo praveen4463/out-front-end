@@ -7,7 +7,7 @@ import CloseIcon from '@material-ui/icons/Close';
 import Explorer from './Explorer';
 import {LeftNavs} from './Constants';
 
-const LeftPane = ({closeHandler, selected, files}) => {
+const LeftPane = ({closeHandler, selected}) => {
   const theme = useTheme();
   return (
     <div
@@ -34,9 +34,7 @@ const LeftPane = ({closeHandler, selected, files}) => {
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
-      <Box flex={1}>
-        {selected === LeftNavs.EXPLORER && <Explorer files={files} />}
-      </Box>
+      <Box flex={1}>{selected === LeftNavs.EXPLORER && <Explorer />}</Box>
     </div>
   );
 };
@@ -44,7 +42,6 @@ const LeftPane = ({closeHandler, selected, files}) => {
 LeftPane.propTypes = {
   closeHandler: PropTypes.func.isRequired,
   selected: PropTypes.string.isRequired,
-  files: PropTypes.arrayOf(PropTypes.object).isRequired,
 };
 
 export default LeftPane;

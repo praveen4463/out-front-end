@@ -1,5 +1,6 @@
 import {Version, Test, File} from './model';
-
+// Reflects the similar data structure we'd get from db.
+// All data is in ascending order
 const versionsTestId1 = [
   new Version(
     1,
@@ -85,12 +86,29 @@ const testsFileId1 = [
 
 // Only files that user has explicitly asked to open will have a 'tests' field
 // populated and 'loadToTree=true', other files will have 'loadToTree=false'
-// and are here just for duplicate check.
+// and are here just to check a duplicate name when adding new file.
 const files = [
-  new File(1, 'IDE Tests', testsFileId1, true),
-  new File(2, 'Build Run Tests', undefined, true),
-  new File(2, 'IDE Output Tests', undefined, false),
-  new File(2, 'IDE Debug Flow Tests', undefined, false),
+  new File(2, 'Build Run Tests', null),
+  new File(4, 'IDE Debug Flow Tests', null),
+  new File(3, 'IDE Output Tests', null),
+  new File(1, 'IDE Tests', testsFileId1),
 ];
 
-export default files;
+const fileToLoad = [
+  new File(6, 'Anchor Validation Tests', [
+    new Test(6, 'anchor should change when i click on back button', [
+      new Version(10, 'd2', 'a=b', true),
+      new Version(9, 'v1', 'a=b', false),
+    ]),
+    new Test(5, 'check anchors at bottom pane', [
+      new Version(8, 'v1', 'a=b', true),
+    ]),
+  ]),
+  new File(5, 'URL Validation Tests', [
+    new Test(4, 'url should change when i click on back button', [
+      new Version(7, 'v1', 'a=b', true),
+    ]),
+  ]),
+];
+
+export {files, fileToLoad};

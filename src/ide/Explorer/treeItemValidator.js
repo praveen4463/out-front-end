@@ -11,8 +11,8 @@ export default (name, existingNames, itemType) => {
     return `${targetEl} name can't be more than ${MaxLengths[itemType]} characters.`;
   }
 
-  if (existingNames.find((n) => n === name)) {
-    return `A matching ${targetEl} name already exists.`;
+  if (Array.isArray(existingNames) && existingNames.includes(name)) {
+    return `A ${targetEl} of the same name already exists.`;
   }
 
   return null;

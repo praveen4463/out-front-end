@@ -20,7 +20,7 @@ module.exports = {
     ecmaVersion: 8,
     ecmaFeatures: {
       jsx: true,
-      modues: true,
+      modules: true,
       experimentalObjectRestSpread: true,
     },
   },
@@ -30,6 +30,7 @@ module.exports = {
     curly: 'warn',
     'react/jsx-filename-extension': [1, { 'extensions': ['.js', '.jsx'] }],
     'react-hooks/rules-of-hooks': 'error',
-    'react-hooks/exhaustive-deps': 'warn'
+    'react-hooks/exhaustive-deps': 'warn',
+    'no-param-reassign': ['error', { props: true, ignorePropertyModificationsFor: ['draft'] }],
   }
 }

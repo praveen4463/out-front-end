@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useContext} from 'react';
 import Typography from '@material-ui/core/Typography';
 import {makeStyles} from '@material-ui/styles';
 import PropTypes from 'prop-types';
@@ -14,11 +14,20 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import {ContextMenu, MenuItem, ContextMenuTrigger} from 'react-contextmenu';
 import TestIcon from '@material-ui/icons/Title';
+import Chip from '@material-ui/core/Chip';
+import clsx from 'clsx';
 import VersionIcon from '../newVersionIcon';
 import Tooltip from '../../TooltipCustom';
 import {ExplorerItemType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
 import ColoredItemIcon from './ColoredItemIcon';
+import {RootDispatchContext} from '../Contexts';
+import {
+  ON_UNLOAD_CALLBACK,
+  ON_RENAME_CALLBACK,
+  ON_DELETE_CALLBACK,
+  ON_RUN_BUILD_CALLBACK,
+} from '../actionTypes';
 
 const useStyle = makeStyles((theme) => ({
   contextMenu: {
@@ -58,14 +67,8 @@ const useStyle = makeStyles((theme) => ({
   iconButton: {
     padding: theme.spacing(1),
   },
-  zwlFileColoredIcon: {
-    backgroundColor: '#e2cdfd',
-  },
-  testColoredIcon: {
-    backgroundColor: '#f1e05a',
-  },
-  versionColoredIcon: {
-    backgroundColor: '#89e051',
+  errorText: {
+    color: theme.palette.error.dark,
   },
 }));
 
@@ -84,15 +87,16 @@ const TreeItemContent = React.memo(
     itemType,
     itemName,
     itemId,
+    itemParentId,
+    itemGrandParentId,
     itemSiblingNames,
-    onUnload,
+    hasError,
+    isCurrentVersion,
     onNewItem,
-    onRename,
-    onDelete,
-    onRunBuild,
     onRunBuildMultiple,
     getTotalSelected,
   }) => {
+    const dispatch = useContext(RootDispatchContext);
     const [editing, setEditing] = useState(false);
     const [hovering, setHovering] = useState(false);
     const [contextMenuRenderType, setContextMenuRenderType] = useState(null);
@@ -101,7 +105,6 @@ const TreeItemContent = React.memo(
 
     const newItemHandler = () => {
       let newItemType;
-      const parentItemId = itemId;
       if (itemType === ExplorerItemType.FILE) {
         newItemType = ExplorerItemType.TEST;
       } else if (itemType === ExplorerItemType.TEST) {
@@ -109,25 +112,37 @@ const TreeItemContent = React.memo(
       } else {
         throw new Error("Can't add items under a version");
       }
-      onNewItem(newItemType, parentItemId);
+      // the current item actually becomes parentId when adding new item.
+      onNewItem(newItemType, itemId);
     };
 
     const renameCommitCallback = useCallback(
       (newName, type) => {
-        onRename(newName, type, itemId);
-        // parent will first update the name and then change the data set based on
-        // new name. It will then sort the list by new name which will re render
-        // it. Re render will iterate thru data set but should keep all tree item
-        // components unchanged except current one that triggered rename. This
-        // happens thanks for the 'key' prop, react will keep components from
-        // memory that have matching keys, removing those that are not in new set
-        // and create those were not existing.
-        // Now, since we were in editing mode, new name will not appear until the
-        // next statement cancel editing which will show new name.
-        // TODO: verify that this behaviour is true.
+        dispatch([
+          ON_RENAME_CALLBACK,
+          {
+            itemNewName: newName,
+            itemType: type,
+            itemCurrentName: itemName,
+            itemId,
+            itemParentId,
+          },
+        ]);
+        /*
+        parent will first update the name and then change the data set based on
+        new name. It will then sort the list by new name which will re render
+        it. Re render will iterate thru data set but should keep all tree item
+        components unchanged except current one that triggered rename. This
+        happens thanks for the 'key' prop, react will keep components from
+        memory that have matching keys, removing those that are not in new set
+        and create those were not existing.
+        Now, since we were in editing mode, new name will not appear until the
+        next statement cancel editing which will show new name.
+        TODO: verify that this behaviour is true.
+        */
         setEditing(false);
       },
-      [onRename, itemId]
+      [dispatch, itemName, itemId, itemParentId]
     );
 
     const editCancelCallback = useCallback(() => {
@@ -135,7 +150,10 @@ const TreeItemContent = React.memo(
     }, []);
 
     const runBuildHandler = () => {
-      onRunBuild(itemType, itemId);
+      dispatch([
+        ON_RUN_BUILD_CALLBACK,
+        {itemType, itemId, itemParentId, itemGrandParentId},
+      ]);
     };
 
     const onEdit = () => {
@@ -156,7 +174,7 @@ const TreeItemContent = React.memo(
 
     const deleteAcceptHandler = () => {
       setCurrentConfirmDialog(null);
-      onDelete(itemType, itemId);
+      dispatch([ON_DELETE_CALLBACK, {itemType, itemId, itemParentId}]);
     };
 
     const unloadHandler = () => {
@@ -165,7 +183,7 @@ const TreeItemContent = React.memo(
 
     const unloadAcceptHandler = () => {
       setCurrentConfirmDialog(null);
-      onUnload(itemType, itemId);
+      dispatch([ON_UNLOAD_CALLBACK, {itemType, itemId}]);
     };
 
     const confirmDialogCancelHandler = () => {
@@ -229,7 +247,14 @@ const TreeItemContent = React.memo(
             onMouseLeave={onHoveringCancel}>
             <Box flex={1}>
               <ColoredItemIcon itemType={itemType} />
-              <Typography variant="caption">{itemName}</Typography>
+              <Typography
+                variant="caption"
+                className={clsx(hasError && classes.errorText)}>
+                {itemName}
+              </Typography>
+              {itemType === ExplorerItemType.VERSION && isCurrentVersion && (
+                <Chip size="small" label="Latest" />
+              )}
             </Box>
             {hovering && (
               <Box>
@@ -271,14 +296,16 @@ const TreeItemContent = React.memo(
                     <EditIcon className={classes.icon} />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Delete">
-                  <IconButton
-                    aria-label="Delete"
-                    onClick={deleteHandler}
-                    className={classes.iconButton}>
-                    <DeleteIcon className={classes.icon} />
-                  </IconButton>
-                </Tooltip>
+                {!isCurrentVersion && (
+                  <Tooltip title="Delete">
+                    <IconButton
+                      aria-label="Delete"
+                      onClick={deleteHandler}
+                      className={classes.iconButton}>
+                      <DeleteIcon className={classes.icon} />
+                    </IconButton>
+                  </Tooltip>
+                )}
               </Box>
             )}
           </Box>
@@ -306,7 +333,9 @@ const TreeItemContent = React.memo(
                 <MenuItem onClick={newItemHandler}>Add New Version</MenuItem>
               )}
               <MenuItem onClick={onEdit}>Rename</MenuItem>
-              <MenuItem onClick={deleteHandler}>Delete</MenuItem>
+              {!isCurrentVersion && (
+                <MenuItem onClick={deleteHandler}>Delete</MenuItem>
+              )}
             </ContextMenu>
           ) : (
             <ContextMenu
@@ -356,12 +385,16 @@ TreeItemContent.propTypes = {
   itemType: PropTypes.string.isRequired,
   itemName: PropTypes.string.isRequired,
   itemId: PropTypes.number.isRequired,
+  itemParentId: PropTypes.number.isRequired,
+  itemGrandParentId: PropTypes.number.isRequired,
   itemSiblingNames: PropTypes.arrayOf(PropTypes.string).isRequired,
-  onUnload: PropTypes.func.isRequired,
+  hasError: PropTypes.bool.isRequired,
+  isCurrentVersion: PropTypes.bool,
   onNewItem: PropTypes.func.isRequired,
-  onRename: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
-  onRunBuild: PropTypes.func.isRequired,
   onRunBuildMultiple: PropTypes.func.isRequired,
   getTotalSelected: PropTypes.func.isRequired,
+};
+
+TreeItemContent.defaultProps = {
+  isCurrentVersion: undefined,
 };

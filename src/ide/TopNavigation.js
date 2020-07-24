@@ -8,13 +8,13 @@ import BugReportIcon from '@material-ui/icons/BugReport';
 import StopIcon from '@material-ui/icons/Stop';
 import BuildIcon from '@material-ui/icons/Build';
 import Box from '@material-ui/core/Box';
-import PropTypes from 'prop-types';
 import {makeStyles} from '@material-ui/core/styles';
 import MainMenu from './MainMenu';
 import EditMenu from './EditMenu';
 import HelpMenu from './HelpMenu';
 import UserAvatar from './UserAvatar';
 import Tooltip from '../TooltipCustom';
+import ProjectSelector from './ProjectSelector';
 
 const useStyles = makeStyles((theme) => ({
   fontSizeSmall: {
@@ -32,8 +32,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const TopNavigation = (props) => {
-  const {projectSelector} = props;
+const TopNavigation = () => {
   const classes = useStyles();
   return (
     <AppBar classes={{root: classes.appBarRoot}}>
@@ -100,7 +99,7 @@ const TopNavigation = (props) => {
           justifyContent="center"
           flexWrap="wrap"
           mx={1}>
-          {projectSelector}
+          <ProjectSelector />
         </Box>
         <HelpMenu />
         <div className="MuiIconButton-edgeEnd">
@@ -109,10 +108,6 @@ const TopNavigation = (props) => {
       </ToolBar>
     </AppBar>
   );
-};
-
-TopNavigation.propTypes = {
-  projectSelector: PropTypes.node.isRequired,
 };
 
 export default TopNavigation;

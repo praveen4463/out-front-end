@@ -1,13 +1,14 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useContext} from 'react';
 import {makeStyles} from '@material-ui/core/styles';
 import AddCircleIcon from '@material-ui/icons/AddCircle';
 import IconButton from '@material-ui/core/IconButton';
-import PropTypes from 'prop-types';
 import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
 import Tooltip from '../TooltipCustom';
+import {SET_PROJECT} from './actionTypes';
+import {RootDispatchContext, RootStateContext} from './Contexts';
 
 const useStyles = makeStyles((theme) => ({
   formControl: {
@@ -22,10 +23,12 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const ProjectSelector = (props) => {
-  const {selectedProject, changeProjectHandler} = props;
-  const classes = useStyles();
+const ProjectSelector = () => {
+  const dispatch = useContext(RootDispatchContext);
+  const {projectId} = useContext(RootStateContext).projectId;
   const [projects, setProjects] = useState(null);
+  const classes = useStyles();
+
   useEffect(() => {
     // !! Sample data, load projects from db for the current user, sorted.
     setProjects([
@@ -46,8 +49,8 @@ const ProjectSelector = (props) => {
       // !! sort p
       return p;
     });
-    // !! invoke changeProjectHandler with id
-    changeProjectHandler(id); */
+    // invoke dispatch
+    */
   };
 
   if (projects === null) {
@@ -61,12 +64,14 @@ const ProjectSelector = (props) => {
         <Select
           labelId="projectSelectLabel"
           id="projectSelect"
-          value={selectedProject}
+          value={projectId}
           className={classes.input}
-          onChange={(event) => changeProjectHandler(event.target.value)}>
-          {projects.map((project) => (
-            <MenuItem value={project.value} key={project.value}>
-              {project.text}
+          onChange={(event) =>
+            dispatch([SET_PROJECT, {projectId: event.target.value}])
+          }>
+          {projects.map((p) => (
+            <MenuItem value={p.value} key={p.value}>
+              {p.text}
             </MenuItem>
           ))}
         </Select>
@@ -83,11 +88,6 @@ const ProjectSelector = (props) => {
       </Tooltip>
     </>
   );
-};
-
-ProjectSelector.propTypes = {
-  selectedProject: PropTypes.number.isRequired,
-  changeProjectHandler: PropTypes.func.isRequired,
 };
 
 export default ProjectSelector;
