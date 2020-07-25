@@ -69,7 +69,7 @@ function AddNewItem(type, parentId = null) {
 // state.
 const Explorer = () => {
   const dispatch = useContext(RootDispatchContext);
-  const {files} = useContext(RootStateContext).files;
+  const {files} = useContext(RootStateContext);
   const [addNewItem, setAddNewItem] = useState(null);
   const classes = useStyles();
   const selectedNodes = useRef();
@@ -103,7 +103,7 @@ const Explorer = () => {
       ]);
       setAddNewItem(null);
     },
-    [addNewItem.parentId, dispatch]
+    [addNewItem, dispatch]
     // add dispatch despite it's not needed, because if we ignore any further
     // wrong updates may go unnoticed,
     // https://github.com/reactjs/reactjs.org/issues/1889

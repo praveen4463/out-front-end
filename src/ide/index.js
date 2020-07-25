@@ -10,7 +10,7 @@ import {
   files as sampleFiles,
   fileToLoad as sampleFilesToLoad,
 } from './Explorer/sample';
-import ExplorerItemType from './Constants';
+import {ExplorerItemType} from './Constants';
 import {Version, Test, File, filesSchema} from './Explorer/model';
 import {
   INITIAL_SET_FILES,
@@ -97,8 +97,6 @@ const handleOnLoad = (draft) => {
   // This dialog will be given 'onFilesSelection' callback that will be invoked
   // on files selection only, not if an error occurs and given the raw api
   // validated file.
-  // eslint-disable-next-line prettier/prettier
-  
   // For now, simulate this and get sample files. Note that, this is just for
   // testing this feature and fixed 'ids' are used in sample file, thus while,
   // just do this action once not twice.
@@ -327,7 +325,7 @@ const handleOnDelete = (draft, payload) => {
     versions: [],
     tests: [],
     files: [],
-    idsAdjustment: () => {},
+    idsAdjustment: () => null,
   };
   switch (payload.itemType) {
     case ExplorerItemType.FILE: {
@@ -489,6 +487,7 @@ const ideRootReducer = (state, [type, payload, error, meta]) => {
           throw new Error('Insufficient arguments passed to onProjectChange.');
         }
         draft.projectId = payload.projectId;
+        // TODO: we may also change qs value to new projectId
       });
     case ON_LOAD_CALLBACK:
       return callHandler(state, handleOnLoad);
@@ -536,7 +535,8 @@ const Ide = () => {
         in ascending order within their parent.
     */
     const qsParams = new URLSearchParams(document.location.search);
-    const fileId = qsParams.get('file');
+    // TODO: remove '?? 1' after test done
+    const fileId = qsParams.get('file') ?? 1;
     /* const testId = qsParams.get('test');
     const versionId = qsParams.get('version'); */
     // Send to api fileId (if not null) and get list of files, only the given

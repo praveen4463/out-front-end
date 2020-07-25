@@ -25,7 +25,7 @@ const useStyles = makeStyles((theme) => ({
 
 const ProjectSelector = () => {
   const dispatch = useContext(RootDispatchContext);
-  const {projectId} = useContext(RootStateContext).projectId;
+  const {projectId} = useContext(RootStateContext);
   const [projects, setProjects] = useState(null);
   const classes = useStyles();
 
@@ -64,7 +64,7 @@ const ProjectSelector = () => {
         <Select
           labelId="projectSelectLabel"
           id="projectSelect"
-          value={projectId}
+          value={projectId ?? ''}
           className={classes.input}
           onChange={(event) =>
             dispatch([SET_PROJECT, {projectId: event.target.value}])
