@@ -36,6 +36,7 @@ const useStyles = makeStyles((theme) => ({
     padding: '5px 0',
     width: '100%',
     display: 'inline-block',
+    userSelect: 'none',
   },
   linkHover: {
     '&:hover': {

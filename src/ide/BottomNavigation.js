@@ -37,6 +37,7 @@ const useStyles = makeStyles((theme) => ({
     padding: '0 5px',
     height: '100%',
     display: 'inline-block',
+    userSelect: 'none',
   },
   linkHover: {
     '&:hover': {
@@ -76,7 +77,6 @@ const BottomNavigation = (props) => {
           <Link
             color="inherit"
             onClick={() => clickHandler(BottomNavs.BUILD_OUTPUT_STATUS)}
-            classes={{root: classes.link}}
             className={clsx(
               classes.link,
               classes.linkTab,

@@ -5,6 +5,7 @@ const versionsTestId1 = [
   new Version(
     1,
     'v1',
+    1,
     `# when user doesn't give attention to previous offer, google tells to.
     chromeHomePageOffer = findElements("div#gbw a.gb_Nd", true)
     if size(chromeHomePageOffer) > 0 {
@@ -18,6 +19,7 @@ const versionsTestId2 = [
   new Version(
     2,
     'v1',
+    2,
     `# 1. simple google search test
     openUrl("https://google.com")
     # sometime when IE opens, google tries to bully it by
@@ -31,6 +33,7 @@ const versionsTestId2 = [
   new Version(
     3,
     'v2',
+    2,
     `typeActive("apple.com", keys.enter)
     # this selector gives all results but findElement will return the first
     firstResult = findElement("div.r > a > h3")
@@ -44,6 +47,7 @@ const versionsTestId3 = [
   new Version(
     4,
     'v1',
+    3,
     `openUrl(staticSitePrefix + "wd_document_click_and_keydown_c.html")
     switchFrame("iframe[name='result']")
     sendKeysToPage(".doc-click", keys.shift, "r")
@@ -54,6 +58,7 @@ const versionsTestId3 = [
   new Version(
     5,
     'v2',
+    3,
     `sendKeysToPageF("r")
     assertTrue(trim(getElementText(".doc-click")) == "document clicked")
     # shift went up in last sendKeysToPage call, thus 'r' will print as is 
@@ -67,6 +72,7 @@ const versionsTestId3 = [
   new Version(
     6,
     'v3',
+    3,
     `q = activeElement()
     if browser.name == "chrome" {
       text = "hi buddy ♻, whats up ⚜"
@@ -79,9 +85,9 @@ const versionsTestId3 = [
   ),
 ];
 const testsFileId1 = [
-  new Test(1, 'debug button changes color on click', versionsTestId1),
-  new Test(2, 'start button begins running test', versionsTestId2),
-  new Test(3, 'stop halts the execution of test', versionsTestId3),
+  new Test(1, 'debug button changes color on click', 1, versionsTestId1),
+  new Test(2, 'start button begins running test', 1, versionsTestId2),
+  new Test(3, 'stop halts the execution of test', 1, versionsTestId3),
 ];
 
 // Only files that user has explicitly asked to open will have a 'tests' field
@@ -96,17 +102,17 @@ const files = [
 
 const fileToLoad = [
   new File(6, 'Anchor Validation Tests', [
-    new Test(6, 'anchor should change when i click on back button', [
-      new Version(10, 'd2', 'a=b', true),
-      new Version(9, 'v1', 'a=b', false),
+    new Test(6, 'anchor should change when i click on back button', 6, [
+      new Version(10, 'd2', 6, 'a=b', true),
+      new Version(9, 'v1', 6, 'a=b', false),
     ]),
-    new Test(5, 'check anchors at bottom pane', [
-      new Version(8, 'v1', 'a=b', true),
+    new Test(5, 'check anchors at bottom pane', 6, [
+      new Version(8, 'v1', 5, 'a=b', true),
     ]),
   ]),
   new File(5, 'URL Validation Tests', [
-    new Test(4, 'url should change when i click on back button', [
-      new Version(7, 'v1', 'a=b', true),
+    new Test(4, 'url should change when i click on back button', 5, [
+      new Version(7, 'v1', 4, 'a=b', true),
     ]),
   ]),
 ];

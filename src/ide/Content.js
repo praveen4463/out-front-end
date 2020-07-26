@@ -95,7 +95,7 @@ const Content = () => {
             }}>
             <SplitPane
               split="vertical"
-              defaultSize="20%"
+              defaultSize="30%"
               minSize={0}
               onChange={(size) => {
                 if (size === 0 && leftNavActiveIcon !== None) {

@@ -7,18 +7,20 @@ import {schema} from 'normalizr';
 
 // Files model and schema, note that fields those don't belong to db may or may
 // not be in data/normalized data.
-function Version(id, name, code, isCurrent, hasError, errorMsg) {
+function Version(id, name, testId, code, isCurrent, hasError, errorMsg) {
   this.id = id;
   this.name = name;
+  this.testId = testId;
   this.code = code;
   this.isCurrent = isCurrent;
   this.hasError = hasError;
   this.errorMsg = errorMsg;
 }
 
-function Test(id, name, versions, hasError) {
+function Test(id, name, fileId, versions, hasError) {
   this.id = id;
   this.name = name;
+  this.fileId = fileId;
   this.versions = versions;
   this.hasError = hasError;
   // if any of version in this test has 'hasError=true', the test also contain

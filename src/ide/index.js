@@ -1,5 +1,5 @@
 import React, {useEffect, useReducer} from 'react';
-import {ThemeProvider} from '@material-ui/styles';
+import {ThemeProvider} from '@material-ui/core/styles';
 import {normalize} from 'normalizr';
 import produce from 'immer';
 import {union, random} from 'lodash-es';
@@ -166,7 +166,7 @@ const handleOnNewItem = (draft, payload) => {
     // retrieve testId, name, versions, versionId, versionName, code, isCurrent
     // every new test contains a default v1 version with empty code.
     // !! put the following statement on success callback
-    return new Test(newRandom(), payload.itemName, [
+    return new Test(newRandom(), payload.itemName, payload.itemParentId, [
       new Version(newRandom(), 'v1', '', true), // simulate
     ]);
   };
@@ -182,6 +182,7 @@ const handleOnNewItem = (draft, payload) => {
     return new Version(
       newRandom(),
       payload.itemName,
+      payload.itemParentId,
       'openUrl("https://twitter.com")',
       true
     ); // simulate
@@ -422,20 +423,10 @@ const handleOnRunBuild = (draft, payload) => {
     throw new Error('missing itemParentId in arguments.');
   }
 
-  if (
-    payload.itemType === ExplorerItemType.VERSION &&
-    payload.itemGrandParentId === null
-  ) {
-    throw new Error('missing itemGrandParentId in arguments.');
-  }
-
   console.log(`invoked handleRunBuild with arguments ${payload}`);
-  // We've file/test/version ids every time there is selection made for running
-  // build. Open build config, show the selected ones as 'selected' and offer
+  // Open build config, show the selected ones as 'selected' and offer
   // to add more file/test/version. We should show file/test/version details
   // with every version of test going to run (the block that is draggable),
-  // that's why even if a version is selected, a grandparent that is file is
-  // passed so that's there is no need for a liner search to find and show.
   // This handler makes changes in state to display the build config and other
   // things.
 };
@@ -444,13 +435,6 @@ const handleOnRunBuildMulti = (draft, payload) => {
   if (payload.selectedNodes === undefined) {
     throw new Error('Insufficient arguments passed to onRename.');
   }
-
-  // every node in selectedNodes has format like
-  // itemType-##hyphen separated ids starting from node's id till top level##
-  // For example for a selected version with, versionId = 1, testId = 2, fileId = 3,
-  // node id would be 'VERSION-1-2-3'
-  // The ids can be separated up and rest it will work same as handleRunBuild
-  // so both should use a same function.
 
   console.log(`invoked handleRunBuildMulti with arguments ${payload}`);
 };

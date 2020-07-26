@@ -22,6 +22,10 @@ const TreeItemEditor = ({
   const [error, setError] = useState(null);
   const [value, setValue] = useState(defaultName);
 
+  const onChangeHandler = (e) => {
+    setValue(e.target.value);
+  };
+
   const commitHandler = () => {
     const name = value.trim();
     if (value === defaultName || name.length === 0) {
@@ -49,9 +53,9 @@ const TreeItemEditor = ({
       <ColoredItemIcon itemType={itemType} />
       <InputBase
         onBlur={commitHandler}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={onChangeHandler}
         onKeyUp={keyUpHandler}
-        ref={selectOnMount}
+        inputRef={selectOnMount}
         defaultValue={value}
         style={{textAlign: 'center'}}
         fullWidth

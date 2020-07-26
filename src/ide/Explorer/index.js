@@ -1,6 +1,6 @@
 import React, {useState, useCallback, useRef, useContext} from 'react';
 import Box from '@material-ui/core/Box';
-import {makeStyles} from '@material-ui/styles';
+import {makeStyles} from '@material-ui/core/styles';
 import TreeView from '@material-ui/lab/TreeView';
 import TreeItem from '@material-ui/lab/TreeItem';
 import Typography from '@material-ui/core/Typography';
@@ -21,9 +21,30 @@ import {
 } from '../actionTypes';
 
 const useStyles = makeStyles((theme) => ({
-  root: {
+  explorer: {
     color: theme.palette.background.contrastText,
     height: '100%',
+  },
+  root: {
+    userSelect: 'none',
+    color: 'inherit',
+    '&$selected > $content $label, &$selected:focus > $content $label, &$selected:hover > $content $label': {
+      backgroundColor: theme.palette.action.selected,
+    },
+  },
+  content: {
+    color: 'inherit',
+  },
+  group: {
+    marginLeft: theme.spacing(1),
+    paddingLeft: theme.spacing(1),
+  },
+  expanded: {},
+  selected: {},
+  label: {
+    paddingLeft: '0px',
+    fontWeight: 'inherit',
+    color: 'inherit',
   },
   iconButton: {
     padding: theme.spacing(1),
@@ -34,6 +55,9 @@ const useStyles = makeStyles((theme) => ({
   },
   fileCaption: {
     paddingLeft: theme.spacing(1),
+  },
+  iconContainer: {
+    marginRight: '0px',
   },
 }));
 
@@ -149,7 +173,6 @@ const Explorer = () => {
     itemName,
     itemId,
     itemParentId,
-    itemGrandParentId,
     itemSiblingNames,
     hasError,
     isCurrentVersion
@@ -159,7 +182,6 @@ const Explorer = () => {
       itemName={itemName}
       itemId={itemId}
       itemParentId={itemParentId}
-      itemGrandParentId={itemGrandParentId}
       itemSiblingNames={itemSiblingNames}
       hasError={hasError}
       isCurrentVersion={isCurrentVersion}
@@ -170,7 +192,7 @@ const Explorer = () => {
   );
 
   return (
-    <Box className={classes.root}>
+    <Box className={classes.explorer}>
       <Box
         display="flex"
         alignItems="center"
@@ -201,10 +223,11 @@ const Explorer = () => {
           <TreeView
             defaultCollapseIcon={<ArrowDropDownIcon />}
             defaultExpandIcon={<ArrowRightIcon />}
+            defaultEndIcon={<div style={{width: 24}} />}
             multiSelect
             onNodeSelect={onNodeSelect}
-            expanded={
-              Boolean(addNewItem) && addNewItem.parentId !== undefined
+            defaultExpanded={
+              Boolean(addNewItem) && addNewItem.parentId !== null
                 ? [
                     `${getExplorerParentTypeByChild(addNewItem.type)}-${
                       addNewItem.parentId
@@ -229,10 +252,18 @@ const Explorer = () => {
                     files.entities.files[fid].name,
                     fid,
                     null,
-                    null,
                     getNamesByIdMapping(files.result, files.entities.files),
                     files.entities.files[fid].hasError
-                  )}>
+                  )}
+                  classes={{
+                    root: classes.root,
+                    content: classes.content,
+                    expanded: classes.expanded,
+                    selected: classes.selected,
+                    group: classes.group,
+                    label: classes.label,
+                    iconContainer: classes.iconContainer,
+                  }}>
                   {/* onNodeSelect passes nodeId as node parameter, I've
                 appended type to id because id's are not unique across
                 file/test/version and also I'd need it to know what type of
@@ -250,20 +281,28 @@ const Explorer = () => {
                   {Array.isArray(files.entities.files[fid].tests) &&
                     files.entities.files[fid].tests.map((tid) => (
                       <TreeItem
-                        nodeId={`${ExplorerItemType.TEST}-${tid}-${fid}`}
+                        nodeId={`${ExplorerItemType.TEST}-${tid}`}
                         key={tid}
                         label={getTreeItemContent(
                           ExplorerItemType.TEST,
                           files.entities.tests[tid].name,
                           files.entities.tests[tid].id,
                           fid,
-                          null,
                           getNamesByIdMapping(
                             files.entities.files[fid].tests,
                             files.entities.tests
                           ),
                           files.entities.tests[tid].hasError
-                        )}>
+                        )}
+                        classes={{
+                          root: classes.root,
+                          content: classes.content,
+                          expanded: classes.expanded,
+                          selected: classes.selected,
+                          group: classes.group,
+                          label: classes.label,
+                          iconContainer: classes.iconContainer,
+                        }}>
                         {Boolean(addNewItem) &&
                           addNewItem.type === ExplorerItemType.VERSION &&
                           addNewItem.parentId === tid &&
@@ -277,14 +316,13 @@ const Explorer = () => {
                         {Array.isArray(files.entities.tests[tid].versions) &&
                           files.entities.tests[tid].versions.map((vid) => (
                             <TreeItem
-                              nodeId={`${ExplorerItemType.VERSION}-${vid}-${tid}-${fid}`}
+                              nodeId={`${ExplorerItemType.VERSION}-${vid}`}
                               key={vid}
                               label={getTreeItemContent(
                                 ExplorerItemType.VERSION,
                                 files.entities.versions[vid].name,
                                 files.entities.versions[vid].id,
                                 tid,
-                                fid,
                                 getNamesByIdMapping(
                                   files.entities.tests[tid].versions,
                                   files.entities.versions
@@ -292,6 +330,15 @@ const Explorer = () => {
                                 files.entities.versions[vid].hasError,
                                 files.entities.versions[vid].isCurrent
                               )}
+                              classes={{
+                                root: classes.root,
+                                content: classes.content,
+                                expanded: classes.expanded,
+                                selected: classes.selected,
+                                group: classes.group,
+                                label: classes.label,
+                                iconContainer: classes.iconContainer,
+                              }}
                             />
                           ))}
                       </TreeItem>

@@ -1,6 +1,6 @@
 import React, {useState, useCallback, useContext} from 'react';
 import Typography from '@material-ui/core/Typography';
-import {makeStyles} from '@material-ui/styles';
+import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
 import IconButton from '@material-ui/core/IconButton';
 import RemoveCircleOutlineIcon from '@material-ui/icons/RemoveCircleOutline';
@@ -47,7 +47,8 @@ const useStyle = makeStyles((theme) => ({
   },
   // TODO: Note that contextMenu.css contains a 'on select' css that I couldn't
   // find a way to add so that color form 'theme' could be sent. Currently it
-  // has hardcoded color, fix it once you know how to.
+  // has hardcoded color, fix it once you know how to. May be use
+  // styled-components.
   contextMenuItem: {
     background: '0 0',
     border: 0,
@@ -63,11 +64,8 @@ const useStyle = makeStyles((theme) => ({
     whiteSpace: 'nowrap',
     outline: 'none',
   },
-  icon: {
-    fontSize: '1rem',
-  },
   iconButton: {
-    padding: theme.spacing(1),
+    padding: theme.spacing(0.8),
   },
   errorText: {
     color: theme.palette.error.dark,
@@ -80,6 +78,11 @@ const useStyle = makeStyles((theme) => ({
   },
   fontSizeSmall: {
     fontSize: '0.875rem',
+  },
+  chip: {
+    marginLeft: theme.spacing(0.5),
+    fontSize: '0.7rem',
+    height: theme.spacing(1.8),
   },
 }));
 
@@ -94,7 +97,6 @@ const TreeItemContent = React.memo(
     itemName,
     itemId,
     itemParentId,
-    itemGrandParentId,
     itemSiblingNames,
     hasError,
     isCurrentVersion,
@@ -112,7 +114,8 @@ const TreeItemContent = React.memo(
     const [showUnloadDialog, setShowUnloadDialog] = useState(false);
     const classes = useStyle();
 
-    const newItemHandler = () => {
+    const newItemHandler = (e) => {
+      e.stopPropagation();
       let newItemType;
       if (itemType === ExplorerItemType.FILE) {
         newItemType = ExplorerItemType.TEST;
@@ -158,14 +161,18 @@ const TreeItemContent = React.memo(
       setEditing(false);
     }, []);
 
-    const runBuildHandler = () => {
-      dispatch([
-        ON_RUN_BUILD_CALLBACK,
-        {itemType, itemId, itemParentId, itemGrandParentId},
-      ]);
+    const runBuildHandler = (e) => {
+      e.stopPropagation();
+      dispatch([ON_RUN_BUILD_CALLBACK, {itemType, itemId, itemParentId}]);
     };
 
-    const onEdit = () => {
+    const runBuildMultipleHandler = (e) => {
+      e.stopPropagation();
+      onRunBuildMultiple();
+    };
+
+    const onEdit = (e) => {
+      e.stopPropagation();
       setEditing(true);
     };
 
@@ -177,7 +184,8 @@ const TreeItemContent = React.memo(
       setHovering(true);
     };
 
-    const deleteHandler = () => {
+    const deleteHandler = (e) => {
+      e.stopPropagation();
       setShowDeleteDialog(true);
     };
 
@@ -186,7 +194,8 @@ const TreeItemContent = React.memo(
       dispatch([ON_DELETE_CALLBACK, {itemType, itemId, itemParentId}]);
     };
 
-    const unloadHandler = () => {
+    const unloadHandler = (e) => {
+      e.stopPropagation();
       setShowUnloadDialog(true);
     };
 
@@ -195,11 +204,13 @@ const TreeItemContent = React.memo(
       dispatch([ON_UNLOAD_CALLBACK, {itemType, itemId}]);
     };
 
-    const deleteDialogCancelHandler = () => {
+    const deleteDialogCancelHandler = (e) => {
+      e.stopPropagation();
       setShowDeleteDialog(false);
     };
 
-    const unloadDialogCancelHandler = () => {
+    const unloadDialogCancelHandler = (e) => {
+      e.stopPropagation();
       setShowUnloadDialog(false);
     };
 
@@ -244,16 +255,16 @@ const TreeItemContent = React.memo(
 
     return (
       <>
-        <ContextMenuTrigger id={`tree-item-cm-${itemId}`}>
+        <ContextMenuTrigger id={`explorer-cm-${itemType}-${itemId}`}>
           <Box
             display="flex"
             alignItems="center"
             px={1}
-            height={28}
+            minHeight={28}
             onContextMenu={onContextMenu}
             onMouseEnter={onHovering}
             onMouseLeave={onHoveringCancel}>
-            <Box flex={1}>
+            <Box display="flex" alignItems="center" flex={1}>
               <ColoredItemIcon itemType={itemType} />
               <Typography
                 variant="caption"
@@ -261,7 +272,7 @@ const TreeItemContent = React.memo(
                 {itemName}
               </Typography>
               {itemType === ExplorerItemType.VERSION && isCurrentVersion && (
-                <Chip size="small" label="Latest" />
+                <Chip size="small" label="Latest" className={classes.chip} />
               )}
             </Box>
             {hovering && (
@@ -275,7 +286,6 @@ const TreeItemContent = React.memo(
                         size="small"
                         className={classes.iconButton}>
                         <RemoveCircleOutlineIcon
-                          className={classes.icon}
                           fontSize="small"
                           classes={{fontSizeSmall: classes.fontSizeSmall}}
                         />
@@ -287,7 +297,6 @@ const TreeItemContent = React.memo(
                         onClick={newItemHandler}
                         className={classes.iconButton}>
                         <TestIcon
-                          className={classes.icon}
                           fontSize="small"
                           classes={{fontSizeSmall: classes.fontSizeSmall}}
                         />
@@ -302,7 +311,6 @@ const TreeItemContent = React.memo(
                       onClick={newItemHandler}
                       className={classes.iconButton}>
                       <VersionIcon
-                        className={classes.icon}
                         fontSize="small"
                         classes={{fontSizeSmall: classes.fontSizeSmall}}
                       />
@@ -315,7 +323,6 @@ const TreeItemContent = React.memo(
                     onClick={onEdit}
                     className={classes.iconButton}>
                     <EditIcon
-                      className={classes.icon}
                       fontSize="small"
                       classes={{fontSizeSmall: classes.fontSizeSmall}}
                     />
@@ -328,7 +335,6 @@ const TreeItemContent = React.memo(
                       onClick={deleteHandler}
                       className={classes.iconButton}>
                       <DeleteIcon
-                        className={classes.icon}
                         fontSize="small"
                         classes={{fontSizeSmall: classes.fontSizeSmall}}
                       />
@@ -344,12 +350,12 @@ const TreeItemContent = React.memo(
         because this contextmenu component requires it on the page. Change this
         asap and may be use some other component. */}
         <ContextMenu
-          id={`tree-item-cm-${itemId}`}
+          id={`explorer-cm-${itemType}-${itemId}`}
           className={classes.contextMenu}>
           {contextMenuRenderType ===
           ContextMenuRenderType.MULTIPLE_ITEM_SELECTION ? (
             <MenuItem
-              onClick={onRunBuildMultiple}
+              onClick={runBuildMultipleHandler}
               className={classes.contextMenuItem}>
               Run Build For Selected Items
             </MenuItem>
@@ -440,7 +446,7 @@ const TreeItemContent = React.memo(
               onClick={unloadAcceptHandler}
               variant="contained"
               size="small">
-              Delete
+              Unload
             </Button>
           </DialogActions>
         </Dialog>
@@ -454,7 +460,6 @@ TreeItemContent.propTypes = {
   itemName: PropTypes.string.isRequired,
   itemId: PropTypes.number.isRequired,
   itemParentId: PropTypes.number,
-  itemGrandParentId: PropTypes.number,
   itemSiblingNames: PropTypes.arrayOf(PropTypes.string).isRequired,
   hasError: PropTypes.bool,
   isCurrentVersion: PropTypes.bool,
@@ -465,7 +470,6 @@ TreeItemContent.propTypes = {
 
 TreeItemContent.defaultProps = {
   itemParentId: undefined,
-  itemGrandParentId: undefined,
   hasError: undefined,
   isCurrentVersion: undefined,
 };

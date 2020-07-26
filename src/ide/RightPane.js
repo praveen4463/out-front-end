@@ -1,5 +1,5 @@
 import React from 'react';
-import {makeStyles} from '@material-ui/styles';
+import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
 import Box from '@material-ui/core/Box';
 import IconButton from '@material-ui/core/IconButton';

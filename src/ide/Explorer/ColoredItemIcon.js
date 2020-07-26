@@ -1,5 +1,5 @@
 import React from 'react';
-import {makeStyles} from '@material-ui/styles';
+import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import TestIcon from '@material-ui/icons/Title';
@@ -7,18 +7,20 @@ import ZwlFileIcon from '../zwlFileIcon';
 import VersionIcon from '../newVersionIcon';
 import {ExplorerItemType} from '../Constants';
 
-const useStyle = makeStyles(() => ({
+const useStyle = makeStyles((theme) => ({
   icon: {
     fontSize: '1rem',
+    marginRight: theme.spacing(0.5),
+    color: '#121212',
   },
   zwlFileColoredIcon: {
-    backgroundColor: '#e2cdfd',
+    backgroundColor: '#945bde',
   },
   testColoredIcon: {
-    backgroundColor: '#f1e05a',
+    backgroundColor: '#eed40b',
   },
   versionColoredIcon: {
-    backgroundColor: '#89e051',
+    backgroundColor: '#66d31f',
   },
 }));
 
