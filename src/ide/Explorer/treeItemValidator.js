@@ -3,7 +3,7 @@ import {MaxLengths} from '../Constants';
 export default (name, existingNames, itemType) => {
   const targetEl = itemType.toLowerCase();
 
-  if (name.include('/') || name.include('\\')) {
+  if (name.includes('/') || name.includes('\\')) {
     return `${targetEl} name can't contain slash characters`;
   }
 

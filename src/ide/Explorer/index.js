@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useRef, useContext} from 'react';
+import React, {useState, useRef, useCallback, useContext} from 'react';
 import Box from '@material-ui/core/Box';
 import {makeStyles} from '@material-ui/core/styles';
 import TreeView from '@material-ui/lab/TreeView';
@@ -14,11 +14,7 @@ import TreeItemEditor from './TreeItemEditor';
 import TreeItemContent from './TreeItemContent';
 import Tooltip from '../../TooltipCustom';
 import {RootDispatchContext, RootStateContext} from '../Contexts';
-import {
-  ON_LOAD_CALLBACK,
-  ON_NEW_ITEM_CALLBACK,
-  ON_RUN_BUILD_MULTI_CALLBACK,
-} from '../actionTypes';
+import {ON_LOAD_CALLBACK, ON_NEW_ITEM_CALLBACK} from '../actionTypes';
 
 const useStyles = makeStyles((theme) => ({
   explorer: {
@@ -59,6 +55,9 @@ const useStyles = makeStyles((theme) => ({
   iconContainer: {
     marginRight: '0px',
   },
+  highlight: {
+    backgroundColor: theme.palette.action.selected,
+  },
 }));
 
 const getExplorerParentTypeByChild = (childType) => {
@@ -76,6 +75,16 @@ const getExplorerParentTypeByChild = (childType) => {
   return parentType;
 };
 
+/*
+  Every tree item content invoke this to get sibling names that are used in
+  checking duplicates. I could have just placed them next to child array like
+  'result', 'tests' but don't want to pollute 'files' too much with data that
+  can be computed. There is surely a performance penalty with this as all the
+  items have to compute their siblings but there is a gotcha.
+  TreeItem doesn't render all items at once, only the top nodes are rendered
+  first and subsequent render occurs when nodes are expanded to only the child
+  nodes and so on. So this computation will be done for fewer nodes at a time.
+*/
 const getNamesByIdMapping = (ids, sourceObjWithIdKey) => {
   if (!Array.isArray(ids)) {
     throw new Error('the given ids is not an array type');
@@ -95,11 +104,25 @@ const Explorer = () => {
   const dispatch = useContext(RootDispatchContext);
   const {files} = useContext(RootStateContext);
   const [addNewItem, setAddNewItem] = useState(null);
+  const [expanded, setExpanded] = useState([]);
+  const [selected, setSelected] = useState([]);
+  const selectedNodesRef = useRef();
+  // ref object doesn't change thus safe to use in pure components. It's mutable
+  // current property will give us latest set value without a re render of
+  // component that uses it.
   const classes = useStyles();
-  const selectedNodes = useRef();
 
-  const onNodeSelect = (e, node) => {
-    selectedNodes.current = node;
+  const handleSelect = (e, nodeIds) => {
+    setSelected(nodeIds);
+    // setting a new ref to be used in tree items so that whenever 'selected'
+    // state changes it doesn't have to re render.
+    selectedNodesRef.current = nodeIds;
+  };
+
+  const handleToggle = (e, nodeIds) => {
+    // nodeIds have all expanded nodeIds, including ones opened on 'new item'
+    // call, thus it's safe to reset entire array.
+    setExpanded(nodeIds);
   };
 
   const handleOnLoad = () => {
@@ -113,6 +136,15 @@ const Explorer = () => {
 
   const newItemCallback = useCallback((itemType, itemParentId) => {
     setAddNewItem(new AddNewItem(itemType, itemParentId));
+    if (!itemParentId) {
+      return;
+    }
+    const parentNode = `${getExplorerParentTypeByChild(
+      itemType
+    )}-${itemParentId}`;
+    setExpanded((current) =>
+      !current.includes(parentNode) ? [...current, parentNode] : current
+    );
   }, []);
 
   const newItemCommitCallback = useCallback(
@@ -137,32 +169,20 @@ const Explorer = () => {
     setAddNewItem(null);
   }, []);
 
-  const runBuildMultipleCallback = useCallback(() => {
-    dispatch([
-      ON_RUN_BUILD_MULTI_CALLBACK,
-      {selectedNodes: selectedNodes.current},
-    ]);
-  }, [selectedNodes, dispatch]);
-
-  const getTotalSelectedCallback = useCallback(() => {
-    if (!Array.isArray(selectedNodes.current)) {
-      return 0;
-    }
-    return selectedNodes.current.length;
-  }, [selectedNodes]);
-
   const getItemEditorFormatted = (existingNames, itemType) => {
     return (
-      <div className="MuiTreeItem-content">
-        <div className="MuiTreeItem-iconContainer" />
-        <div className="MuiTreeItem-label">
-          <TreeItemEditor
-            defaultName=""
-            existingNames={existingNames}
-            itemType={itemType}
-            onCommit={newItemCommitCallback}
-            onCancel={newItemCancelCallback}
-          />
+      <div className={`MuiTreeItem-content ${classes.content}`}>
+        <div className={`MuiTreeItem-iconContainer ${classes.iconContainer}`} />
+        <div className={`MuiTreeItem-label ${classes.label}`}>
+          <Box px={0.5} minHeight={28} className={classes.highlight}>
+            <TreeItemEditor
+              defaultName=""
+              existingNames={existingNames}
+              itemType={itemType}
+              onCommit={newItemCommitCallback}
+              onCancel={newItemCancelCallback}
+            />
+          </Box>
         </div>
       </div>
     );
@@ -186,8 +206,7 @@ const Explorer = () => {
       hasError={hasError}
       isCurrentVersion={isCurrentVersion}
       onNewItem={newItemCallback}
-      onRunBuildMultiple={runBuildMultipleCallback}
-      getTotalSelected={getTotalSelectedCallback}
+      selectedNodes={selectedNodesRef}
     />
   );
 
@@ -225,16 +244,10 @@ const Explorer = () => {
             defaultExpandIcon={<ArrowRightIcon />}
             defaultEndIcon={<div style={{width: 24}} />}
             multiSelect
-            onNodeSelect={onNodeSelect}
-            defaultExpanded={
-              Boolean(addNewItem) && addNewItem.parentId !== null
-                ? [
-                    `${getExplorerParentTypeByChild(addNewItem.type)}-${
-                      addNewItem.parentId
-                    }`,
-                  ]
-                : []
-            }>
+            onNodeToggle={handleToggle}
+            onNodeSelect={handleSelect}
+            expanded={expanded}
+            selected={selected}>
             {Boolean(addNewItem) &&
               addNewItem.type === ExplorerItemType.FILE &&
               getItemEditorFormatted(

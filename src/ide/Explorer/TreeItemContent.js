@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useContext} from 'react';
+import React, {useState, useContext} from 'react';
 import Typography from '@material-ui/core/Typography';
 import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
@@ -27,6 +27,7 @@ import {
   ON_RENAME_CALLBACK,
   ON_DELETE_CALLBACK,
   ON_RUN_BUILD_CALLBACK,
+  ON_RUN_BUILD_MULTI_CALLBACK,
 } from '../actionTypes';
 import './contextMenu.css';
 
@@ -84,6 +85,9 @@ const useStyle = makeStyles((theme) => ({
     fontSize: '0.7rem',
     height: theme.spacing(1.8),
   },
+  highlight: {
+    backgroundColor: theme.palette.action.selected,
+  },
 }));
 
 const ContextMenuRenderType = {
@@ -101,8 +105,7 @@ const TreeItemContent = React.memo(
     hasError,
     isCurrentVersion,
     onNewItem,
-    onRunBuildMultiple,
-    getTotalSelected,
+    selectedNodes,
   }) => {
     const dispatch = useContext(RootDispatchContext);
     const [editing, setEditing] = useState(false);
@@ -128,19 +131,18 @@ const TreeItemContent = React.memo(
       onNewItem(newItemType, itemId);
     };
 
-    const renameCommitCallback = useCallback(
-      (newName, type) => {
-        dispatch([
-          ON_RENAME_CALLBACK,
-          {
-            itemNewName: newName,
-            itemType: type,
-            itemCurrentName: itemName,
-            itemId,
-            itemParentId,
-          },
-        ]);
-        /*
+    const renameCommitCallback = (newName, type) => {
+      dispatch([
+        ON_RENAME_CALLBACK,
+        {
+          itemNewName: newName,
+          itemType: type,
+          itemCurrentName: itemName,
+          itemId,
+          itemParentId,
+        },
+      ]);
+      /*
         parent will first update the name and then change the data set based on
         new name. It will then sort the list by new name which will re render
         it. Re render will iterate thru data set but should keep all tree item
@@ -152,14 +154,12 @@ const TreeItemContent = React.memo(
         next statement cancel editing which will show new name.
         TODO: verify that this behaviour is true.
         */
-        setEditing(false);
-      },
-      [dispatch, itemName, itemId, itemParentId]
-    );
-
-    const editCancelCallback = useCallback(() => {
       setEditing(false);
-    }, []);
+    };
+
+    const editCancelCallback = () => {
+      setEditing(false);
+    };
 
     const runBuildHandler = (e) => {
       e.stopPropagation();
@@ -168,7 +168,10 @@ const TreeItemContent = React.memo(
 
     const runBuildMultipleHandler = (e) => {
       e.stopPropagation();
-      onRunBuildMultiple();
+      dispatch([
+        ON_RUN_BUILD_MULTI_CALLBACK,
+        {selectedNodes: selectedNodes.current},
+      ]);
     };
 
     const onEdit = (e) => {
@@ -215,7 +218,8 @@ const TreeItemContent = React.memo(
     };
 
     const onContextMenu = () => {
-      const currentlySelectedItems = getTotalSelected();
+      const currentlySelectedItems =
+        selectedNodes.current === null ? 0 : selectedNodes.current.length;
       setContextMenuRenderType(
         currentlySelectedItems > 1
           ? ContextMenuRenderType.MULTIPLE_ITEM_SELECTION
@@ -243,13 +247,22 @@ const TreeItemContent = React.memo(
 
     if (editing) {
       return (
-        <TreeItemEditor
-          defaultName={itemName}
-          existingNames={itemSiblingNames}
-          itemType={itemType}
-          onCommit={renameCommitCallback}
-          onCancel={editCancelCallback}
-        />
+        <Box
+          display="flex"
+          alignItems="center"
+          px={0.5}
+          minHeight={28}
+          className={classes.highlight}>
+          <TreeItemEditor
+            defaultName={itemName}
+            existingNames={itemSiblingNames}
+            itemType={itemType}
+            onCommit={renameCommitCallback}
+            onCancel={editCancelCallback}
+            onHovering={onHovering}
+            onHoveringCancel={onHoveringCancel}
+          />
+        </Box>
       );
     }
 
@@ -259,7 +272,7 @@ const TreeItemContent = React.memo(
           <Box
             display="flex"
             alignItems="center"
-            px={1}
+            px={0.5}
             minHeight={28}
             onContextMenu={onContextMenu}
             onMouseEnter={onHovering}
@@ -452,7 +465,36 @@ const TreeItemContent = React.memo(
         </Dialog>
       </>
     );
+  },
+  (prevProps, nextProps) => {
+    // eslint-disable-next-line consistent-return
+    Object.keys(prevProps).forEach((k) => {
+      if (prevProps[k] !== nextProps[k]) {
+        if (
+          k === 'itemSiblingNames' &&
+          prevProps.itemSiblingNames.length ===
+            nextProps.itemSiblingNames.length
+        ) {
+          return (
+            nextProps.itemSiblingNames.filter(
+              (name) => !prevProps.itemSiblingNames.includes(name)
+            ).length === 0
+          );
+        }
+        return false;
+      }
+    });
+    return true;
   }
+  /*
+  I've included a custom prop check function rather than shallow check of all
+  props.
+  - selectedNodes is a ref and doesn't change so need to ignore in check.
+  - siblingNames are created new for each of this component, most of the time
+    it remains same thus a shallow check forces a re render that can be avoided
+    by deep checking.
+  - if any prop name changes that is included here as string, update here too.
+  */
 );
 
 TreeItemContent.propTypes = {
@@ -464,8 +506,9 @@ TreeItemContent.propTypes = {
   hasError: PropTypes.bool,
   isCurrentVersion: PropTypes.bool,
   onNewItem: PropTypes.func.isRequired,
-  onRunBuildMultiple: PropTypes.func.isRequired,
-  getTotalSelected: PropTypes.func.isRequired,
+  selectedNodes: PropTypes.exact({
+    current: PropTypes.arrayOf(PropTypes.string),
+  }).isRequired,
 };
 
 TreeItemContent.defaultProps = {
