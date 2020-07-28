@@ -22,7 +22,6 @@ const useStyles = makeStyles((theme) => ({
     height: '100%',
   },
   root: {
-    userSelect: 'none',
     color: 'inherit',
     '&$selected > $content $label, &$selected:focus > $content $label, &$selected:hover > $content $label': {
       backgroundColor: theme.palette.action.selected,
@@ -58,6 +57,9 @@ const useStyles = makeStyles((theme) => ({
   highlight: {
     backgroundColor: theme.palette.action.selected,
   },
+  errorContainer: {
+    backgroundColor: theme.palette.background.paper,
+  },
 }));
 
 const getExplorerParentTypeByChild = (childType) => {
@@ -87,7 +89,7 @@ const getExplorerParentTypeByChild = (childType) => {
 */
 const getNamesByIdMapping = (ids, sourceObjWithIdKey) => {
   if (!Array.isArray(ids)) {
-    throw new Error('the given ids is not an array type');
+    return null;
   }
   return ids.map((id) => sourceObjWithIdKey[id].name);
 };
@@ -103,10 +105,13 @@ function AddNewItem(type, parentId = null) {
 const Explorer = () => {
   const dispatch = useContext(RootDispatchContext);
   const {files} = useContext(RootStateContext);
+  console.log('Explorer received files:');
+  console.log(files);
   const [addNewItem, setAddNewItem] = useState(null);
   const [expanded, setExpanded] = useState([]);
   const [selected, setSelected] = useState([]);
   const selectedNodesRef = useRef();
+  const errorContainerRef = useRef(null);
   // ref object doesn't change thus safe to use in pure components. It's mutable
   // current property will give us latest set value without a re render of
   // component that uses it.
@@ -181,8 +186,10 @@ const Explorer = () => {
               itemType={itemType}
               onCommit={newItemCommitCallback}
               onCancel={newItemCancelCallback}
+              errorContainerRef={errorContainerRef}
             />
           </Box>
+          <Box ref={errorContainerRef} className={classes.errorContainer} />
         </div>
       </div>
     );

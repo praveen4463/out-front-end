@@ -2,13 +2,12 @@ import {MaxLengths} from '../Constants';
 
 export default (name, existingNames, itemType) => {
   const targetEl = itemType.toLowerCase();
-
   if (name.includes('/') || name.includes('\\')) {
-    return `${targetEl} name can't contain slash characters`;
+    return `A ${targetEl} name can't contain slash characters.`;
   }
 
   if (name.length > MaxLengths[itemType]) {
-    return `${targetEl} name can't be more than ${MaxLengths[itemType]} characters.`;
+    return `A ${targetEl} name can't be more than ${MaxLengths[itemType]} characters.`;
   }
 
   if (Array.isArray(existingNames) && existingNames.includes(name)) {

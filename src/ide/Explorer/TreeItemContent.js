@@ -1,4 +1,4 @@
-import React, {useState, useContext} from 'react';
+import React, {useState, useContext, useRef} from 'react';
 import Typography from '@material-ui/core/Typography';
 import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
@@ -88,6 +88,12 @@ const useStyle = makeStyles((theme) => ({
   highlight: {
     backgroundColor: theme.palette.action.selected,
   },
+  errorContainer: {
+    backgroundColor: theme.palette.background.paper,
+  },
+  itemText: {
+    userSelect: 'none',
+  },
 }));
 
 const ContextMenuRenderType = {
@@ -116,6 +122,7 @@ const TreeItemContent = React.memo(
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showUnloadDialog, setShowUnloadDialog] = useState(false);
     const classes = useStyle();
+    const errorContainerRef = useRef(null);
 
     const newItemHandler = (e) => {
       e.stopPropagation();
@@ -132,6 +139,7 @@ const TreeItemContent = React.memo(
     };
 
     const renameCommitCallback = (newName, type) => {
+      console.log(`rename is triggered with ${newName}`);
       dispatch([
         ON_RENAME_CALLBACK,
         {
@@ -247,22 +255,26 @@ const TreeItemContent = React.memo(
 
     if (editing) {
       return (
-        <Box
-          display="flex"
-          alignItems="center"
-          px={0.5}
-          minHeight={28}
-          className={classes.highlight}>
-          <TreeItemEditor
-            defaultName={itemName}
-            existingNames={itemSiblingNames}
-            itemType={itemType}
-            onCommit={renameCommitCallback}
-            onCancel={editCancelCallback}
-            onHovering={onHovering}
-            onHoveringCancel={onHoveringCancel}
-          />
-        </Box>
+        <>
+          <Box
+            display="flex"
+            alignItems="center"
+            px={0.5}
+            minHeight={28}
+            className={classes.highlight}>
+            <TreeItemEditor
+              defaultName={itemName}
+              existingNames={itemSiblingNames}
+              itemType={itemType}
+              onCommit={renameCommitCallback}
+              onCancel={editCancelCallback}
+              errorContainerRef={errorContainerRef}
+              onHovering={onHovering}
+              onHoveringCancel={onHoveringCancel}
+            />
+          </Box>
+          <Box ref={errorContainerRef} className={classes.errorContainer} />
+        </>
       );
     }
 
@@ -281,7 +293,10 @@ const TreeItemContent = React.memo(
               <ColoredItemIcon itemType={itemType} />
               <Typography
                 variant="caption"
-                className={clsx(hasError && classes.errorText)}>
+                className={clsx(
+                  hasError && classes.errorText,
+                  classes.itemText
+                )}>
                 {itemName}
               </Typography>
               {itemType === ExplorerItemType.VERSION && isCurrentVersion && (
@@ -467,11 +482,14 @@ const TreeItemContent = React.memo(
     );
   },
   (prevProps, nextProps) => {
-    // eslint-disable-next-line consistent-return
-    Object.keys(prevProps).forEach((k) => {
+    return Object.keys(prevProps).every((k) => {
       if (prevProps[k] !== nextProps[k]) {
         if (
+          // if one of prev or next itemSiblingNames is undefined, they are
+          // unequal.
           k === 'itemSiblingNames' &&
+          Array.isArray(prevProps.itemSiblingNames) &&
+          Array.isArray(nextProps.itemSiblingNames) &&
           prevProps.itemSiblingNames.length ===
             nextProps.itemSiblingNames.length
         ) {
@@ -483,8 +501,8 @@ const TreeItemContent = React.memo(
         }
         return false;
       }
+      return true;
     });
-    return true;
   }
   /*
   I've included a custom prop check function rather than shallow check of all
@@ -502,7 +520,7 @@ TreeItemContent.propTypes = {
   itemName: PropTypes.string.isRequired,
   itemId: PropTypes.number.isRequired,
   itemParentId: PropTypes.number,
-  itemSiblingNames: PropTypes.arrayOf(PropTypes.string).isRequired,
+  itemSiblingNames: PropTypes.arrayOf(PropTypes.string),
   hasError: PropTypes.bool,
   isCurrentVersion: PropTypes.bool,
   onNewItem: PropTypes.func.isRequired,
@@ -513,6 +531,7 @@ TreeItemContent.propTypes = {
 
 TreeItemContent.defaultProps = {
   itemParentId: undefined,
+  itemSiblingNames: null,
   hasError: undefined,
   isCurrentVersion: undefined,
 };

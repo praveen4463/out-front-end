@@ -4,6 +4,7 @@ import InputBase from '@material-ui/core/InputBase';
 import Typography from '@material-ui/core/Typography';
 import PropTypes from 'prop-types';
 import Box from '@material-ui/core/Box';
+import Portal from '@material-ui/core/Portal';
 import validator from './treeItemValidator';
 import ColoredItemIcon from './ColoredItemIcon';
 
@@ -41,6 +42,7 @@ const TreeItemEditor = ({
   onCancel,
   onHovering,
   onHoveringCancel,
+  errorContainerRef,
 }) => {
   const [error, setError] = useState(null);
   const [value, setValue] = useState(defaultName);
@@ -81,45 +83,54 @@ const TreeItemEditor = ({
   };
 
   return (
-    <Box
-      display="flex"
-      alignItems="center"
-      flex={1}
-      onMouseEnter={onHovering}
-      onMouseLeave={onHoveringCancel}>
-      <ColoredItemIcon itemType={itemType} />
-      <InputBase
-        onBlur={blurHandler}
-        onChange={onChangeHandler}
-        onKeyUp={keyUpHandler}
-        inputRef={selectOnMount}
-        defaultValue={value}
-        fullWidth
-        inputProps={{'aria-label': 'naked'}}
-        id="input-tree-edit"
-        className={classes.text}
-        autoFocus
-      />
+    <>
+      <Box
+        display="flex"
+        alignItems="center"
+        flex={1}
+        onMouseEnter={onHovering}
+        onMouseLeave={onHoveringCancel}>
+        <ColoredItemIcon itemType={itemType} />
+        <InputBase
+          onBlur={blurHandler}
+          onChange={onChangeHandler}
+          onKeyUp={keyUpHandler}
+          inputRef={selectOnMount}
+          defaultValue={value}
+          fullWidth
+          inputProps={{'aria-label': 'naked'}}
+          id="input-tree-edit"
+          className={classes.text}
+          autoFocus
+          autoComplete="off"
+        />
+      </Box>
       {error !== null && (
-        <Typography variant="caption" color="error" display="block">
-          {error}
-        </Typography>
+        <Portal container={errorContainerRef.current}>
+          <Typography variant="caption" color="error" display="block">
+            {error}
+          </Typography>
+        </Portal>
       )}
-    </Box>
+    </>
   );
 };
 
 TreeItemEditor.propTypes = {
   defaultName: PropTypes.string.isRequired,
-  existingNames: PropTypes.arrayOf(PropTypes.string).isRequired,
+  existingNames: PropTypes.arrayOf(PropTypes.string),
   itemType: PropTypes.string.isRequired,
   onCommit: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
+  errorContainerRef: PropTypes.exact({
+    current: PropTypes.any,
+  }).isRequired,
   onHovering: PropTypes.func,
   onHoveringCancel: PropTypes.func,
 };
 
 TreeItemEditor.defaultProps = {
+  existingNames: null,
   onHovering: () => null,
   onHoveringCancel: () => null,
 };

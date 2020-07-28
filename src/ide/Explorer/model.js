@@ -1,4 +1,6 @@
 import {schema} from 'normalizr';
+// https://immerjs.github.io/immer/docs/complex-objects Details of immerable
+import {immerable} from 'immer';
 
 // These models aren't of much use other than defining what fields are
 // possibly available to use/write rather than just setting any arbitrary
@@ -15,6 +17,7 @@ function Version(id, name, testId, code, isCurrent, hasError, errorMsg) {
   this.isCurrent = isCurrent;
   this.hasError = hasError;
   this.errorMsg = errorMsg;
+  this[immerable] = true;
 }
 
 function Test(id, name, fileId, versions, hasError) {
@@ -25,6 +28,7 @@ function Test(id, name, fileId, versions, hasError) {
   this.hasError = hasError;
   // if any of version in this test has 'hasError=true', the test also contain
   // the flag so that the whole tree could be marked an error.
+  this[immerable] = true;
 }
 
 function File(id, name, tests, hasError, loadToTree) {
@@ -35,6 +39,7 @@ function File(id, name, tests, hasError, loadToTree) {
   // if any of version in this file has 'hasError=true', the file also contain
   // the flag so that the whole tree could be marked an error.
   this.loadToTree = loadToTree;
+  this[immerable] = true;
 }
 
 const version = new schema.Entity('versions');

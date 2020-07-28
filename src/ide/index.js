@@ -2,7 +2,7 @@ import React, {useEffect, useReducer} from 'react';
 import {ThemeProvider} from '@material-ui/core/styles';
 import {normalize} from 'normalizr';
 import produce from 'immer';
-import {union, random} from 'lodash-es';
+import {union, pull, random} from 'lodash-es';
 import TopNavigation from './TopNavigation';
 import Content from './Content';
 import darkTheme from './Themes';
@@ -78,7 +78,9 @@ const addNewFiles = (draft, rawFiles) => {
   Object.assign(et.files, filesToLoad.entities.files);
   Object.assign(et.tests, filesToLoad.entities.tests);
   Object.assign(et.versions, filesToLoad.entities.versions);
-  // merge new files with existing maintaining the sort order.
+  // merge new files with existing maintaining the sort order. union gives
+  // unique values so even if somehow an already loaded files comes, it gets
+  // overwritten by same one.
   files.result = getSortedNames(
     union(files.result, filesToLoad.result),
     et.files
@@ -98,8 +100,7 @@ const handleOnLoad = (draft) => {
   // on files selection only, not if an error occurs and given the raw api
   // validated file.
   // For now, simulate this and get sample files. Note that, this is just for
-  // testing this feature and fixed 'ids' are used in sample file, thus while,
-  // just do this action once not twice.
+  // testing this feature and fixed 'ids' are used in sample file.
   addNewFiles(draft, sampleFilesToLoad);
 };
 
@@ -166,14 +167,16 @@ const handleOnNewItem = (draft, payload) => {
     // retrieve testId, name, versions, versionId, versionName, code, isCurrent
     // every new test contains a default v1 version with empty code.
     // !! put the following statement on success callback
-    return new Test(newRandom(), payload.itemName, payload.itemParentId, [
-      new Version(newRandom(), 'v1', '', true), // simulate
+    const newTestId = newRandom();
+    return new Test(newTestId, payload.itemName, payload.itemParentId, [
+      new Version(newRandom(), 'v1', newTestId, '', true), // simulate
     ]);
   };
 
   const addNewVersion = () => {
     // Version rules for new item: a new version will always contain code of
-    // latest version (if some version exists) and will be marked 'latest'.
+    // latest version (if some version exists) and will be marked 'latest', the
+    // last latest version will no longer be latest.
     // A latest version can't be deleted and api should return
     // error if a call tries to do so.
     // call api, send itemType, itemName, parentType = TEST, itemParentId,
@@ -188,9 +191,13 @@ const handleOnNewItem = (draft, payload) => {
     ); // simulate
   };
 
+  // It'd be really verbose If I check before adding new file/test/version for
+  // existence in 'files' cause every new thing carries a unique db id and
+  // having a duplicate there is nearly impossible.
   switch (payload.itemType) {
     case ExplorerItemType.FILE: {
       const newFile = addNewFile();
+      newFile.loadToTree = true;
       if (draft.files === null) {
         draft.files = {entities: {files: {newFile}}, result: [newFile.id]};
       } else {
@@ -212,15 +219,16 @@ const handleOnNewItem = (draft, payload) => {
         // both tests and versions must be initialized.
         et.tests = {newTest};
         et.versions = {newDefaultVersion};
-        // when entities.tests in undefined, it's array would be as well.
-        et.files[fid].tests = [newTest.id];
       } else {
         et.tests[newTest.id] = newTest;
         et.versions[newDefaultVersion.id] = newDefaultVersion;
-        // we need to maintain sort order while putting new test id
-        et.files[fid].tests.push(newTest.id);
-        et.files[fid].tests = getSortedNames(et.files[fid].tests, et.tests);
       }
+      if (!Array.isArray(et.files[fid].tests)) {
+        et.files[fid].tests = [];
+      }
+      et.files[fid].tests.push(newTest.id);
+      // we need to maintain sort order while putting new test id
+      et.files[fid].tests = getSortedNames(et.files[fid].tests, et.tests);
       // In normalized form, we don't put version object in 'versions' array
       // but just the id, replace the object with only id (newTest is raw form).
       // just one version with a new test, put it straight.
@@ -232,19 +240,27 @@ const handleOnNewItem = (draft, payload) => {
       const tid = payload.itemParentId;
       const {files} = draft;
       const et = files.entities;
-      if (et.versions === undefined) {
-        et.versions = {newVersion};
-        // when entities.versions in undefined, it's array would be as well.
-        et.tests[tid].versions = [newVersion.id];
-      } else {
-        et.versions[newVersion.id] = newVersion;
-        // we need to maintain sort order while putting new version id
-        et.tests[tid].versions.push(newVersion.id);
-        et.tests[tid].versions = getSortedNames(
-          et.tests[tid].versions,
-          et.versions
+      // find last latest version before adding the new one
+      const lastLatestVersionId = et.tests[tid].versions.find(
+        (v) => et.versions[v].isCurrent
+      );
+      if (lastLatestVersionId === undefined) {
+        throw new Error(
+          `Couldn't find the last latest version for testId ${tid}`
         );
       }
+      // it's not possible that et.versions is undefined because a version is
+      // added into a test, and if a test exist, there will be at least one
+      // version of it always available. Thus I've skipped the check.
+      et.versions[newVersion.id] = newVersion;
+      // we need to maintain sort order while putting new version id
+      et.tests[tid].versions.push(newVersion.id);
+      et.tests[tid].versions = getSortedNames(
+        et.tests[tid].versions,
+        et.versions
+      );
+      // now mark last latest to not latest
+      et.versions[lastLatestVersionId].isCurrent = false;
       break;
     }
     default:
@@ -345,7 +361,7 @@ const handleOnDelete = (draft, payload) => {
       }
       revertOnError.files.push({fid: et.files[fid]});
       delete et.files[fid];
-      files.result.pop(fid);
+      pull(files.result, fid);
       revertOnError.idsAdjustment = () => {
         // don't just remember the index of current fid in result and place
         // in that index, because when api delays and user has renamed some file
@@ -366,7 +382,7 @@ const handleOnDelete = (draft, payload) => {
       }
       revertOnError.tests.push({tid: et.tests[tid]});
       delete et.tests[tid];
-      et.files[fid].tests.pop(tid);
+      pull(et.files[fid].tests, tid);
       revertOnError.idsAdjustment = () => {
         et.files[fid].tests.push(tid);
         et.files[fid].tests = getSortedNames(et.files[fid].tests, et.tests);
@@ -378,7 +394,7 @@ const handleOnDelete = (draft, payload) => {
       const tid = payload.itemParentId;
       revertOnError.versions.push({vid: et.versions[vid]});
       delete et.versions[vid];
-      et.tests[tid].versions.pop(vid);
+      pull(et.tests[tid].versions, vid);
       revertOnError.idsAdjustment = () => {
         et.tests[tid].versions.push(vid);
         et.tests[tid].versions = getSortedNames(
@@ -397,7 +413,7 @@ const handleOnDelete = (draft, payload) => {
   // eslint-disable-next-line no-unused-vars
   const revert = () => {
     revertOnError.versions.forEach((v) => {
-      Object.assign(et.version, v);
+      Object.assign(et.versions, v);
     });
     revertOnError.tests.forEach((t) => {
       Object.assign(et.tests, t);
@@ -409,7 +425,9 @@ const handleOnDelete = (draft, payload) => {
   };
 
   // Deletion done in data, now invoke api and call revert() on failure
-  // and show an error in snackbar, no action when it passes.
+  // and show an error in snackbar, no action when it passes. For now just call
+  // revert and see whether it work, comment it once test done.
+  revert();
 };
 
 const handleOnRunBuild = (draft, payload) => {
@@ -439,9 +457,9 @@ const handleOnRunBuildMulti = (draft, payload) => {
   console.log(`invoked handleRunBuildMulti with arguments ${payload}`);
 };
 
-const callHandler = (state, handler) => {
+const callHandler = (state, payload, handler) => {
   return produce(state, (draft) => {
-    handler(draft);
+    handler(draft, payload);
   });
 };
 
@@ -474,19 +492,19 @@ const ideRootReducer = (state, [type, payload, error, meta]) => {
         // TODO: we may also change qs value to new projectId
       });
     case ON_LOAD_CALLBACK:
-      return callHandler(state, handleOnLoad);
+      return callHandler(state, payload, handleOnLoad);
     case ON_UNLOAD_CALLBACK:
-      return callHandler(state, handleOnUnload);
+      return callHandler(state, payload, handleOnUnload);
     case ON_NEW_ITEM_CALLBACK:
-      return callHandler(state, handleOnNewItem);
+      return callHandler(state, payload, handleOnNewItem);
     case ON_RENAME_CALLBACK:
-      return callHandler(state, handleOnRename);
+      return callHandler(state, payload, handleOnRename);
     case ON_DELETE_CALLBACK:
-      return callHandler(state, handleOnDelete);
+      return callHandler(state, payload, handleOnDelete);
     case ON_RUN_BUILD_CALLBACK:
-      return callHandler(state, handleOnRunBuild);
+      return callHandler(state, payload, handleOnRunBuild);
     case ON_RUN_BUILD_MULTI_CALLBACK:
-      return callHandler(state, handleOnRunBuildMulti);
+      return callHandler(state, payload, handleOnRunBuildMulti);
     default:
       return state;
   }
