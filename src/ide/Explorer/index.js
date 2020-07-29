@@ -223,7 +223,7 @@ const Explorer = () => {
         display="flex"
         alignItems="center"
         style={{borderBottom: '1px solid #363636'}}>
-        <Typography variant="caption" className={classes.fileCaption}>
+        <Typography variant="body2" className={classes.fileCaption}>
           Files
         </Typography>
         <Box flex={1} />

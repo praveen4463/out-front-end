@@ -92,14 +92,19 @@ const testsFileId1 = [
 
 // Only files that user has explicitly asked to open will have a 'tests' field
 // populated and 'loadToTree=true', other files will have 'loadToTree=false'
-// and are here just to check a duplicate name when adding new file.
+// and are here just to check a duplicate name when adding new file, but ALL
+// the NON DELETED files should remain here.
 const files = [
+  new File(6, 'Anchor Validation Tests', null),
   new File(2, 'Build Run Tests', null),
   new File(4, 'IDE Debug Flow Tests', null),
   new File(3, 'IDE Output Tests', null),
   new File(1, 'IDE Tests', testsFileId1),
+  new File(5, 'URL Validation Tests', null),
 ];
 
+// These should mostly already exist in files array as we load all existing
+// files initially for duplicate check.
 const fileToLoad = [
   new File(6, 'Anchor Validation Tests', [
     new Test(6, 'anchor should change when i click on back button', 6, [

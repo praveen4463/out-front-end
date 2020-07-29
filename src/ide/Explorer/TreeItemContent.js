@@ -139,7 +139,6 @@ const TreeItemContent = React.memo(
     };
 
     const renameCommitCallback = (newName, type) => {
-      console.log(`rename is triggered with ${newName}`);
       dispatch([
         ON_RENAME_CALLBACK,
         {
@@ -148,6 +147,7 @@ const TreeItemContent = React.memo(
           itemCurrentName: itemName,
           itemId,
           itemParentId,
+          dispatch,
         },
       ]);
       /*
@@ -171,7 +171,7 @@ const TreeItemContent = React.memo(
 
     const runBuildHandler = (e) => {
       e.stopPropagation();
-      dispatch([ON_RUN_BUILD_CALLBACK, {itemType, itemId, itemParentId}]);
+      dispatch([ON_RUN_BUILD_CALLBACK, {itemType, itemId}]);
     };
 
     const runBuildMultipleHandler = (e) => {
@@ -202,7 +202,10 @@ const TreeItemContent = React.memo(
 
     const deleteAcceptHandler = () => {
       setShowDeleteDialog(false);
-      dispatch([ON_DELETE_CALLBACK, {itemType, itemId, itemParentId}]);
+      dispatch([
+        ON_DELETE_CALLBACK,
+        {itemType, itemId, itemParentId, dispatch},
+      ]);
     };
 
     const unloadHandler = (e) => {
@@ -227,7 +230,7 @@ const TreeItemContent = React.memo(
 
     const onContextMenu = () => {
       const currentlySelectedItems =
-        selectedNodes.current === null ? 0 : selectedNodes.current.length;
+        selectedNodes.current === undefined ? 0 : selectedNodes.current.length;
       setContextMenuRenderType(
         currentlySelectedItems > 1
           ? ContextMenuRenderType.MULTIPLE_ITEM_SELECTION

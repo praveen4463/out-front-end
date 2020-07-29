@@ -19,7 +19,9 @@ import {
   ON_UNLOAD_CALLBACK,
   ON_NEW_ITEM_CALLBACK,
   ON_RENAME_CALLBACK,
+  ON_RENAME_REVERT_CALLBACK,
   ON_DELETE_CALLBACK,
+  ON_DELETE_REVERT_CALLBACK,
   ON_RUN_BUILD_CALLBACK,
   ON_RUN_BUILD_MULTI_CALLBACK,
 } from './actionTypes';
@@ -44,50 +46,51 @@ const getSortedNames = (ids, namePropMapping) => {
   return pairs.map((p) => p[0]);
 };
 
-const addNewFiles = (draft, rawFiles) => {
-  // rawFiles should already be ordered by names, i.e file/test/version
-  // names should be ordered in ascending ordering, this is done at api level as
-  // it's much faster there for big files. Normalize will keep individual
-  // entities ordered by their ids but the arrays match the ordering of data.
-  // For instance, if file names have been ordered by name, files.entities.files
-  // will not keep that ordering but files.result does.
-  // Note that we've to make sure the algorithm used for sorting at api level is
-  // the same as what will be used here.
-  const {files} = draft;
-  const et = files.entities;
-  // normalize the rawFile
-  const filesToLoad = normalize(rawFiles, filesSchema);
-  // All these new files should load to tree
-  Object.values(filesToLoad.entities.files).forEach((f) => {
-    // ! This is fine here as forEach mainly work via side effects.
-    // eslint-disable-next-line no-param-reassign
-    f.loadToTree = true;
-  });
-  // if there is no file in state, just assign this one and return.
-  if (files === null) {
-    draft.files = filesToLoad;
-    return;
-  }
-  if (et.tests === undefined) {
-    et.tests = {};
-  }
-  if (et.versions === undefined) {
-    et.versions = {};
-  }
-  // Object.assign works well even if source is null/undefined.
-  Object.assign(et.files, filesToLoad.entities.files);
-  Object.assign(et.tests, filesToLoad.entities.tests);
-  Object.assign(et.versions, filesToLoad.entities.versions);
-  // merge new files with existing maintaining the sort order. union gives
-  // unique values so even if somehow an already loaded files comes, it gets
-  // overwritten by same one.
-  files.result = getSortedNames(
-    union(files.result, filesToLoad.result),
-    et.files
-  );
-};
-
 const handleOnLoad = (draft) => {
+  const addNewFiles = (rawFiles) => {
+    // rawFiles should already be ordered by names, i.e file/test/version
+    // names should be ordered in ascending ordering, this is done at api level as
+    // it's much faster there for big files. Normalize will keep individual
+    // entities ordered by their ids but the arrays match the ordering of data.
+    // For instance, if file names have been ordered by name, files.entities.files
+    // will not keep that ordering but files.result does.
+    // Note that we've to make sure the algorithm used for sorting at api level is
+    // the same as what will be used here.
+    const {files} = draft;
+    const et = files.entities;
+    // normalize the rawFile
+    const filesToLoad = normalize(rawFiles, filesSchema);
+    // All these new files should load to tree
+    Object.values(filesToLoad.entities.files).forEach((f) => {
+      // ! This is fine here as forEach mainly work via side effects.
+      // eslint-disable-next-line no-param-reassign
+      f.loadToTree = true;
+    });
+    // if there is no file in state, just assign this one and return.
+    // This shouldn't happen because if we can load existing files, those should
+    // have already been added to 'files' on initial load in loadToTree=false
+    // state.
+    if (files === null) {
+      draft.files = filesToLoad;
+      return;
+    }
+    if (et.tests === undefined) {
+      et.tests = {};
+    }
+    if (et.versions === undefined) {
+      et.versions = {};
+    }
+    // Object.assign works well even if source is null/undefined.
+    Object.assign(et.files, filesToLoad.entities.files);
+    Object.assign(et.tests, filesToLoad.entities.tests);
+    Object.assign(et.versions, filesToLoad.entities.versions);
+    // merge new files with existing maintaining the sort order. union gives
+    // unique values.
+    files.result = getSortedNames(
+      union(files.result, filesToLoad.result),
+      et.files
+    );
+  };
   // TODO: check whether some project is selected, if not, show a snackbar over
   // project and ask user to first select or create a project, once done rest
   // of the steps are done considering chosen project.
@@ -101,7 +104,7 @@ const handleOnLoad = (draft) => {
   // validated file.
   // For now, simulate this and get sample files. Note that, this is just for
   // testing this feature and fixed 'ids' are used in sample file.
-  addNewFiles(draft, sampleFilesToLoad);
+  addNewFiles(sampleFilesToLoad);
 };
 
 const handleOnUnload = (draft, payload) => {
@@ -275,7 +278,8 @@ const handleOnRename = (draft, payload) => {
     payload.itemNewName === undefined ||
     payload.itemType === undefined ||
     payload.itemCurrentName === undefined ||
-    payload.itemId === undefined
+    payload.itemId === undefined ||
+    payload.dispatch === undefined
   ) {
     throw new Error('Insufficient arguments passed to onRename.');
   }
@@ -289,8 +293,8 @@ const handleOnRename = (draft, payload) => {
   // while renaming, the siblings should be sorted ascending, to do that create
   // a new sortedIds array that excludes the one we're renaming, call a function
   // that get new sortedIds with renaming item's id placed sorted in array.
-  const renameIntoState = (renameTo) => {
-    const {files} = draft;
+  const renameIntoState = (renameTo, draftToUse) => {
+    const {files} = draftToUse;
     const et = files.entities;
     switch (payload.itemType) {
       case ExplorerItemType.FILE:
@@ -318,16 +322,39 @@ const handleOnRename = (draft, payload) => {
     }
   };
 
-  renameIntoState(payload.itemNewName);
+  const revert = (newDraft) => {
+    renameIntoState(payload.itemCurrentName, newDraft);
+  };
+
+  // eslint-disable-next-line no-unused-vars
+  const invokeRevert = () => {
+    payload.dispatch([ON_RENAME_REVERT_CALLBACK, {revertFunc: revert}]);
+  };
+
+  renameIntoState(payload.itemNewName, draft);
   // TODO: now call api, if it fails, run following callback
   // renameIntoState(payload.itemCurrentName);
   // and show error with cause in form of snackbar, handled centrally.
   // Note that we're first renaming, i.e not waiting for api call to finish,
   // then starting it and if fails for some reason revert and show error.
+  // For now call invokeRevert() in a setTimeout to simulate
+  // setTimeout(invokeRevert, 500);
+};
+
+const handleOnRenameRevert = (draft, payload) => {
+  if (payload.revertFunc === undefined) {
+    throw new Error('No revert function found in payload');
+  }
+
+  payload.revertFunc(draft);
 };
 
 const handleOnDelete = (draft, payload) => {
-  if (payload.itemType === undefined || payload.itemId === undefined) {
+  if (
+    payload.itemType === undefined ||
+    payload.itemId === undefined ||
+    payload.dispatch === undefined
+  ) {
     throw new Error('Insufficient arguments passed to onRename.');
   }
   if (
@@ -351,23 +378,33 @@ const handleOnDelete = (draft, payload) => {
         et.files[fid].tests.forEach((tid) => {
           if (Array.isArray(et.tests[tid].versions)) {
             et.tests[tid].versions.forEach((vid) => {
-              revertOnError.versions.push({vid: et.versions[vid]});
+              // Following and all similar object cloning is important for immer
+              // to work, because while reverting, we're working on a new draft,
+              // and if we don't clone, it's reference to the old draft's
+              // object breaks immer.
+              revertOnError.versions.push({[vid]: {...et.versions[vid]}});
               delete et.versions[vid];
             });
           }
-          revertOnError.tests.push({tid: et.tests[tid]});
+          const testClone = {...et.tests[tid]};
+          testClone.versions = [...testClone.versions];
+          revertOnError.tests.push({[tid]: testClone});
           delete et.tests[tid];
         });
       }
-      revertOnError.files.push({fid: et.files[fid]});
+      const fileClone = {...et.files[fid]};
+      fileClone.tests = [...fileClone.tests];
+      revertOnError.files.push({[fid]: fileClone});
       delete et.files[fid];
       pull(files.result, fid);
-      revertOnError.idsAdjustment = () => {
+      revertOnError.idsAdjustment = (newDraft) => {
+        const newFiles = newDraft.files;
+        const newET = newFiles.entities;
         // don't just remember the index of current fid in result and place
         // in that index, because when api delays and user has renamed some file
         // the sort order may have changed, thus compute again.
-        files.result.push(fid);
-        files.result = getSortedNames(files.result, et.files);
+        newFiles.result.push(fid);
+        newFiles.result = getSortedNames(newFiles.result, newET.files);
       };
       break;
     }
@@ -376,31 +413,42 @@ const handleOnDelete = (draft, payload) => {
       const fid = payload.itemParentId;
       if (Array.isArray(et.tests[tid].versions)) {
         et.tests[tid].versions.forEach((vid) => {
-          revertOnError.versions.push({vid: et.versions[vid]});
+          revertOnError.versions.push({[vid]: {...et.versions[vid]}});
           delete et.versions[vid];
         });
       }
-      revertOnError.tests.push({tid: et.tests[tid]});
+      const testClone = {...et.tests[tid]};
+      testClone.versions = [...testClone.versions];
+      revertOnError.tests.push({[tid]: testClone});
       delete et.tests[tid];
       pull(et.files[fid].tests, tid);
-      revertOnError.idsAdjustment = () => {
-        et.files[fid].tests.push(tid);
-        et.files[fid].tests = getSortedNames(et.files[fid].tests, et.tests);
+      revertOnError.idsAdjustment = (newDraft) => {
+        const newET = newDraft.files.entities;
+        if (newET.files[fid] !== undefined) {
+          newET.files[fid].tests.push(tid);
+          newET.files[fid].tests = getSortedNames(
+            newET.files[fid].tests,
+            newET.tests
+          );
+        }
       };
       break;
     }
     case ExplorerItemType.VERSION: {
       const vid = payload.itemId;
       const tid = payload.itemParentId;
-      revertOnError.versions.push({vid: et.versions[vid]});
+      revertOnError.versions.push({[vid]: {...et.versions[vid]}});
       delete et.versions[vid];
       pull(et.tests[tid].versions, vid);
-      revertOnError.idsAdjustment = () => {
-        et.tests[tid].versions.push(vid);
-        et.tests[tid].versions = getSortedNames(
-          et.tests[tid].versions,
-          et.versions
-        );
+      revertOnError.idsAdjustment = (newDraft) => {
+        const newET = newDraft.files.entities;
+        if (newET.tests[tid] !== undefined) {
+          newET.tests[tid].versions.push(vid);
+          newET.tests[tid].versions = getSortedNames(
+            newET.tests[tid].versions,
+            newET.versions
+          );
+        }
       };
       break;
     }
@@ -410,38 +458,52 @@ const handleOnDelete = (draft, payload) => {
       );
   }
 
-  // eslint-disable-next-line no-unused-vars
-  const revert = () => {
+  const revert = (newDraft) => {
+    const newET = newDraft.files.entities;
     revertOnError.versions.forEach((v) => {
-      Object.assign(et.versions, v);
+      Object.assign(newET.versions, v);
     });
     revertOnError.tests.forEach((t) => {
-      Object.assign(et.tests, t);
+      Object.assign(newET.tests, t);
     });
     revertOnError.files.forEach((f) => {
-      Object.assign(et.files, f);
+      Object.assign(newET.files, f);
     });
-    revertOnError.idsAdjustment();
+    revertOnError.idsAdjustment(newDraft);
   };
 
-  // Deletion done in data, now invoke api and call revert() on failure
-  // and show an error in snackbar, no action when it passes. For now just call
-  // revert and see whether it work, comment it once test done.
-  revert();
+  /*
+  Reverting isn't easy because the same draft in arguments couldn't be used
+  for revert. The calling code will have to send a 'dispatch' as we don't have
+  access to it here and revert has to be called as a separate action so we get
+  a new draft.
+  */
+  // eslint-disable-next-line no-unused-vars
+  const invokeRevert = () => {
+    payload.dispatch([ON_DELETE_REVERT_CALLBACK, {revertFunc: revert}]);
+  };
+
+  // Deletion done in data, now invoke api and call invokeRevert() on failure
+  // and show an error in snackbar, no action when it passes.
+  // For now just call it in a setTimeout to simulate API call and see whether
+  // it work, setTimeout(invokeRevert, 500);
+};
+
+const handleOnDeleteRevert = (draft, payload) => {
+  if (payload.revertFunc === undefined) {
+    throw new Error('No revert function found in payload');
+  }
+
+  payload.revertFunc(draft);
 };
 
 const handleOnRunBuild = (draft, payload) => {
   if (payload.itemType === undefined || payload.itemId === undefined) {
     throw new Error('Insufficient arguments passed to onRename.');
   }
-  if (
-    payload.itemType !== ExplorerItemType.FILE &&
-    payload.itemParentId === null
-  ) {
-    throw new Error('missing itemParentId in arguments.');
-  }
 
-  console.log(`invoked handleRunBuild with arguments ${payload}`);
+  console.log('invoked handleRunBuild with arguments:');
+  console.log(payload);
   // Open build config, show the selected ones as 'selected' and offer
   // to add more file/test/version. We should show file/test/version details
   // with every version of test going to run (the block that is draggable),
@@ -454,12 +516,13 @@ const handleOnRunBuildMulti = (draft, payload) => {
     throw new Error('Insufficient arguments passed to onRename.');
   }
 
-  console.log(`invoked handleRunBuildMulti with arguments ${payload}`);
+  console.log('invoked handleRunBuildMulti with arguments:');
+  console.log(payload);
 };
 
 const callHandler = (state, payload, handler) => {
   return produce(state, (draft) => {
-    handler(draft, payload);
+    handler(draft, payload, state);
   });
 };
 
@@ -499,8 +562,12 @@ const ideRootReducer = (state, [type, payload, error, meta]) => {
       return callHandler(state, payload, handleOnNewItem);
     case ON_RENAME_CALLBACK:
       return callHandler(state, payload, handleOnRename);
+    case ON_RENAME_REVERT_CALLBACK:
+      return callHandler(state, payload, handleOnRenameRevert);
     case ON_DELETE_CALLBACK:
       return callHandler(state, payload, handleOnDelete);
+    case ON_DELETE_REVERT_CALLBACK:
+      return callHandler(state, payload, handleOnDeleteRevert);
     case ON_RUN_BUILD_CALLBACK:
       return callHandler(state, payload, handleOnRunBuild);
     case ON_RUN_BUILD_MULTI_CALLBACK:
