@@ -20,14 +20,15 @@ import VersionIcon from '../newVersionIcon';
 import Tooltip from '../../TooltipCustom';
 import {ExplorerItemType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
-import ColoredItemIcon from './ColoredItemIcon';
-import {RootDispatchContext} from '../Contexts';
+import ColoredItemIcon from '../ColoredItemIcon';
+import {IdeDispatchContext} from '../Contexts';
 import {
-  ON_UNLOAD_CALLBACK,
-  ON_RENAME_CALLBACK,
-  ON_DELETE_CALLBACK,
-  ON_RUN_BUILD_CALLBACK,
-  ON_RUN_BUILD_MULTI_CALLBACK,
+  EXP_UNLOAD_FILE,
+  EXP_RENAME_ITEM,
+  EXP_DELETE_ITEM,
+  EXP_DELETE_REVERT,
+  RUN_BUILD,
+  RUN_BUILD_MULTI,
 } from '../actionTypes';
 import './contextMenu.css';
 
@@ -101,6 +102,7 @@ const ContextMenuRenderType = {
   MULTIPLE_ITEM_SELECTION: 'MULTIPLE_ITEM_SELECTION',
 };
 
+// !!! Make sure there is no prop/context here that causes unnecessary re render
 const TreeItemContent = React.memo(
   ({
     itemType,
@@ -111,9 +113,10 @@ const TreeItemContent = React.memo(
     hasError,
     isCurrentVersion,
     onNewItem,
-    selectedNodes,
+    selectedNodesRef,
+    filesRef,
   }) => {
-    const dispatch = useContext(RootDispatchContext);
+    const dispatch = useContext(IdeDispatchContext);
     const [editing, setEditing] = useState(false);
     const [hovering, setHovering] = useState(false);
     const [contextMenuRenderType, setContextMenuRenderType] = useState(
@@ -123,6 +126,7 @@ const TreeItemContent = React.memo(
     const [showUnloadDialog, setShowUnloadDialog] = useState(false);
     const classes = useStyle();
     const errorContainerRef = useRef(null);
+    const files = filesRef.current;
 
     const newItemHandler = (e) => {
       e.stopPropagation();
@@ -139,18 +143,39 @@ const TreeItemContent = React.memo(
     };
 
     const renameCommitCallback = (newName, type) => {
-      dispatch([
-        ON_RENAME_CALLBACK,
-        {
-          itemNewName: newName,
-          itemType: type,
-          itemCurrentName: itemName,
-          itemId,
-          itemParentId,
-          dispatch,
-        },
-      ]);
+      // first dispatch and rename locally
+      dispatch({
+        type: EXP_RENAME_ITEM,
+        payload: {itemNewName: newName, itemType: type, itemId, itemParentId},
+      });
+      // Since state change is asynchronous, dispatch will complete but the
+      // state change and render will start after the current function's
+      // completion (as this one already in stack), so the api request goes
+      // before any re render.
+
+      // eslint-disable-next-line no-unused-vars
+      const onError = (error) => {
+        // Show some precise error and revert to the original name
+        dispatch({
+          type: EXP_RENAME_ITEM,
+          payload: {
+            itemNewName: itemName, // if error, send original name
+            itemType: type,
+            itemId,
+            itemParentId,
+          },
+        });
+      };
       /*
+      Send api request, send itemType, itemId, newName.
+      if request fails, invoke onError, if passes do nothing.
+      For now simulate the error situation using a setTimeout, hide once test
+      done. setTimeout(onError, 500);
+      */
+
+      setEditing(false);
+      /*
+        Note on the re render react functionality.
         parent will first update the name and then change the data set based on
         new name. It will then sort the list by new name which will re render
         it. Re render will iterate thru data set but should keep all tree item
@@ -160,9 +185,7 @@ const TreeItemContent = React.memo(
         and create those were not existing.
         Now, since we were in editing mode, new name will not appear until the
         next statement cancel editing which will show new name.
-        TODO: verify that this behaviour is true.
         */
-      setEditing(false);
     };
 
     const editCancelCallback = () => {
@@ -171,15 +194,15 @@ const TreeItemContent = React.memo(
 
     const runBuildHandler = (e) => {
       e.stopPropagation();
-      dispatch([ON_RUN_BUILD_CALLBACK, {itemType, itemId}]);
+      dispatch({type: RUN_BUILD, payload: {itemType, itemId}});
     };
 
     const runBuildMultipleHandler = (e) => {
       e.stopPropagation();
-      dispatch([
-        ON_RUN_BUILD_MULTI_CALLBACK,
-        {selectedNodes: selectedNodes.current},
-      ]);
+      dispatch({
+        type: RUN_BUILD_MULTI,
+        payload: {selectedNodes: selectedNodesRef.current},
+      });
     };
 
     const onEdit = (e) => {
@@ -201,11 +224,124 @@ const TreeItemContent = React.memo(
     };
 
     const deleteAcceptHandler = () => {
+      // dispatch a delete
+      dispatch({
+        type: EXP_DELETE_ITEM,
+        payload: {itemType, itemId, itemParentId},
+      });
+      // prepare for revert, it doesn't matter whether we prepare for revert
+      // before dispatching a delete or after it cause the current state is not
+      // going to update before this function completes execution as state
+      // updates are async.
+      const et = files.entities;
+      const revertOnError = {
+        versions: [],
+        tests: [],
+        files: [],
+        idsAdjustment: () => null,
+      };
+      switch (itemType) {
+        case ExplorerItemType.FILE: {
+          const fid = itemId;
+          if (Array.isArray(et.files[fid].tests)) {
+            et.files[fid].tests.forEach((tid) => {
+              if (Array.isArray(et.tests[tid].versions)) {
+                et.tests[tid].versions.forEach((vid) => {
+                  revertOnError.versions.push({[vid]: et.versions[vid]});
+                });
+              }
+              revertOnError.tests.push({[tid]: et.tests[tid]});
+            });
+          }
+          revertOnError.files.push({[fid]: et.files[fid]});
+          // following function gets new state post deletion from reducer
+          revertOnError.idsAdjustment = (newState, sortIdsUsingNameMapping) => {
+            const newFiles = newState.files;
+            // don't just remember the index of current fid in result and place
+            // in that index, because when api delays and user may have renamed
+            // some file causing sort order to change, thus compute again.
+            newFiles.result.push(fid);
+            newFiles.result = sortIdsUsingNameMapping(
+              newFiles.result,
+              newFiles.entities.files
+            );
+          };
+          break;
+        }
+        case ExplorerItemType.TEST: {
+          const tid = itemId;
+          const fid = itemParentId;
+          if (Array.isArray(et.tests[tid].versions)) {
+            et.tests[tid].versions.forEach((vid) => {
+              revertOnError.versions.push({[vid]: et.versions[vid]});
+            });
+          }
+          revertOnError.tests.push({[tid]: et.tests[tid]});
+          revertOnError.idsAdjustment = (newState, sortIdsUsingNameMapping) => {
+            const newET = newState.files.entities;
+            // The entire file might have been deleted while we attempted to
+            // delete in case of an api delay, thus check whether it really
+            // exists now.
+            if (newET.files[fid] !== undefined) {
+              newET.files[fid].tests.push(tid);
+              newET.files[fid].tests = sortIdsUsingNameMapping(
+                newET.files[fid].tests,
+                newET.tests
+              );
+            }
+          };
+          break;
+        }
+        case ExplorerItemType.VERSION: {
+          const vid = itemId;
+          const tid = itemParentId;
+          revertOnError.versions.push({[vid]: et.versions[vid]});
+          revertOnError.idsAdjustment = (newState, sortIdsUsingNameMapping) => {
+            const newET = newState.files.entities;
+            // The entire test might have been deleted while we attempted to
+            // delete in case of an api delay, thus check whether it really
+            // exists now.
+            if (newET.tests[tid] !== undefined) {
+              newET.tests[tid].versions.push(vid);
+              newET.tests[tid].versions = sortIdsUsingNameMapping(
+                newET.tests[tid].versions,
+                newET.versions
+              );
+            }
+          };
+          break;
+        }
+        default:
+          throw new Error(`Can't detect ${itemType} while working on deletion`);
+      }
+      const revert = (newState, sortIdsUsingNameMapping) => {
+        const newET = newState.files.entities;
+        revertOnError.versions.forEach((v) => {
+          Object.assign(newET.versions, v);
+        });
+        revertOnError.tests.forEach((t) => {
+          Object.assign(newET.tests, t);
+        });
+        revertOnError.files.forEach((f) => {
+          Object.assign(newET.files, f);
+        });
+        revertOnError.idsAdjustment(newState, sortIdsUsingNameMapping);
+      };
+
+      // eslint-disable-next-line no-unused-vars
+      const onError = (error) => {
+        // Show some precise error and revert.
+        dispatch({type: EXP_DELETE_REVERT, payload: {revertFunc: revert}});
+      };
+      /*
+      Send api request, send itemType, itemId.
+      if request fails, invoke onError, if passes do nothing.
+      For now simulate the error situation using a setTimeout, hide once test
+      done.
+      */
+      setTimeout(onError, 500);
+
       setShowDeleteDialog(false);
-      dispatch([
-        ON_DELETE_CALLBACK,
-        {itemType, itemId, itemParentId, dispatch},
-      ]);
     };
 
     const unloadHandler = (e) => {
@@ -215,7 +351,7 @@ const TreeItemContent = React.memo(
 
     const unloadAcceptHandler = () => {
       setShowUnloadDialog(false);
-      dispatch([ON_UNLOAD_CALLBACK, {itemType, itemId}]);
+      dispatch({type: EXP_UNLOAD_FILE, payload: {itemType, itemId}});
     };
 
     const deleteDialogCancelHandler = (e) => {
@@ -230,7 +366,9 @@ const TreeItemContent = React.memo(
 
     const onContextMenu = () => {
       const currentlySelectedItems =
-        selectedNodes.current === undefined ? 0 : selectedNodes.current.length;
+        selectedNodesRef.current === undefined
+          ? 0
+          : selectedNodesRef.current.length;
       setContextMenuRenderType(
         currentlySelectedItems > 1
           ? ContextMenuRenderType.MULTIPLE_ITEM_SELECTION
@@ -510,7 +648,7 @@ const TreeItemContent = React.memo(
   /*
   I've included a custom prop check function rather than shallow check of all
   props.
-  - selectedNodes is a ref and doesn't change so need to ignore in check.
+  - selectedNodesRef is a ref and doesn't change so need to ignore in check.
   - siblingNames are created new for each of this component, most of the time
     it remains same thus a shallow check forces a re render that can be avoided
     by deep checking.
@@ -527,8 +665,11 @@ TreeItemContent.propTypes = {
   hasError: PropTypes.bool,
   isCurrentVersion: PropTypes.bool,
   onNewItem: PropTypes.func.isRequired,
-  selectedNodes: PropTypes.exact({
+  selectedNodesRef: PropTypes.exact({
     current: PropTypes.arrayOf(PropTypes.string),
+  }).isRequired,
+  filesRef: PropTypes.exact({
+    current: PropTypes.object,
   }).isRequired,
 };
 

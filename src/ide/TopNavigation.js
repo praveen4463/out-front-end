@@ -20,6 +20,9 @@ const useStyles = makeStyles((theme) => ({
   fontSizeSmall: {
     fontSize: '1.00rem',
   },
+  fontSizeEditIcon: {
+    fontSize: '1.13rem',
+  },
   appBarRoot: {
     backgroundColor: theme.palette.background.navigations,
   },
@@ -92,7 +95,7 @@ const TopNavigation = () => {
             />
           </IconButton>
         </Tooltip>
-        <EditMenu editIconClasses={{fontSizeSmall: classes.fontSizeSmall}} />
+        <EditMenu editIconClasses={{fontSizeSmall: classes.fontSizeEditIcon}} />
         <Box
           display="flex"
           flex={1}

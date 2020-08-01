@@ -3,9 +3,9 @@ import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import TestIcon from '@material-ui/icons/Title';
-import ZwlFileIcon from '../zwlFileIcon';
-import VersionIcon from '../newVersionIcon';
-import {ExplorerItemType} from '../Constants';
+import ZwlFileIcon from './zwlFileIcon';
+import VersionIcon from './newVersionIcon';
+import {ExplorerItemType} from './Constants';
 
 const useStyle = makeStyles((theme) => ({
   icon: {

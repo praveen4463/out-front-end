@@ -1,4 +1,10 @@
-import React, {useState, useRef, useCallback, useContext} from 'react';
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useContext,
+  useEffect,
+} from 'react';
 import Box from '@material-ui/core/Box';
 import {makeStyles} from '@material-ui/core/styles';
 import TreeView from '@material-ui/lab/TreeView';
@@ -9,12 +15,16 @@ import FileIcon from '@material-ui/icons/InsertDriveFile';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ArrowRightIcon from '@material-ui/icons/ArrowRight';
+import {normalize} from 'normalizr';
+import {random} from 'lodash-es';
 import {ExplorerItemType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
 import TreeItemContent from './TreeItemContent';
 import Tooltip from '../../TooltipCustom';
-import {RootDispatchContext, RootStateContext} from '../Contexts';
-import {ON_LOAD_CALLBACK, ON_NEW_ITEM_CALLBACK} from '../actionTypes';
+import {IdeDispatchContext, IdeFilesContext} from '../Contexts';
+import {EXP_LOAD_FILES, EXP_NEW_ITEM} from '../actionTypes';
+import {Version, Test, File, filesSchema} from './model';
+import {fileToLoad as sampleFilesForOnLoad} from './sample';
 
 const useStyles = makeStyles((theme) => ({
   explorer: {
@@ -103,19 +113,26 @@ function AddNewItem(type, parentId = null) {
 // handlers for starting the build. On re-render, always create using the
 // state.
 const Explorer = () => {
-  const dispatch = useContext(RootDispatchContext);
-  const {files} = useContext(RootStateContext);
+  const dispatch = useContext(IdeDispatchContext);
+  const files = useContext(IdeFilesContext);
   console.log('Explorer received files:');
   console.log(files);
   const [addNewItem, setAddNewItem] = useState(null);
   const [expanded, setExpanded] = useState([]);
   const [selected, setSelected] = useState([]);
+  const filesRef = useRef(files);
   const selectedNodesRef = useRef();
   const errorContainerRef = useRef(null);
   // ref object doesn't change thus safe to use in pure components. It's mutable
   // current property will give us latest set value without a re render of
   // component that uses it.
   const classes = useStyles();
+
+  useEffect(() => {
+    if (filesRef.current !== files) {
+      filesRef.current = files;
+    }
+  });
 
   const handleSelect = (e, nodeIds) => {
     setSelected(nodeIds);
@@ -130,8 +147,36 @@ const Explorer = () => {
     setExpanded(nodeIds);
   };
 
+  // !!! Note: Very uncompleted functionality.
   const handleOnLoad = () => {
-    dispatch([ON_LOAD_CALLBACK]);
+    /*
+    TODO: Make sure some project is selected, if not ask user to do so in some
+    nice way like redirecting focus to project dropdown.
+    Make a design for the File selection component such as something that loads
+    a tree of all available files together with the test and version. For now
+    we may fetch all data at once rather than fetching tests/versions on demand.
+    User can see there which files are already shown in in the tree as those
+    are not selectable and tells that it is already there in tree.
+    When a file is selected, that node has a squish mark and green background,
+    clicking again toggles it. A panel besides the file tree show selected files
+    in a column and below that is a button 'load selected files'. Dialog has a
+    close button and clicking outside or escape closes it without committing
+    any file for loading.
+    !!First investigate whether should we run api call from this event handler
+    or using 'effect', use the articles mentioned in this file.!!
+    use swr or similar to make request to api and get available files, when it's
+    not available show skelton in the modal box, once loaded show files, if
+    error, show some error that make sense to the problem within the modal.
+    Validate the received data against a prebuilt json schema and normalize it
+    before giving it to the FileSelect component. Note that the data should
+    already be ordered.
+    Once user selects file and clicks button, load all selected files into
+    tree.
+    */
+    // For now, assume we've the selected raw files form api and take sample
+    // files.
+    const filesToLoad = normalize(sampleFilesForOnLoad, filesSchema);
+    dispatch({type: EXP_LOAD_FILES, payload: {filesToLoad}});
   };
 
   const onNewFile = () => {
@@ -152,16 +197,92 @@ const Explorer = () => {
     );
   }, []);
 
+  // TODO: uncompleted functionality
   const newItemCommitCallback = useCallback(
     (newItemName, newItemType) => {
-      dispatch([
-        ON_NEW_ITEM_CALLBACK,
-        {
-          itemName: newItemName,
-          itemType: newItemType,
-          itemParentId: addNewItem.parentId,
-        },
-      ]);
+      /*
+      We need to first create the new item before updating it locally based on
+      the returned data.
+      First investigate whether should we run effects in this callback or some
+      how use 'effects' to do so using following article from Dan
+      https://overreacted.io/a-complete-guide-to-useeffect/
+      Also see https://medium.com/@audisho.sada/using-react-hooks-to-asynchronously-make-api-requests-1fdf52f797ce
+      and https://stackoverflow.com/questions/53845595/wrong-react-hooks-behaviour-with-event-listener
+      Invoke api and expect new item based on itemType. When a response is
+      received, dispatch to update the state and if failed, show some error
+      in some way like snackbar/alert (on top of explorer) etc. We may not show
+      some loading indicator because I don't want to interrupt any further
+      actions while new item is being created, it should be fine if nothing
+      happens for a sec and then new item appears in tree and opens in new
+      tab.
+      For now, simulate this and create data baed on random Ids, Use the same
+      functions and similar functionality with exception that data will come
+      from api.
+      */
+
+      // data is null while simulating
+      // eslint-disable-next-line no-unused-vars
+      const onSuccess = (data) => {
+        // generate random ids while simulating
+        const newRandom = () => {
+          return random(1000, 10000);
+        };
+        let newItem;
+        switch (newItemType) {
+          case ExplorerItemType.FILE:
+            // validate data: should have fileId, name (name is taken what is returned
+            // from api, possible that api sanitize the name)
+            newItem = new File(newRandom(), newItemName); // !!!This is sample
+            break;
+          case ExplorerItemType.TEST: {
+            // validate data: should have testId, name, versions, versionId, versionName, code,
+            // isCurrent.
+            const newTestId = newRandom();
+            newItem = new Test(newTestId, newItemName, addNewItem.parentId, [
+              new Version(newRandom(), 'v1', newTestId, '', true),
+            ]); // !!!This is sample
+            break;
+          }
+          case ExplorerItemType.VERSION:
+            // Version rules for new item: a new version will always contain code of
+            // latest version (if some version exists) and will be marked 'latest', the
+            // last latest version will no longer be latest.
+            // A latest version can't be deleted and api should return
+            // error if a call tries to do so.
+            // validate data: should have versionId, name, code, isCurrent
+            newItem = new Version(
+              newRandom(),
+              newItemName,
+              addNewItem.parentId,
+              'openUrl("https://twitter.com")',
+              true
+            ); // !!!This is sample
+            break;
+          default:
+            throw new Error(`Couldn't add new item of type ${newItemType}`);
+        }
+        // now dispatch
+        dispatch({
+          type: EXP_NEW_ITEM,
+          payload: {
+            item: newItem,
+            itemType: newItemType,
+            itemParentId: addNewItem.parentId,
+          },
+        });
+      };
+
+      // eslint-disable-next-line no-unused-vars
+      const onError = (error) => {
+        // show error in form of snackbar etc.
+      };
+      // Assume that following setTimeout is api request and it's function is
+      // the callback needs to run on completion.
+      // Things that need to be sent to api:
+      // newItemType, newItemName, (parentType = TEST/VERSION,
+      // addNewItem.parentId) only when newItemType !== FILE
+      setTimeout(onSuccess, 1000);
+      // hide the input box and let api return in sometime and change state.
       setAddNewItem(null);
     },
     [addNewItem, dispatch]
@@ -213,7 +334,8 @@ const Explorer = () => {
       hasError={hasError}
       isCurrentVersion={isCurrentVersion}
       onNewItem={newItemCallback}
-      selectedNodes={selectedNodesRef}
+      selectedNodesRef={selectedNodesRef}
+      filesRef={filesRef}
     />
   );
 
