@@ -9,8 +9,9 @@ const Editor = () => {
         backgroundColor: theme.palette.background.default,
         height: '100%',
         width: '100%',
-      }}
-    />
+      }}>
+      This is editor
+    </div>
   );
 };
 

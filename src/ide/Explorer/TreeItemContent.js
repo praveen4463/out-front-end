@@ -337,9 +337,8 @@ const TreeItemContent = React.memo(
       Send api request, send itemType, itemId.
       if request fails, invoke onError, if passes do nothing.
       For now simulate the error situation using a setTimeout, hide once test
-      done.
+      done. setTimeout(onError, 500);
       */
-      setTimeout(onError, 500);
 
       setShowDeleteDialog(false);
     };

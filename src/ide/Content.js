@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useCallback} from 'react';
 import SplitPane from 'react-split-pane';
 import LeftNavigation from './LeftNavigation';
 import BottomNavigation from './BottomNavigation';
@@ -10,6 +10,8 @@ import LeftPane from './LeftPane';
 import {LeftNavs, None} from './Constants';
 import '../react-split-pane.css';
 
+// Note: function like these causes the component to re render each time even
+// if it's pure but may be it's ok for components that don't have any logic.
 const navClick = (setSelectedState, activeIconState, setActiveIconState) => {
   return (nav) => {
     if (activeIconState === nav) {
@@ -18,14 +20,6 @@ const navClick = (setSelectedState, activeIconState, setActiveIconState) => {
     }
     setSelectedState(nav);
     setActiveIconState(nav);
-  };
-};
-
-const closePane = (activeIconState, setActiveIconState) => {
-  return () => {
-    if (activeIconState !== None) {
-      setActiveIconState(None);
-    }
   };
 };
 
@@ -41,6 +35,18 @@ const Content = () => {
 
   const [bottomNavSelected, setBottomNavSelected] = useState(None);
   const [bottomNavActiveIcon, setBottomNavActiveIcon] = useState(None);
+
+  const closeLeftNav = useCallback(() => {
+    setLeftNavActiveIcon(None);
+  }, []);
+
+  const closeRightNav = useCallback(() => {
+    setRightNavActiveIcon(None);
+  }, []);
+
+  const closeBottomNav = useCallback(() => {
+    setBottomNavActiveIcon(None);
+  }, []);
 
   return (
     <div
@@ -116,10 +122,7 @@ const Content = () => {
                 <div />
               ) : (
                 <LeftPane
-                  closeHandler={closePane(
-                    leftNavActiveIcon,
-                    setLeftNavActiveIcon
-                  )}
+                  closeHandler={closeLeftNav}
                   selected={leftNavSelected}
                 />
               )}
@@ -157,10 +160,7 @@ const Content = () => {
                     <div />
                   ) : (
                     <RightPane
-                      closeHandler={closePane(
-                        rightNavActiveIcon,
-                        setRightNavActiveIcon
-                      )}
+                      closeHandler={closeRightNav}
                       selected={rightNavSelected}
                     />
                   )}
@@ -172,10 +172,7 @@ const Content = () => {
             <div />
           ) : (
             <BottomPane
-              closeHandler={closePane(
-                bottomNavActiveIcon,
-                setBottomNavActiveIcon
-              )}
+              closeHandler={closeBottomNav}
               selected={bottomNavSelected}
             />
           )}

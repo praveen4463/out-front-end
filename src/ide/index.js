@@ -45,11 +45,13 @@ const initialState = {
   },
 };
 
+// TODO: This is the root component for IDE, on every dispatch it's state changes
+// and it re renders, make sure you memoize child components those don't require
+// a re render.
 const Ide = () => {
   const [state, dispatch] = useReducer(ideRootReducer, initialState);
   const classes = useStyles();
   const [allSet, setAllSet] = useState(false);
-
   useEffect(() => {
     /*
     - Fetching and populating files into state:

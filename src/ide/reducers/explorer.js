@@ -10,6 +10,7 @@ import {
   EXP_DELETE_ITEM,
   EXP_DELETE_REVERT,
 } from '../actionTypes';
+import getDeepClonedFiles from './common';
 
 const getSortedNames = (ids, namePropMapping) => {
   const pairs = ids.map((id) => [id, namePropMapping[id].name]);
@@ -27,7 +28,8 @@ const loadFiles = (draft, payload) => {
   if (payload.filesToLoad === undefined) {
     throw new Error('Insufficient arguments passed to loadFiles.');
   }
-  const {filesToLoad} = payload;
+  // never mutate a payload, always clone it.
+  const filesToLoad = getDeepClonedFiles(payload.filesToLoad);
   // files should already be ordered by names, i.e file/test/version
   // names should be ordered in ascending ordering, this is done at api level as
   // it's much faster there for big files. Normalize will keep individual
@@ -36,20 +38,19 @@ const loadFiles = (draft, payload) => {
   // will not keep that ordering but files.result does.
   // Note that we've to make sure the algorithm used for sorting at api level is
   // the same as what will be used here.
-  const {files} = draft;
   // All these new files should load to tree
   Object.values(filesToLoad.entities.files).forEach((f) => {
     // ! This is fine here as forEach mainly work via side effects.
     // eslint-disable-next-line no-param-reassign
     f.loadToTree = true;
   });
-  // if there is no file in state, just assign this one and return.
-  // This shouldn't happen because if we can load existing files, those should
-  // have already been added to 'files' on initial load in loadToTree=false
-  // state.
+
+  const {files} = draft;
+
   if (files === null) {
-    draft.files = filesToLoad;
-    return;
+    throw new Error(
+      'When loading existing files, having no file in state should not be possible'
+    );
   }
   const et = files.entities;
   if (et.tests === undefined) {
@@ -112,10 +113,11 @@ const newItem = (draft, payload) => {
   // having a duplicate there is nearly impossible.
   switch (payload.itemType) {
     case ExplorerItemType.FILE: {
-      const newFile = payload.item;
-      if (newFile.constructor !== File) {
+      if (payload.item.constructor !== File) {
         throw new Error("Supplied item isn't a File.");
       }
+      // never mutate a payload, always clone it.
+      const newFile = {...payload.item};
       newFile.loadToTree = true;
       if (draft.files === null) {
         draft.files = {entities: {files: {newFile}}, result: [newFile.id]};
@@ -129,10 +131,11 @@ const newItem = (draft, payload) => {
       break;
     }
     case ExplorerItemType.TEST: {
-      const newTest = payload.item;
-      if (newTest.constructor !== Test) {
+      if (payload.item.constructor !== Test) {
         throw new Error("Supplied item isn't a Test.");
       }
+      const newTest = {...payload.item};
+      newTest.versions = [...newTest.versions];
       const newDefaultVersion = newTest.versions[0];
       const fid = payload.itemParentId;
       const {files} = draft; // file can't be null when adding test/version.
@@ -158,10 +161,10 @@ const newItem = (draft, payload) => {
       break;
     }
     case ExplorerItemType.VERSION: {
-      const newVersion = payload.item;
-      if (newVersion.constructor !== Version) {
+      if (payload.item.constructor !== Version) {
         throw new Error("Supplied item isn't a Version.");
       }
+      const newVersion = {...payload.item};
       const tid = payload.itemParentId;
       const {files} = draft;
       const et = files.entities;

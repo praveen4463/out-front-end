@@ -5,11 +5,13 @@ import React, {
   useContext,
   useEffect,
 } from 'react';
+import PropTypes from 'prop-types';
 import Box from '@material-ui/core/Box';
 import {makeStyles} from '@material-ui/core/styles';
 import TreeView from '@material-ui/lab/TreeView';
 import TreeItem from '@material-ui/lab/TreeItem';
 import Typography from '@material-ui/core/Typography';
+import Skeleton from '@material-ui/lab/Skeleton';
 import IconButton from '@material-ui/core/IconButton';
 import FileIcon from '@material-ui/icons/InsertDriveFile';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
@@ -25,6 +27,7 @@ import {IdeDispatchContext, IdeFilesContext} from '../Contexts';
 import {EXP_LOAD_FILES, EXP_NEW_ITEM} from '../actionTypes';
 import {Version, Test, File, filesSchema} from './model';
 import {fileToLoad as sampleFilesForOnLoad} from './sample';
+import ColoredItemIcon from '../ColoredItemIcon';
 
 const useStyles = makeStyles((theme) => ({
   explorer: {
@@ -70,6 +73,15 @@ const useStyles = makeStyles((theme) => ({
   errorContainer: {
     backgroundColor: theme.palette.background.paper,
   },
+  newItemSkelton: {
+    backgroundColor: theme.palette.background.contrastText,
+  },
+  borderBottomLight: {
+    borderBottom: `1px solid ${theme.palette.border.light}`,
+  },
+  borderLeftLight: {
+    borderLeft: `1px solid ${theme.palette.border.light}`,
+  },
 }));
 
 const getExplorerParentTypeByChild = (childType) => {
@@ -104,20 +116,22 @@ const getNamesByIdMapping = (ids, sourceObjWithIdKey) => {
   return ids.map((id) => sourceObjWithIdKey[id].name);
 };
 
-function AddNewItem(type, parentId = null) {
+const getNodeId = (itemType, itemId) => `${itemType}-${itemId}`;
+
+function AddNewItem(type, parentId = null, submitted = false) {
   this.type = type;
   this.parentId = parentId;
+  this.submitted = submitted;
 }
 
-// take props with current state and functions to send updates to state,
-// handlers for starting the build. On re-render, always create using the
-// state.
-const Explorer = () => {
+/* Re render only if the subscribed context or local state changes, not when
+parent re renders. */
+const Explorer = React.memo(({closeButton}) => {
   const dispatch = useContext(IdeDispatchContext);
   const files = useContext(IdeFilesContext);
+  const [addNewItem, setAddNewItem] = useState(null);
   console.log('Explorer received files:');
   console.log(files);
-  const [addNewItem, setAddNewItem] = useState(null);
   const [expanded, setExpanded] = useState([]);
   const [selected, setSelected] = useState([]);
   const filesRef = useRef(files);
@@ -132,13 +146,28 @@ const Explorer = () => {
     if (filesRef.current !== files) {
       filesRef.current = files;
     }
+    // setting a new ref to be used in tree items so that whenever 'selected'
+    // state changes it doesn't have to re render.
+    if (selectedNodesRef.current !== selected) {
+      selectedNodesRef.current = selected;
+    }
   });
+
+  const expandItem = (itemType, itemId) => {
+    const item = getNodeId(itemType, itemId);
+    setExpanded((current) =>
+      !current.includes(item) ? [...current, item] : current
+    );
+  };
+
+  // Resets any multi selections and select just the given item.
+  const selectItem = (itemType, itemId) => {
+    const item = getNodeId(itemType, itemId);
+    setSelected([item]);
+  };
 
   const handleSelect = (e, nodeIds) => {
     setSelected(nodeIds);
-    // setting a new ref to be used in tree items so that whenever 'selected'
-    // state changes it doesn't have to re render.
-    selectedNodesRef.current = nodeIds;
   };
 
   const handleToggle = (e, nodeIds) => {
@@ -181,7 +210,7 @@ const Explorer = () => {
 
   const onNewFile = () => {
     const fileItemType = ExplorerItemType.FILE;
-    setAddNewItem(new AddNewItem(fileItemType, null));
+    setAddNewItem(new AddNewItem(fileItemType));
   };
 
   const newItemCallback = useCallback((itemType, itemParentId) => {
@@ -189,18 +218,13 @@ const Explorer = () => {
     if (!itemParentId) {
       return;
     }
-    const parentNode = `${getExplorerParentTypeByChild(
-      itemType
-    )}-${itemParentId}`;
-    setExpanded((current) =>
-      !current.includes(parentNode) ? [...current, parentNode] : current
-    );
+    expandItem(getExplorerParentTypeByChild(itemType), itemParentId);
   }, []);
 
   // TODO: uncompleted functionality
-  const newItemCommitCallback = useCallback(
-    (newItemName, newItemType) => {
-      /*
+  // TODO: see if we need to put this in useCallback
+  const newItemCommitCallback = (newItemName, newItemType) => {
+    /*
       We need to first create the new item before updating it locally based on
       the returned data.
       First investigate whether should we run effects in this callback or some
@@ -220,95 +244,119 @@ const Explorer = () => {
       from api.
       */
 
-      // data is null while simulating
-      // eslint-disable-next-line no-unused-vars
-      const onSuccess = (data) => {
-        // generate random ids while simulating
-        const newRandom = () => {
-          return random(1000, 10000);
-        };
-        let newItem;
-        switch (newItemType) {
-          case ExplorerItemType.FILE:
-            // validate data: should have fileId, name (name is taken what is returned
-            // from api, possible that api sanitize the name)
-            newItem = new File(newRandom(), newItemName); // !!!This is sample
-            break;
-          case ExplorerItemType.TEST: {
-            // validate data: should have testId, name, versions, versionId, versionName, code,
-            // isCurrent.
-            const newTestId = newRandom();
-            newItem = new Test(newTestId, newItemName, addNewItem.parentId, [
-              new Version(newRandom(), 'v1', newTestId, '', true),
-            ]); // !!!This is sample
-            break;
-          }
-          case ExplorerItemType.VERSION:
-            // Version rules for new item: a new version will always contain code of
-            // latest version (if some version exists) and will be marked 'latest', the
-            // last latest version will no longer be latest.
-            // A latest version can't be deleted and api should return
-            // error if a call tries to do so.
-            // validate data: should have versionId, name, code, isCurrent
-            newItem = new Version(
-              newRandom(),
-              newItemName,
-              addNewItem.parentId,
-              'openUrl("https://twitter.com")',
-              true
-            ); // !!!This is sample
-            break;
-          default:
-            throw new Error(`Couldn't add new item of type ${newItemType}`);
+    // data is null while simulating
+    // eslint-disable-next-line no-unused-vars
+    const onSuccess = (data) => {
+      // generate random ids while simulating
+      const newRandom = () => {
+        return random(1000, 10000);
+      };
+      let newItem;
+      switch (newItemType) {
+        case ExplorerItemType.FILE:
+          // validate data: should have fileId, name (name is taken what is returned
+          // from api, possible that api sanitize the name)
+          newItem = new File(newRandom(), newItemName); // !!!This is sample
+          break;
+        case ExplorerItemType.TEST: {
+          // validate data: should have testId, name, versions, versionId, versionName, code,
+          // isCurrent.
+          const newTestId = newRandom();
+          newItem = new Test(newTestId, newItemName, addNewItem.parentId, [
+            new Version(newRandom(), 'v1', newTestId, '', true),
+          ]); // !!!This is sample
+          break;
         }
-        // now dispatch
-        dispatch({
-          type: EXP_NEW_ITEM,
-          payload: {
-            item: newItem,
-            itemType: newItemType,
-            itemParentId: addNewItem.parentId,
-          },
-        });
-      };
-
-      // eslint-disable-next-line no-unused-vars
-      const onError = (error) => {
-        // show error in form of snackbar etc.
-      };
-      // Assume that following setTimeout is api request and it's function is
-      // the callback needs to run on completion.
-      // Things that need to be sent to api:
-      // newItemType, newItemName, (parentType = TEST/VERSION,
-      // addNewItem.parentId) only when newItemType !== FILE
-      setTimeout(onSuccess, 1000);
-      // hide the input box and let api return in sometime and change state.
+        case ExplorerItemType.VERSION:
+          // Version rules for new item: a new version will always contain code of
+          // latest version (if some version exists) and will be marked 'latest', the
+          // last latest version will no longer be latest.
+          // A latest version can't be deleted and api should return
+          // error if a call tries to do so.
+          // validate data: should have versionId, name, code, isCurrent
+          newItem = new Version(
+            newRandom(),
+            newItemName,
+            addNewItem.parentId,
+            'openUrl("https://twitter.com")',
+            true
+          ); // !!!This is sample
+          break;
+        default:
+          throw new Error(`Couldn't add new item of type ${newItemType}`);
+      }
+      // now dispatch
+      dispatch({
+        type: EXP_NEW_ITEM,
+        payload: {
+          item: newItem,
+          itemType: newItemType,
+          itemParentId: addNewItem.parentId,
+        },
+      });
+      // if new item was version or test, select the new version
+      if (
+        newItemType === ExplorerItemType.TEST ||
+        newItemType === ExplorerItemType.VERSION
+      ) {
+        const newVersion =
+          newItemType === ExplorerItemType.TEST ? newItem.versions[0] : newItem;
+        selectItem(ExplorerItemType.VERSION, newVersion.id);
+        expandItem(ExplorerItemType.TEST, newVersion.testId);
+      }
       setAddNewItem(null);
-    },
-    [addNewItem, dispatch]
-    // add dispatch despite it's not needed, because if we ignore any further
-    // wrong updates may go unnoticed,
-    // https://github.com/reactjs/reactjs.org/issues/1889
-  );
+    };
+
+    // eslint-disable-next-line no-unused-vars
+    const onError = (error) => {
+      setAddNewItem(null);
+      // show error in form of snackbar etc.
+    };
+    // Assume that following setTimeout is api request and it's function is
+    // the callback needs to run on completion.
+    // Things that need to be sent to api:
+    // newItemType, newItemName, (parentType = TEST/VERSION,
+    // addNewItem.parentId) only when newItemType !== FILE
+    setTimeout(onSuccess, 1000);
+    // hide the input box and let api return in sometime and change state.
+    setAddNewItem((i) => new AddNewItem(i.type, i.parentId, true));
+  };
 
   const newItemCancelCallback = useCallback(() => {
     setAddNewItem(null);
   }, []);
 
-  const getItemEditorFormatted = (existingNames, itemType) => {
+  const getNewItemEditor = (existingNames) => {
     return (
       <div className={`MuiTreeItem-content ${classes.content}`}>
         <div className={`MuiTreeItem-iconContainer ${classes.iconContainer}`} />
         <div className={`MuiTreeItem-label ${classes.label}`}>
-          <Box px={0.5} minHeight={28} className={classes.highlight}>
-            <TreeItemEditor
-              defaultName=""
-              existingNames={existingNames}
-              itemType={itemType}
-              onCommit={newItemCommitCallback}
-              onCancel={newItemCancelCallback}
-              errorContainerRef={errorContainerRef}
-            />
+          <Box
+            display="flex"
+            px={0.5}
+            minHeight={28}
+            className={classes.highlight}>
+            {!addNewItem.submitted ? (
+              <TreeItemEditor
+                defaultName=""
+                existingNames={existingNames}
+                itemType={addNewItem.type}
+                onCommit={newItemCommitCallback}
+                onCancel={newItemCancelCallback}
+                errorContainerRef={errorContainerRef}
+              />
+            ) : (
+              <Box display="flex" flex={1}>
+                <Box display="flex" alignItems="center" flex={1}>
+                  <ColoredItemIcon itemType={addNewItem.type} />
+                  <Skeleton
+                    variant="text"
+                    className={classes.newItemSkelton}
+                    width="60%"
+                  />
+                </Box>
+              </Box>
+            )}
           </Box>
           <Box ref={errorContainerRef} className={classes.errorContainer} />
         </div>
@@ -344,7 +392,7 @@ const Explorer = () => {
       <Box
         display="flex"
         alignItems="center"
-        style={{borderBottom: '1px solid #363636'}}>
+        className={classes.borderBottomLight}>
         <Typography variant="body2" className={classes.fileCaption}>
           Files
         </Typography>
@@ -365,6 +413,7 @@ const Explorer = () => {
             <AddCircleOutlineIcon className={classes.icon} />
           </IconButton>
         </Tooltip>
+        <div className={classes.borderLeftLight}>{closeButton}</div>
       </Box>
       {files && Array.isArray(files.result) && files.result.length && (
         <Box py={1}>
@@ -379,15 +428,14 @@ const Explorer = () => {
             selected={selected}>
             {Boolean(addNewItem) &&
               addNewItem.type === ExplorerItemType.FILE &&
-              getItemEditorFormatted(
-                getNamesByIdMapping(files.result, files.entities.files),
-                ExplorerItemType.FILE
+              getNewItemEditor(
+                getNamesByIdMapping(files.result, files.entities.files)
               )}
             {files.result
               .filter((fid) => files.entities.files[fid].loadToTree)
               .map((fid) => (
                 <TreeItem
-                  nodeId={`${ExplorerItemType.FILE}-${fid}`}
+                  nodeId={getNodeId(ExplorerItemType.FILE, fid)}
                   key={fid}
                   label={getTreeItemContent(
                     ExplorerItemType.FILE,
@@ -413,17 +461,16 @@ const Explorer = () => {
                   {Boolean(addNewItem) &&
                     addNewItem.type === ExplorerItemType.TEST &&
                     addNewItem.parentId === fid &&
-                    getItemEditorFormatted(
+                    getNewItemEditor(
                       getNamesByIdMapping(
                         files.entities.files[fid].tests,
                         files.entities.tests
-                      ),
-                      ExplorerItemType.TEST
+                      )
                     )}
                   {Array.isArray(files.entities.files[fid].tests) &&
                     files.entities.files[fid].tests.map((tid) => (
                       <TreeItem
-                        nodeId={`${ExplorerItemType.TEST}-${tid}`}
+                        nodeId={getNodeId(ExplorerItemType.TEST, tid)}
                         key={tid}
                         label={getTreeItemContent(
                           ExplorerItemType.TEST,
@@ -448,17 +495,16 @@ const Explorer = () => {
                         {Boolean(addNewItem) &&
                           addNewItem.type === ExplorerItemType.VERSION &&
                           addNewItem.parentId === tid &&
-                          getItemEditorFormatted(
+                          getNewItemEditor(
                             getNamesByIdMapping(
                               files.entities.tests[tid].versions,
                               files.entities.versions
-                            ),
-                            ExplorerItemType.VERSION
+                            )
                           )}
                         {Array.isArray(files.entities.tests[tid].versions) &&
                           files.entities.tests[tid].versions.map((vid) => (
                             <TreeItem
-                              nodeId={`${ExplorerItemType.VERSION}-${vid}`}
+                              nodeId={getNodeId(ExplorerItemType.VERSION, vid)}
                               key={vid}
                               label={getTreeItemContent(
                                 ExplorerItemType.VERSION,
@@ -492,6 +538,10 @@ const Explorer = () => {
       )}
     </Box>
   );
+});
+
+Explorer.propTypes = {
+  closeButton: PropTypes.node.isRequired,
 };
 
 export default Explorer;

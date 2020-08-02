@@ -43,7 +43,6 @@ const ProjectSelector = () => {
   // compute when project is changed.
   // https://github.com/facebook/react/issues/15156#issuecomment-474590693
   return useMemo(() => {
-    console.log('project selector loaded');
     const newProjectHandler = () => {
       /*
       // open dialog, create new project and keep generated id and project name.

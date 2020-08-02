@@ -5,13 +5,14 @@ import {
   RUN_BUILD,
   RUN_BUILD_MULTI,
 } from '../actionTypes';
+import getDeepClonedFiles from './common';
 
 const setFiles = (draft, payload) => {
   if (payload.files === undefined) {
     throw new Error('Insufficient arguments passed to setFiles.');
   }
 
-  draft.files = payload.files;
+  draft.files = getDeepClonedFiles(payload.files);
 };
 
 const setProject = (draft, payload) => {

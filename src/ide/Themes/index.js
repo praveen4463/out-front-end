@@ -51,6 +51,9 @@ const darkTheme = createMuiTheme({
       default: '#121212',
       contrastText: `rgba(255, 255, 255, ${highEmphasisOpacity})`,
     },
+    border: {
+      light: '#363636',
+    },
     linkTab: {
       hoverBackground: '#525252',
       background: '#424242',

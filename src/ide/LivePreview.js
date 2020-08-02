@@ -20,6 +20,9 @@ const LivePreview = () => {
         backgroundColor: '#fff',
         color: '#000',
       }}>
+      {/* TODO: give a full screen and maximize option, maximize should close
+      all other panes and maximize the pane, while full screen should start
+      a full screen dialog and transfer the live preview there. */}
       <span>Live preview appears here</span>
     </Box>
   );
