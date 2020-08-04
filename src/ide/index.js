@@ -8,8 +8,14 @@ import darkTheme from './Themes';
 import {files as sampleFiles} from './Explorer/sample';
 import {filesSchema} from './Explorer/model';
 import {SET_FILES} from './actionTypes';
-import {IdeDispatchContext, IdeStateContext, IdeFilesContext} from './Contexts';
+import {
+  IdeDispatchContext,
+  IdeStateContext,
+  IdeFilesContext,
+  IdeEditorContext,
+} from './Contexts';
 import explorerReducer from './reducers/explorer';
+import editorReducer from './reducers/editor';
 import ideReducer from './reducers/ide';
 import './index.css';
 
@@ -28,8 +34,12 @@ const useStyles = makeStyles((theme) => ({
 // - Reducer must be pure https://redux.js.org/basics/reducers#handling-actions
 // - Don't use 'produce' on root reducer https://immerjs.github.io/immer/docs/example-reducer
 const ideRootReducer = (state, action) => {
-  if (action.type.startsWith('EXP_')) {
+  const {type} = action;
+  if (type.startsWith('EXP_')) {
     return explorerReducer(state, action);
+  }
+  if (type.startsWith('EDR_')) {
+    return editorReducer(state, action);
   }
   return ideReducer(state, action);
 };
@@ -42,6 +52,13 @@ const initialState = {
     start: null,
     stop: null,
     items: [],
+  },
+  editor: {
+    tabs: {
+      maps: [], // mappings of tabVersionID, Tab as key-value pair 2D array
+      temporaryTabVersionId: null,
+      selectedTabVersionId: null,
+    },
   },
 };
 
@@ -138,29 +155,31 @@ const Ide = () => {
       <IdeDispatchContext.Provider value={dispatch}>
         <IdeStateContext.Provider value={state}>
           <IdeFilesContext.Provider value={state.files}>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
-                margin: 0,
-              }}>
-              <div style={{display: 'flex', flex: '1 1 auto'}}>
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    position: 'fixed',
-                    left: 0,
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                  }}>
-                  <TopNavigation />
-                  <Content />
+            <IdeEditorContext.Provider value={state.editor}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  margin: 0,
+                }}>
+                <div style={{display: 'flex', flex: '1 1 auto'}}>
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      position: 'fixed',
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                    }}>
+                    <TopNavigation />
+                    <Content />
+                  </div>
                 </div>
               </div>
-            </div>
+            </IdeEditorContext.Provider>
           </IdeFilesContext.Provider>
         </IdeStateContext.Provider>
       </IdeDispatchContext.Provider>

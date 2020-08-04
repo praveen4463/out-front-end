@@ -1,7 +1,8 @@
 import React from 'react';
 import {useTheme} from '@material-ui/core/styles';
+import Editor from './Editor';
 
-const Editor = () => {
+const MidContent = () => {
   const theme = useTheme();
   return (
     <div
@@ -10,9 +11,9 @@ const Editor = () => {
         height: '100%',
         width: '100%',
       }}>
-      This is editor
+      <Editor />
     </div>
   );
 };
 
-export default Editor;
+export default MidContent;

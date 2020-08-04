@@ -3,7 +3,7 @@ import SplitPane from 'react-split-pane';
 import LeftNavigation from './LeftNavigation';
 import BottomNavigation from './BottomNavigation';
 import RightNavigation from './RightNavigation';
-import Editor from './Editor';
+import MidContent from './MidContent';
 import RightPane from './RightPane';
 import BottomPane from './BottomPane';
 import LeftPane from './LeftPane';
@@ -155,7 +155,7 @@ const Content = () => {
                     maxWidth: rightNavActiveIcon === None ? 0 : '100%',
                     minWidth: rightNavActiveIcon === None ? 0 : '25%',
                   }}>
-                  <Editor />
+                  <MidContent />
                   {rightNavActiveIcon === None ? (
                     <div />
                   ) : (

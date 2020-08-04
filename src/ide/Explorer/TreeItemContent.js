@@ -27,9 +27,12 @@ import {
   EXP_RENAME_ITEM,
   EXP_DELETE_ITEM,
   EXP_DELETE_REVERT,
+  EDR_EXP_VERSIONS_DELETED,
+  EDR_EXP_VERSION_DBL_CLICK,
   RUN_BUILD,
   RUN_BUILD_MULTI,
 } from '../actionTypes';
+import {getBrokenNodeId} from './internal';
 import './contextMenu.css';
 
 const useStyle = makeStyles((theme) => ({
@@ -201,7 +204,11 @@ const TreeItemContent = React.memo(
       e.stopPropagation();
       dispatch({
         type: RUN_BUILD_MULTI,
-        payload: {selectedNodes: selectedNodesRef.current},
+        payload: {
+          selectedNodes: selectedNodesRef.current.map((n) =>
+            getBrokenNodeId(n)
+          ),
+        },
       });
     };
 
@@ -218,6 +225,16 @@ const TreeItemContent = React.memo(
       setHovering(true);
     };
 
+    const handleDoubleClick = () => {
+      if (itemType !== ExplorerItemType.VERSION) {
+        return;
+      }
+      dispatch({
+        type: EDR_EXP_VERSION_DBL_CLICK,
+        payload: {versionId: itemId},
+      });
+    };
+
     const deleteHandler = (e) => {
       e.stopPropagation();
       setShowDeleteDialog(true);
@@ -228,6 +245,10 @@ const TreeItemContent = React.memo(
       dispatch({
         type: EXP_DELETE_ITEM,
         payload: {itemType, itemId, itemParentId},
+      });
+      dispatch({
+        type: EDR_EXP_VERSIONS_DELETED,
+        payload: {versionIds: [itemId]},
       });
       // prepare for revert, it doesn't matter whether we prepare for revert
       // before dispatching a delete or after it cause the current state is not
@@ -351,6 +372,21 @@ const TreeItemContent = React.memo(
     const unloadAcceptHandler = () => {
       setShowUnloadDialog(false);
       dispatch({type: EXP_UNLOAD_FILE, payload: {itemType, itemId}});
+      // find all versions within this file, all of them need to be removed from
+      // tabs
+      const et = files.entities;
+      const versionIds = [];
+      // eslint-disable-next-line no-unused-expressions
+      Array.isArray(et.files[itemId].tests) &&
+        et.files[itemId].tests.forEach((t) =>
+          et.tests[t].versions.forEach((v) => versionIds.push(v))
+        );
+      if (versionIds.length > 0) {
+        dispatch({
+          type: EDR_EXP_VERSIONS_DELETED,
+          payload: {versionIds},
+        });
+      }
     };
 
     const deleteDialogCancelHandler = (e) => {
@@ -428,7 +464,8 @@ const TreeItemContent = React.memo(
             minHeight={28}
             onContextMenu={onContextMenu}
             onMouseEnter={onHovering}
-            onMouseLeave={onHoveringCancel}>
+            onMouseLeave={onHoveringCancel}
+            onDoubleClick={handleDoubleClick}>
             <Box display="flex" alignItems="center" flex={1}>
               <ColoredItemIcon itemType={itemType} />
               <Typography

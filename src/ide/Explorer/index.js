@@ -23,11 +23,20 @@ import {ExplorerItemType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
 import TreeItemContent from './TreeItemContent';
 import Tooltip from '../../TooltipCustom';
-import {IdeDispatchContext, IdeFilesContext} from '../Contexts';
-import {EXP_LOAD_FILES, EXP_NEW_ITEM} from '../actionTypes';
+import {
+  IdeDispatchContext,
+  IdeFilesContext,
+  IdeEditorContext,
+} from '../Contexts';
+import {
+  EXP_LOAD_FILES,
+  EXP_NEW_ITEM,
+  EDR_EXP_VERSION_CLICK,
+} from '../actionTypes';
 import {Version, Test, File, filesSchema} from './model';
 import {fileToLoad as sampleFilesForOnLoad} from './sample';
 import ColoredItemIcon from '../ColoredItemIcon';
+import {getNodeId, getBrokenNodeId} from './internal';
 
 const useStyles = makeStyles((theme) => ({
   explorer: {
@@ -116,8 +125,6 @@ const getNamesByIdMapping = (ids, sourceObjWithIdKey) => {
   return ids.map((id) => sourceObjWithIdKey[id].name);
 };
 
-const getNodeId = (itemType, itemId) => `${itemType}-${itemId}`;
-
 function AddNewItem(type, parentId = null, submitted = false) {
   this.type = type;
   this.parentId = parentId;
@@ -129,6 +136,7 @@ parent re renders. */
 const Explorer = React.memo(({closeButton}) => {
   const dispatch = useContext(IdeDispatchContext);
   const files = useContext(IdeFilesContext);
+  const editor = useContext(IdeEditorContext);
   const [addNewItem, setAddNewItem] = useState(null);
   console.log('Explorer received files:');
   console.log(files);
@@ -141,17 +149,6 @@ const Explorer = React.memo(({closeButton}) => {
   // current property will give us latest set value without a re render of
   // component that uses it.
   const classes = useStyles();
-
-  useEffect(() => {
-    if (filesRef.current !== files) {
-      filesRef.current = files;
-    }
-    // setting a new ref to be used in tree items so that whenever 'selected'
-    // state changes it doesn't have to re render.
-    if (selectedNodesRef.current !== selected) {
-      selectedNodesRef.current = selected;
-    }
-  });
 
   const expandItem = (itemType, itemId) => {
     const item = getNodeId(itemType, itemId);
@@ -166,8 +163,56 @@ const Explorer = React.memo(({closeButton}) => {
     setSelected([item]);
   };
 
+  // Sets state changes into various refs
+  useEffect(() => {
+    if (filesRef.current !== files) {
+      filesRef.current = files;
+    }
+    // setting a new ref to be used in tree items so that whenever 'selected'
+    // state changes it doesn't have to re render.
+    if (selectedNodesRef.current !== selected) {
+      selectedNodesRef.current = selected;
+    }
+  });
+
+  // checks editor context changes and re render if needed.
+  useEffect(() => {
+    // If there is any selected tab, expand file/test if not expanded and then
+    // select the tab's version. Otherwise deselect any selection as it
+    // indicates all tabs are closed or none yet opened.
+    const {selectedTabVersionId} = editor.tabs;
+    if (selectedTabVersionId) {
+      const {testId} = files.entities.versions[selectedTabVersionId];
+      const {fileId} = files.entities.tests[testId];
+      // if there is a selected tab, we want that version to be selected here.
+      // first create nodeId of this version
+      const versionNodeId = getNodeId(
+        ExplorerItemType.VERSION,
+        selectedTabVersionId
+      );
+      const testNodeId = getNodeId(ExplorerItemType.TEST, testId);
+      const fileNodeId = getNodeId(ExplorerItemType.FILE, fileId);
+      expandItem(fileNodeId);
+      expandItem(testNodeId);
+      selectItem(versionNodeId);
+    } else {
+      selectItem([]);
+    }
+  });
+
   const handleSelect = (e, nodeIds) => {
     setSelected(nodeIds);
+    // decide whether to send a dispatch if this is a version select and there
+    // is nothing else selected.
+    if (nodeIds.length === 1) {
+      const node = getBrokenNodeId(nodeIds[0]);
+      if (node.itemType === ExplorerItemType.VERSION) {
+        dispatch({
+          type: EDR_EXP_VERSION_CLICK,
+          payload: {versionId: node.itemId},
+        });
+      }
+    }
   };
 
   const handleToggle = (e, nodeIds) => {

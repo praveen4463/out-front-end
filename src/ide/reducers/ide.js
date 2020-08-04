@@ -41,10 +41,7 @@ const runBuildMulti = (draft, payload) => {
 
   const {build} = draft;
   build.start = true;
-  build.items = payload.selectedNodes.map((n) => {
-    const nodeId = n.split('-');
-    return {itemType: nodeId[0], itemId: nodeId[1]};
-  });
+  build.items = payload.selectedNodes;
 };
 
 const ideReducer = produce((draft, action) => {
