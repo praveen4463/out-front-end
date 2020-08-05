@@ -19,6 +19,7 @@ import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ArrowRightIcon from '@material-ui/icons/ArrowRight';
 import {normalize} from 'normalizr';
 import {random} from 'lodash-es';
+import clsx from 'clsx';
 import {ExplorerItemType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
 import TreeItemContent from './TreeItemContent';
@@ -87,6 +88,9 @@ const useStyles = makeStyles((theme) => ({
   },
   borderBottomLight: {
     borderBottom: `1px solid ${theme.palette.border.light}`,
+  },
+  header: {
+    minHeight: theme.spacing(4),
   },
   borderLeftLight: {
     borderLeft: `1px solid ${theme.palette.border.light}`,
@@ -157,12 +161,6 @@ const Explorer = React.memo(({closeButton}) => {
     );
   };
 
-  // Resets any multi selections and select just the given item.
-  const selectItem = (itemType, itemId) => {
-    const item = getNodeId(itemType, itemId);
-    setSelected([item]);
-  };
-
   // Sets state changes into various refs
   useEffect(() => {
     if (filesRef.current !== files) {
@@ -175,44 +173,48 @@ const Explorer = React.memo(({closeButton}) => {
     }
   });
 
-  // checks editor context changes and re render if needed.
   useEffect(() => {
-    // If there is any selected tab, expand file/test if not expanded and then
-    // select the tab's version. Otherwise deselect any selection as it
-    // indicates all tabs are closed or none yet opened.
-    const {selectedTabVersionId} = editor.tabs;
-    if (selectedTabVersionId) {
-      const {testId} = files.entities.versions[selectedTabVersionId];
-      const {fileId} = files.entities.tests[testId];
-      // if there is a selected tab, we want that version to be selected here.
-      // first create nodeId of this version
-      const versionNodeId = getNodeId(
-        ExplorerItemType.VERSION,
-        selectedTabVersionId
-      );
-      const testNodeId = getNodeId(ExplorerItemType.TEST, testId);
-      const fileNodeId = getNodeId(ExplorerItemType.FILE, fileId);
-      expandItem(fileNodeId);
-      expandItem(testNodeId);
-      selectItem(versionNodeId);
-    } else {
-      selectItem([]);
+    const v = editor.tabs.selectedTabVersionId;
+    if (!v) {
+      setSelected((s) => (s.length > 0 ? [] : s));
+      return;
     }
-  });
+    const nodeToSelect = getNodeId(ExplorerItemType.VERSION, v);
+    setSelected((s) => {
+      if (s.length === 1 && s[0] === nodeToSelect) {
+        return s;
+      }
+      const {testId} = files.entities.versions[v];
+      const {fileId} = files.entities.tests[testId];
+      expandItem(ExplorerItemType.FILE, fileId);
+      expandItem(ExplorerItemType.TEST, testId);
+      return [nodeToSelect];
+    });
+  }, [
+    editor.tabs.selectedTabVersionId,
+    files.entities.tests,
+    files.entities.versions,
+  ]);
 
   const handleSelect = (e, nodeIds) => {
-    setSelected(nodeIds);
     // decide whether to send a dispatch if this is a version select and there
     // is nothing else selected.
     if (nodeIds.length === 1) {
       const node = getBrokenNodeId(nodeIds[0]);
       if (node.itemType === ExplorerItemType.VERSION) {
+        // dispatch a version select when user explicitly selects a version.
+        // Don't update local selected state, it will be updated after
+        // the dispatch due to editor.tabs's selectedVersion change.
         dispatch({
           type: EDR_EXP_VERSION_CLICK,
           payload: {versionId: node.itemId},
         });
+        return;
       }
     }
+    // Always change local selected state when multi selection is taking place
+    // or it's a different node than a version.
+    setSelected(nodeIds);
   };
 
   const handleToggle = (e, nodeIds) => {
@@ -346,8 +348,13 @@ const Explorer = React.memo(({closeButton}) => {
       ) {
         const newVersion =
           newItemType === ExplorerItemType.TEST ? newItem.versions[0] : newItem;
-        selectItem(ExplorerItemType.VERSION, newVersion.id);
-        expandItem(ExplorerItemType.TEST, newVersion.testId);
+        // dispatch a version select when an implicit selection of a version
+        // occurs. Don't update local selected state, it will be updated after
+        // the dispatch due to editor.tabs's selectedVersion change.
+        dispatch({
+          type: EDR_EXP_VERSION_CLICK,
+          payload: {versionId: newVersion.id},
+        });
       }
       setAddNewItem(null);
     };
@@ -437,7 +444,7 @@ const Explorer = React.memo(({closeButton}) => {
       <Box
         display="flex"
         alignItems="center"
-        className={classes.borderBottomLight}>
+        className={clsx(classes.borderBottomLight, classes.header)}>
         <Typography variant="body2" className={classes.fileCaption}>
           Files
         </Typography>
@@ -460,7 +467,7 @@ const Explorer = React.memo(({closeButton}) => {
         </Tooltip>
         <div className={classes.borderLeftLight}>{closeButton}</div>
       </Box>
-      {files && Array.isArray(files.result) && files.result.length && (
+      {files && Array.isArray(files.result) && files.result.length > 0 && (
         <Box py={1}>
           <TreeView
             defaultCollapseIcon={<ArrowDropDownIcon />}

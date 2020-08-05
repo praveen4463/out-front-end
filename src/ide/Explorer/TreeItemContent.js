@@ -246,15 +246,14 @@ const TreeItemContent = React.memo(
         type: EXP_DELETE_ITEM,
         payload: {itemType, itemId, itemParentId},
       });
-      dispatch({
-        type: EDR_EXP_VERSIONS_DELETED,
-        payload: {versionIds: [itemId]},
-      });
       // prepare for revert, it doesn't matter whether we prepare for revert
       // before dispatching a delete or after it cause the current state is not
       // going to update before this function completes execution as state
       // updates are async.
+      // While preparing for revert, also gather the versions being deleted in
+      // this operation for updating tabs.
       const et = files.entities;
+      const versionsDeleting = [];
       const revertOnError = {
         versions: [],
         tests: [],
@@ -269,6 +268,7 @@ const TreeItemContent = React.memo(
               if (Array.isArray(et.tests[tid].versions)) {
                 et.tests[tid].versions.forEach((vid) => {
                   revertOnError.versions.push({[vid]: et.versions[vid]});
+                  versionsDeleting.push(vid);
                 });
               }
               revertOnError.tests.push({[tid]: et.tests[tid]});
@@ -295,6 +295,7 @@ const TreeItemContent = React.memo(
           if (Array.isArray(et.tests[tid].versions)) {
             et.tests[tid].versions.forEach((vid) => {
               revertOnError.versions.push({[vid]: et.versions[vid]});
+              versionsDeleting.push(vid);
             });
           }
           revertOnError.tests.push({[tid]: et.tests[tid]});
@@ -317,6 +318,7 @@ const TreeItemContent = React.memo(
           const vid = itemId;
           const tid = itemParentId;
           revertOnError.versions.push({[vid]: et.versions[vid]});
+          versionsDeleting.push(vid);
           revertOnError.idsAdjustment = (newState, sortIdsUsingNameMapping) => {
             const newET = newState.files.entities;
             // The entire test might have been deleted while we attempted to
@@ -348,6 +350,12 @@ const TreeItemContent = React.memo(
         });
         revertOnError.idsAdjustment(newState, sortIdsUsingNameMapping);
       };
+
+      // now we've versions being deleted, let's send dispatch for updating tabs
+      dispatch({
+        type: EDR_EXP_VERSIONS_DELETED,
+        payload: {versionIds: versionsDeleting},
+      });
 
       // eslint-disable-next-line no-unused-vars
       const onError = (error) => {

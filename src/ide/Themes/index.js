@@ -53,6 +53,7 @@ const darkTheme = createMuiTheme({
     },
     border: {
       light: '#363636',
+      dark: '#212121',
     },
     linkTab: {
       hoverBackground: '#525252',

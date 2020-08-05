@@ -101,6 +101,18 @@ const addTab = (editor, versionId, temporary, selected, atIndex = null) => {
   }
 };
 
+const selectAnotherTab = (editor, anotherTabVersionId) => {
+  const {tabs} = editor;
+  const {maps} = tabs;
+  // reset selected status of currently selected tab
+  const currentlySelectedTab = getTabValue(maps, tabs.selectedTabVersionId);
+  currentlySelectedTab.selected = false;
+  // assign new tab selected status
+  tabs.selectedTabVersionId = anotherTabVersionId;
+  const newlySelectedTab = getTabValue(maps, anotherTabVersionId);
+  newlySelectedTab.selected = true;
+};
+
 const explorerVersionClick = (draft, payload) => {
   if (payload.versionId === undefined) {
     throw new Error('Insufficient arguments passed to explorerVersionClick.');
@@ -110,15 +122,24 @@ const explorerVersionClick = (draft, payload) => {
   const {editor} = draft;
   const {tabs} = editor;
   const {maps} = tabs;
-  // if there is no tab, just put it and done.
+
+  // First check whether some tab exist for this version
+  if (maps.some((m) => m[0] === versionId)) {
+    // if this tab is not selected, select it.
+    if (tabs.selectedTabVersionId !== versionId) {
+      selectAnotherTab(editor, versionId);
+    }
+    // now we can return
+    return;
+  }
+
+  // if there is no tab yet, just put it and done, i.e no need to see currently
+  // selected tab and put after that.
   if (maps.length === 0) {
     addTab(editor, versionId, temporary, true);
     return;
   }
-  // if this version already exist, don't do anything
-  if (maps.some((m) => m[0] === versionId)) {
-    return;
-  }
+
   // check if there is any temporary tab already, if so, keep it, don't remove
   // it now as it may be the selected tab and we need it's index to put new one
   // after it. If it's the selected one and we keep it's index before deleting,
@@ -149,20 +170,29 @@ const explorerVersionDblClick = (draft, payload) => {
   const {editor} = draft;
   const {tabs} = editor;
   const {maps} = tabs;
-  // if there is no tab, just put it and done.
+  // if there is no tab, just put it and done, i.e no need to look the selected
+  // one and put after that.
   if (maps.length === 0) {
     addTab(editor, versionId, temporary, true);
     return;
   }
   // if this version already exist, check if it's temporary, if so, make it
   // permanent, else do nothing.
+
+  // First check whether some tab exist for this version
   const existingTab = getTabValue(maps, versionId, false);
   if (existingTab) {
+    // if this tab is temporary, make it permanent
     if (existingTab.temporary) {
       existingTab.temporary = false;
     }
+    // if this tab is not selected, select it.
+    if (tabs.selectedTabVersionId !== versionId) {
+      selectAnotherTab(editor, versionId);
+    }
     return;
   }
+
   const indexOfSelected = maps.findIndex(
     (m) => m[0] === tabs.selectedTabVersionId
   );
@@ -173,21 +203,13 @@ const switchTab = (draft, payload) => {
   if (payload.versionId === undefined) {
     throw new Error('Insufficient arguments passed to switchTab.');
   }
-  const {versionId} = payload;
   const {tabs} = draft.editor;
-  const {maps} = tabs;
-  if (tabs.selectedTabVersionId === versionId) {
+  if (tabs.selectedTabVersionId === payload.versionId) {
     throw new Error(
       'Tabs switch event not actually switching but keeping the same selected tab.'
     );
   }
-  // reset selected status of currently selected tab
-  const currentlySelectedTab = getTabValue(maps, tabs.selectedTabVersionId);
-  currentlySelectedTab.selected = false;
-  // assign new tab selected status
-  tabs.selectedTabVersionId = versionId;
-  const newlySelectedTab = getTabValue(maps, versionId);
-  newlySelectedTab.selected = true;
+  selectAnotherTab(draft.editor, payload.versionId);
 };
 
 const closeTab = (draft, payload) => {
