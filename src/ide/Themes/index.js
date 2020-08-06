@@ -49,6 +49,7 @@ const darkTheme = createMuiTheme({
       navigations: '#363636',
       panelClose: '#282828',
       default: '#121212',
+      paperOnDefault: '#181818',
       contrastText: `rgba(255, 255, 255, ${highEmphasisOpacity})`,
     },
     border: {

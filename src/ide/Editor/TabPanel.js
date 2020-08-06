@@ -8,6 +8,10 @@ const useStyle = makeStyles((theme) => ({
   root: {
     color: theme.palette.background.contrastText,
   },
+  breadcrumb: {
+    fontSize: '0.65rem',
+    opacity: '0.6',
+  },
 }));
 
 const TabPanel = React.memo(({version, testName, fileName}) => {
@@ -20,9 +24,11 @@ const TabPanel = React.memo(({version, testName, fileName}) => {
       id={`scrollable-auto-tabpanel-${version.id}`}
       aria-labelledby={`scrollable-auto-tab-${version.id}`}
       className={classes.root}>
-      <Typography variant="caption">
-        {`${fileName} > ${testName} > ${version.name}`}
-      </Typography>
+      <Box boxShadow={3}>
+        <Typography variant="caption" className={classes.breadcrumb}>
+          {`${fileName} > ${testName} > ${version.name}`}
+        </Typography>
+      </Box>
       <Typography variant="body1">{version.code}</Typography>
     </Box>
   );

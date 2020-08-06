@@ -95,7 +95,7 @@ const useStyle = makeStyles((theme) => ({
   errorContainer: {
     backgroundColor: theme.palette.background.paper,
   },
-  itemText: {
+  textContentRoot: {
     userSelect: 'none',
   },
 }));
@@ -225,7 +225,8 @@ const TreeItemContent = React.memo(
       setHovering(true);
     };
 
-    const handleDoubleClick = () => {
+    const handleDoubleClick = (e) => {
+      e.stopPropagation();
       if (itemType !== ExplorerItemType.VERSION) {
         return;
       }
@@ -236,11 +237,14 @@ const TreeItemContent = React.memo(
     };
 
     const deleteHandler = (e) => {
+      console.log('deleteHandler');
       e.stopPropagation();
       setShowDeleteDialog(true);
     };
 
-    const deleteAcceptHandler = () => {
+    const deleteAcceptHandler = (e) => {
+      e.stopPropagation();
+      console.log('deleteAcceptHandler');
       // dispatch a delete
       dispatch({
         type: EXP_DELETE_ITEM,
@@ -377,7 +381,8 @@ const TreeItemContent = React.memo(
       setShowUnloadDialog(true);
     };
 
-    const unloadAcceptHandler = () => {
+    const unloadAcceptHandler = (e) => {
+      e.stopPropagation();
       setShowUnloadDialog(false);
       dispatch({type: EXP_UNLOAD_FILE, payload: {itemType, itemId}});
       // find all versions within this file, all of them need to be removed from
@@ -474,14 +479,15 @@ const TreeItemContent = React.memo(
             onMouseEnter={onHovering}
             onMouseLeave={onHoveringCancel}
             onDoubleClick={handleDoubleClick}>
-            <Box display="flex" alignItems="center" flex={1}>
+            <Box
+              display="flex"
+              alignItems="center"
+              flex={1}
+              className={classes.textContentRoot}>
               <ColoredItemIcon itemType={itemType} />
               <Typography
                 variant="caption"
-                className={clsx(
-                  hasError && classes.errorText,
-                  classes.itemText
-                )}>
+                className={clsx(hasError && classes.errorText)}>
                 {itemName}
               </Typography>
               {itemType === ExplorerItemType.VERSION && isCurrentVersion && (

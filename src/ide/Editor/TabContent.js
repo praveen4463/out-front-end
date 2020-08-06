@@ -8,15 +8,21 @@ import CloseIcon from '@material-ui/icons/Close';
 import clsx from 'clsx';
 import {IdeDispatchContext} from '../Contexts';
 import {EDR_CLOSE_TAB, EDR_DBL_CLICK_TAB} from '../actionTypes';
+import Tab from './model';
 
 const useStyle = makeStyles((theme) => ({
+  root: {
+    color: theme.palette.text.primary,
+    userSelect: 'none',
+  },
   temporaryTab: {
     fontStyle: 'italic',
   },
   tabText: {
-    userSelect: 'none',
-    color: theme.palette.text.primary,
     opacity: theme.textOpacity.mediumEmphasis,
+  },
+  tabTextSelected: {
+    opacity: theme.textOpacity.highEmphasis,
   },
   closeIconSize: {
     fontSize: '1rem',
@@ -28,75 +34,79 @@ const useStyle = makeStyles((theme) => ({
       opacity: theme.textOpacity.highEmphasis,
     },
   },
+  closeIconSelected: {
+    marginLeft: theme.spacing(0.5),
+    opacity: theme.textOpacity.highEmphasis,
+  },
 }));
 
-const TabContent = React.memo(
-  ({versionId, versionName, temporary, testName, fileName}) => {
-    const dispatch = useContext(IdeDispatchContext);
-    const classes = useStyle();
+const TabContent = React.memo(({tab, versionName, testName, fileName}) => {
+  const dispatch = useContext(IdeDispatchContext);
+  const classes = useStyle();
 
-    const closeHandler = () => {
-      dispatch({type: EDR_CLOSE_TAB, payload: {versionId}});
-    };
+  const closeHandler = (e) => {
+    e.stopPropagation();
+    dispatch({type: EDR_CLOSE_TAB, payload: {versionId: tab.versionId}});
+  };
 
-    const dblClickHandler = () => {
-      if (!temporary) {
-        return;
-      }
-      dispatch({type: EDR_DBL_CLICK_TAB, payload: {versionId}});
-    };
+  const dblClickHandler = (e) => {
+    e.stopPropagation();
+    if (!tab.temporary) {
+      return;
+    }
+    dispatch({type: EDR_DBL_CLICK_TAB, payload: {versionId: tab.versionId}});
+  };
 
-    const getTabText = () => {
-      const maxTestText = 25;
-      const maxVersionText = 6;
-      const testText = truncate(testName, {
-        length: maxTestText,
-        omission: '..',
-      });
-      const versionText = truncate(versionName, {
-        length: maxVersionText,
-        omission: '..',
-      });
-      return `${testText}/${versionText}`;
-    };
+  const getTabText = () => {
+    const maxTestText = 25;
+    const maxVersionText = 6;
+    const testText = truncate(testName, {
+      length: maxTestText,
+      omission: '..',
+    });
+    const versionText = truncate(versionName, {
+      length: maxVersionText,
+      omission: '..',
+    });
+    return `${testText}/${versionText}`;
+  };
 
-    const getTabTitle = () => {
-      return `${fileName}/${testName}/${versionName}`;
-    };
+  const getTabTitle = () => {
+    return `${fileName}/${testName}/${versionName}`;
+  };
 
-    return (
-      <Box
-        display="flex"
-        alignItems="center"
-        px={0.5}
-        onDoubleClick={dblClickHandler}
-        title={getTabTitle()}>
-        <Box flex={1}>
-          <Typography
-            variant="caption"
-            className={clsx(
-              temporary && classes.temporaryTab,
-              classes.tabText
-            )}>
-            {getTabText()}
-          </Typography>
-        </Box>
-        <CloseIcon
-          fontSize="small"
-          classes={{fontSizeSmall: classes.closeIconSize}}
-          className={classes.closeIcon}
-          onClick={closeHandler}
-          title="Close"
-        />
+  return (
+    <Box
+      display="flex"
+      alignItems="center"
+      onDoubleClick={dblClickHandler}
+      className={classes.root}>
+      <Box flex={1} title={getTabTitle()}>
+        <Typography
+          variant="caption"
+          className={clsx(
+            tab.temporary && classes.temporaryTab,
+            tab.selected ? classes.tabTextSelected : classes.tabText
+          )}>
+          {getTabText()}
+        </Typography>
       </Box>
-    );
-  }
-);
+      <CloseIcon
+        fontSize="small"
+        classes={{fontSizeSmall: classes.closeIconSize}}
+        className={clsx(
+          tab.selected ? classes.closeIconSelected : classes.closeIcon
+        )}
+        onClick={closeHandler}
+        titleAccess="Close"
+      />
+    </Box>
+  );
+});
 
 TabContent.propTypes = {
-  versionId: PropTypes.number.isRequired,
+  tab: PropTypes.instanceOf(Tab).isRequired,
   versionName: PropTypes.string.isRequired,
-  temporary: PropTypes.bool.isRequired,
   testName: PropTypes.string.isRequired,
   fileName: PropTypes.string.isRequired,
 };

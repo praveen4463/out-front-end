@@ -29,7 +29,7 @@ const getTabValue = (maps, versionId, throwOnNotFound = true) => {
 };
 
 // Note that we can remove
-// tabs from editor right away rather than saying 'deleted from explorer' or
+// tabs from editor immediately rather than saying 'deleted from explorer' or
 // something like that, as we always auto save the code written, so
 // there is no chance user loosing their code if they had done an unload
 // rather than a delete. When deleted, don't worry about code lose, we can
@@ -41,12 +41,17 @@ const deleteTab = (editor, versionId) => {
   // We need to switch selected tab if this tab is the selected one, rule is,
   // if this tab is on index 0, select the one after it else behind it. If there
   // are no more tabs, don't do anything.
-  if (tabs.selectedTabVersionId === versionId && maps.length > 1) {
-    const currentTabIndex = maps.findIndex((m) => m[0] === versionId);
-    const newSelectedTabIndex = currentTabIndex === 0 ? 1 : currentTabIndex - 1;
-    const newSelectedTab = maps[newSelectedTabIndex];
-    newSelectedTab[1].selected = true;
-    [tabs.selectedTabVersionId] = newSelectedTab;
+  if (tabs.selectedTabVersionId === versionId) {
+    if (maps.length > 1) {
+      const currentTabIndex = maps.findIndex((m) => m[0] === versionId);
+      const newSelectedTabIndex =
+        currentTabIndex === 0 ? 1 : currentTabIndex - 1;
+      const newSelectedTab = maps[newSelectedTabIndex];
+      newSelectedTab[1].selected = true;
+      [tabs.selectedTabVersionId] = newSelectedTab;
+    } else {
+      tabs.selectedTabVersionId = null;
+    }
   }
   // Reset temporary if this was a temporary tab
   if (tabs.temporaryTabVersionId === versionId) {
@@ -64,8 +69,13 @@ const explorerVersionsDeleted = (draft, payload) => {
   }
   const {versionIds} = payload;
   const {tabs} = draft.editor;
+  // check whether any of incoming version is a tab, if none then return.
+  const allTabsVersionIds = tabs.maps.map((m) => m[0]);
+  if (!versionIds.some((v) => allTabsVersionIds.includes(v))) {
+    return;
+  }
   if (versionIds.length === 1) {
-    deleteTab(draft.editor, [versionIds]);
+    deleteTab(draft.editor, versionIds[0]);
     return;
   }
   tabs.maps = tabs.maps.filter((m) => !versionIds.includes(m[0]));
@@ -84,10 +94,10 @@ const explorerVersionsDeleted = (draft, payload) => {
   }
 };
 
-const addTab = (editor, versionId, temporary, selected, atIndex = null) => {
+const addTab = (editor, versionId, temporary, atIndex = null) => {
   const {tabs} = editor;
   const {maps} = tabs;
-  const newTab = [versionId, new Tab(versionId, temporary, selected)];
+  const newTab = [versionId, new Tab(versionId, temporary, true)];
   if (atIndex) {
     maps.splice(atIndex, 0, newTab);
   } else {
@@ -96,24 +106,33 @@ const addTab = (editor, versionId, temporary, selected, atIndex = null) => {
   if (temporary) {
     tabs.temporaryTabVersionId = versionId;
   }
-  if (selected) {
-    tabs.selectedTabVersionId = versionId;
+  // Deselect previously selected.
+  // first check if some selection exist, cause this could be the first tab
+  if (tabs.selectedTabVersionId) {
+    const currentlySelectedTab = getTabEntry(maps, tabs.selectedTabVersionId);
+    // possible that the tab was deleted
+    if (currentlySelectedTab) {
+      currentlySelectedTab[1].selected = false;
+    }
   }
+  // select the newly added tab.
+  tabs.selectedTabVersionId = versionId;
 };
 
-const selectAnotherTab = (editor, anotherTabVersionId) => {
+const changeTabSelection = (editor, changeToTabVersionId) => {
   const {tabs} = editor;
   const {maps} = tabs;
   // reset selected status of currently selected tab
   const currentlySelectedTab = getTabValue(maps, tabs.selectedTabVersionId);
   currentlySelectedTab.selected = false;
   // assign new tab selected status
-  tabs.selectedTabVersionId = anotherTabVersionId;
-  const newlySelectedTab = getTabValue(maps, anotherTabVersionId);
+  tabs.selectedTabVersionId = changeToTabVersionId;
+  const newlySelectedTab = getTabValue(maps, changeToTabVersionId);
   newlySelectedTab.selected = true;
 };
 
 const explorerVersionClick = (draft, payload) => {
+  console.log('explorerVersionClick comes');
   if (payload.versionId === undefined) {
     throw new Error('Insufficient arguments passed to explorerVersionClick.');
   }
@@ -127,7 +146,7 @@ const explorerVersionClick = (draft, payload) => {
   if (maps.some((m) => m[0] === versionId)) {
     // if this tab is not selected, select it.
     if (tabs.selectedTabVersionId !== versionId) {
-      selectAnotherTab(editor, versionId);
+      changeTabSelection(editor, versionId);
     }
     // now we can return
     return;
@@ -136,7 +155,7 @@ const explorerVersionClick = (draft, payload) => {
   // if there is no tab yet, just put it and done, i.e no need to see currently
   // selected tab and put after that.
   if (maps.length === 0) {
-    addTab(editor, versionId, temporary, true);
+    addTab(editor, versionId, temporary);
     return;
   }
 
@@ -153,12 +172,16 @@ const explorerVersionClick = (draft, payload) => {
   const indexOfSelected = maps.findIndex(
     (m) => m[0] === tabs.selectedTabVersionId
   );
-  addTab(editor, versionId, temporary, true, indexOfSelected + 1);
+  addTab(editor, versionId, temporary, indexOfSelected + 1);
   if (existingTempTab) {
     pull(maps, existingTempTab);
   }
 };
 
+// double click comes after two single click events, it is fine that when a
+// temp file is opened and another file is double clicked, it deletes temp file
+// and replaces it because first single click event fires. This is a known bug
+// that we can handle sometime in future.
 const explorerVersionDblClick = (draft, payload) => {
   if (payload.versionId === undefined) {
     throw new Error(
@@ -173,22 +196,25 @@ const explorerVersionDblClick = (draft, payload) => {
   // if there is no tab, just put it and done, i.e no need to look the selected
   // one and put after that.
   if (maps.length === 0) {
-    addTab(editor, versionId, temporary, true);
+    addTab(editor, versionId, temporary);
     return;
   }
   // if this version already exist, check if it's temporary, if so, make it
   // permanent, else do nothing.
 
   // First check whether some tab exist for this version
-  const existingTab = getTabValue(maps, versionId, false);
-  if (existingTab) {
+  const existingTabEntry = getTabEntry(maps, versionId, false);
+  if (existingTabEntry) {
+    const [, existingTab] = existingTabEntry;
     // if this tab is temporary, make it permanent
     if (existingTab.temporary) {
       existingTab.temporary = false;
+      // as there is no temp tab now, reset temp tab status.
+      tabs.temporaryTabVersionId = null;
     }
     // if this tab is not selected, select it.
     if (tabs.selectedTabVersionId !== versionId) {
-      selectAnotherTab(editor, versionId);
+      changeTabSelection(editor, versionId);
     }
     return;
   }
@@ -196,7 +222,7 @@ const explorerVersionDblClick = (draft, payload) => {
   const indexOfSelected = maps.findIndex(
     (m) => m[0] === tabs.selectedTabVersionId
   );
-  addTab(editor, versionId, temporary, true, indexOfSelected + 1);
+  addTab(editor, versionId, temporary, indexOfSelected + 1);
 };
 
 const switchTab = (draft, payload) => {
@@ -209,7 +235,7 @@ const switchTab = (draft, payload) => {
       'Tabs switch event not actually switching but keeping the same selected tab.'
     );
   }
-  selectAnotherTab(draft.editor, payload.versionId);
+  changeTabSelection(draft.editor, payload.versionId);
 };
 
 const closeTab = (draft, payload) => {

@@ -179,12 +179,20 @@ const Explorer = React.memo(({closeButton}) => {
       setSelected((s) => (s.length > 0 ? [] : s));
       return;
     }
+    console.log(`useEffect v ${v}`);
     const nodeToSelect = getNodeId(ExplorerItemType.VERSION, v);
     setSelected((s) => {
       if (s.length === 1 && s[0] === nodeToSelect) {
         return s;
       }
-      const {testId} = files.entities.versions[v];
+      const version = files.entities.versions[v];
+      if (!version) {
+        // it is possible that the files context is changed after a deletion
+        // of version before tabs context, if this selected version is not in
+        // files, we should wait for tabs context to change.
+        return s;
+      }
+      const {testId} = version;
       const {fileId} = files.entities.tests[testId];
       expandItem(ExplorerItemType.FILE, fileId);
       expandItem(ExplorerItemType.TEST, testId);
@@ -202,6 +210,7 @@ const Explorer = React.memo(({closeButton}) => {
     if (nodeIds.length === 1) {
       const node = getBrokenNodeId(nodeIds[0]);
       if (node.itemType === ExplorerItemType.VERSION) {
+        console.log('handleSelect fired');
         // dispatch a version select when user explicitly selects a version.
         // Don't update local selected state, it will be updated after
         // the dispatch due to editor.tabs's selectedVersion change.
@@ -325,7 +334,7 @@ const Explorer = React.memo(({closeButton}) => {
             newRandom(),
             newItemName,
             addNewItem.parentId,
-            'openUrl("https://twitter.com")',
+            'openUrl("https://twitter.com")', // This code will actually be latest version's code.
             true
           ); // !!!This is sample
           break;
@@ -444,8 +453,9 @@ const Explorer = React.memo(({closeButton}) => {
       <Box
         display="flex"
         alignItems="center"
-        className={clsx(classes.borderBottomLight, classes.header)}>
-        <Typography variant="body2" className={classes.fileCaption}>
+        className={clsx(classes.header)}
+        boxShadow={3}>
+        <Typography variant="caption" className={classes.fileCaption}>
           Files
         </Typography>
         <Box flex={1} />
