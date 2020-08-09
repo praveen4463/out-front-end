@@ -1,3 +1,4 @@
+export const BATCH_ACTIONS = 'BATCH_ACTIONS';
 export const SET_FILES = 'SET_FILES';
 export const SET_PROJECT = 'SET_PROJECT';
 
@@ -19,4 +20,3 @@ export const EDR_DBL_CLICK_TAB = 'EDR_DBL_CLICK_TAB';
 
 // Build actions
 export const RUN_BUILD = 'RUN_BUILD';
-export const RUN_BUILD_MULTI = 'RUN_BUILD_MULTI';

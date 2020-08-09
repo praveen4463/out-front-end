@@ -22,6 +22,7 @@ import {ExplorerItemType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
 import ColoredItemIcon from '../ColoredItemIcon';
 import {IdeDispatchContext} from '../Contexts';
+import batchActions from '../actionCreators';
 import {
   EXP_UNLOAD_FILE,
   EXP_RENAME_ITEM,
@@ -30,9 +31,7 @@ import {
   EDR_EXP_VERSIONS_DELETED,
   EDR_EXP_VERSION_DBL_CLICK,
   RUN_BUILD,
-  RUN_BUILD_MULTI,
 } from '../actionTypes';
-import {getBrokenNodeId} from './internal';
 import './contextMenu.css';
 
 const useStyle = makeStyles((theme) => ({
@@ -88,6 +87,7 @@ const useStyle = makeStyles((theme) => ({
     marginLeft: theme.spacing(0.5),
     fontSize: '0.7rem',
     height: theme.spacing(1.8),
+    cursor: 'pointer',
   },
   highlight: {
     backgroundColor: theme.palette.action.selected,
@@ -97,13 +97,9 @@ const useStyle = makeStyles((theme) => ({
   },
   textContentRoot: {
     userSelect: 'none',
+    cursor: 'pointer',
   },
 }));
-
-const ContextMenuRenderType = {
-  SINGLE_ITEM_SELECTION: 'SINGLE_ITEM_SELECTION',
-  MULTIPLE_ITEM_SELECTION: 'MULTIPLE_ITEM_SELECTION',
-};
 
 // !!! Make sure there is no prop/context here that causes unnecessary re render
 const TreeItemContent = React.memo(
@@ -116,15 +112,11 @@ const TreeItemContent = React.memo(
     hasError,
     isCurrentVersion,
     onNewItem,
-    selectedNodesRef,
     filesRef,
   }) => {
     const dispatch = useContext(IdeDispatchContext);
     const [editing, setEditing] = useState(false);
     const [hovering, setHovering] = useState(false);
-    const [contextMenuRenderType, setContextMenuRenderType] = useState(
-      ContextMenuRenderType.SINGLE_ITEM_SELECTION
-    );
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showUnloadDialog, setShowUnloadDialog] = useState(false);
     const classes = useStyle();
@@ -200,18 +192,6 @@ const TreeItemContent = React.memo(
       dispatch({type: RUN_BUILD, payload: {itemType, itemId}});
     };
 
-    const runBuildMultipleHandler = (e) => {
-      e.stopPropagation();
-      dispatch({
-        type: RUN_BUILD_MULTI,
-        payload: {
-          selectedNodes: selectedNodesRef.current.map((n) =>
-            getBrokenNodeId(n)
-          ),
-        },
-      });
-    };
-
     const onEdit = (e) => {
       e.stopPropagation();
       setEditing(true);
@@ -245,11 +225,12 @@ const TreeItemContent = React.memo(
     const deleteAcceptHandler = (e) => {
       e.stopPropagation();
       console.log('deleteAcceptHandler');
-      // dispatch a delete
-      dispatch({
-        type: EXP_DELETE_ITEM,
-        payload: {itemType, itemId, itemParentId},
-      });
+      const actions = [
+        {
+          type: EXP_DELETE_ITEM,
+          payload: {itemType, itemId, itemParentId},
+        },
+      ];
       // prepare for revert, it doesn't matter whether we prepare for revert
       // before dispatching a delete or after it cause the current state is not
       // going to update before this function completes execution as state
@@ -355,11 +336,16 @@ const TreeItemContent = React.memo(
         revertOnError.idsAdjustment(newState, sortIdsUsingNameMapping);
       };
 
-      // now we've versions being deleted, let's send dispatch for updating tabs
-      dispatch({
-        type: EDR_EXP_VERSIONS_DELETED,
-        payload: {versionIds: versionsDeleting},
-      });
+      if (versionsDeleting.length > 0) {
+        // now we've versions being deleted, let's send dispatch for updating tabs
+        actions.push({
+          type: EDR_EXP_VERSIONS_DELETED,
+          payload: {versionIds: versionsDeleting},
+        });
+      }
+
+      // send a dispatch now
+      dispatch(batchActions(actions));
 
       // eslint-disable-next-line no-unused-vars
       const onError = (error) => {
@@ -372,7 +358,6 @@ const TreeItemContent = React.memo(
       For now simulate the error situation using a setTimeout, hide once test
       done. setTimeout(onError, 500);
       */
-
       setShowDeleteDialog(false);
     };
 
@@ -384,7 +369,7 @@ const TreeItemContent = React.memo(
     const unloadAcceptHandler = (e) => {
       e.stopPropagation();
       setShowUnloadDialog(false);
-      dispatch({type: EXP_UNLOAD_FILE, payload: {itemType, itemId}});
+      const actions = [{type: EXP_UNLOAD_FILE, payload: {itemType, itemId}}];
       // find all versions within this file, all of them need to be removed from
       // tabs
       const et = files.entities;
@@ -395,11 +380,12 @@ const TreeItemContent = React.memo(
           et.tests[t].versions.forEach((v) => versionIds.push(v))
         );
       if (versionIds.length > 0) {
-        dispatch({
+        actions.push({
           type: EDR_EXP_VERSIONS_DELETED,
           payload: {versionIds},
         });
       }
+      dispatch(batchActions(actions));
     };
 
     const deleteDialogCancelHandler = (e) => {
@@ -410,18 +396,6 @@ const TreeItemContent = React.memo(
     const unloadDialogCancelHandler = (e) => {
       e.stopPropagation();
       setShowUnloadDialog(false);
-    };
-
-    const onContextMenu = () => {
-      const currentlySelectedItems =
-        selectedNodesRef.current === undefined
-          ? 0
-          : selectedNodesRef.current.length;
-      setContextMenuRenderType(
-        currentlySelectedItems > 1
-          ? ContextMenuRenderType.MULTIPLE_ITEM_SELECTION
-          : ContextMenuRenderType.SINGLE_ITEM_SELECTION
-      );
     };
 
     const getBuildRunTextPerExplorerItem = () => {
@@ -475,7 +449,6 @@ const TreeItemContent = React.memo(
             alignItems="center"
             px={0.5}
             minHeight={28}
-            onContextMenu={onContextMenu}
             onMouseEnter={onHovering}
             onMouseLeave={onHoveringCancel}
             onDoubleClick={handleDoubleClick}>
@@ -571,53 +544,44 @@ const TreeItemContent = React.memo(
         <ContextMenu
           id={`explorer-cm-${itemType}-${itemId}`}
           className={classes.contextMenu}>
-          {contextMenuRenderType ===
-          ContextMenuRenderType.MULTIPLE_ITEM_SELECTION ? (
+          <>
             <MenuItem
-              onClick={runBuildMultipleHandler}
+              onClick={runBuildHandler}
               className={classes.contextMenuItem}>
-              Run Build For Selected Items
+              {getBuildRunTextPerExplorerItem()}
             </MenuItem>
-          ) : (
-            <>
-              <MenuItem
-                onClick={runBuildHandler}
-                className={classes.contextMenuItem}>
-                {getBuildRunTextPerExplorerItem()}
-              </MenuItem>
-              {itemType === ExplorerItemType.FILE && (
-                <>
-                  <MenuItem
-                    onClick={unloadHandler}
-                    className={classes.contextMenuItem}>
-                    Unload File From Workspace
-                  </MenuItem>
-                  <MenuItem
-                    onClick={newItemHandler}
-                    className={classes.contextMenuItem}>
-                    Add New Test
-                  </MenuItem>
-                </>
-              )}
-              {itemType === ExplorerItemType.TEST && (
+            {itemType === ExplorerItemType.FILE && (
+              <>
+                <MenuItem
+                  onClick={unloadHandler}
+                  className={classes.contextMenuItem}>
+                  Unload File From Workspace
+                </MenuItem>
                 <MenuItem
                   onClick={newItemHandler}
                   className={classes.contextMenuItem}>
-                  Add New Version
+                  Add New Test
                 </MenuItem>
-              )}
-              <MenuItem onClick={onEdit} className={classes.contextMenuItem}>
-                Rename
+              </>
+            )}
+            {itemType === ExplorerItemType.TEST && (
+              <MenuItem
+                onClick={newItemHandler}
+                className={classes.contextMenuItem}>
+                Add New Version
               </MenuItem>
-              {!isCurrentVersion && (
-                <MenuItem
-                  onClick={deleteHandler}
-                  className={classes.contextMenuItem}>
-                  Delete
-                </MenuItem>
-              )}
-            </>
-          )}
+            )}
+            <MenuItem onClick={onEdit} className={classes.contextMenuItem}>
+              Rename
+            </MenuItem>
+            {!isCurrentVersion && (
+              <MenuItem
+                onClick={deleteHandler}
+                className={classes.contextMenuItem}>
+                Delete
+              </MenuItem>
+            )}
+          </>
         </ContextMenu>
         <Dialog
           open={showDeleteDialog}
@@ -715,9 +679,6 @@ TreeItemContent.propTypes = {
   hasError: PropTypes.bool,
   isCurrentVersion: PropTypes.bool,
   onNewItem: PropTypes.func.isRequired,
-  selectedNodesRef: PropTypes.exact({
-    current: PropTypes.arrayOf(PropTypes.string),
-  }).isRequired,
   filesRef: PropTypes.exact({
     current: PropTypes.object,
   }).isRequired,

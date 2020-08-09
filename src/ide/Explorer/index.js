@@ -1,9 +1,9 @@
 import React, {
-  useState,
   useRef,
   useCallback,
   useContext,
   useEffect,
+  useReducer,
 } from 'react';
 import PropTypes from 'prop-types';
 import Box from '@material-ui/core/Box';
@@ -20,6 +20,7 @@ import ArrowRightIcon from '@material-ui/icons/ArrowRight';
 import {normalize} from 'normalizr';
 import {random} from 'lodash-es';
 import clsx from 'clsx';
+import produce, {immerable} from 'immer';
 import {ExplorerItemType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
 import TreeItemContent from './TreeItemContent';
@@ -29,6 +30,7 @@ import {
   IdeFilesContext,
   IdeEditorContext,
 } from '../Contexts';
+import batchActions from '../actionCreators';
 import {
   EXP_LOAD_FILES,
   EXP_NEW_ITEM,
@@ -133,103 +135,244 @@ function AddNewItem(type, parentId = null, submitted = false) {
   this.type = type;
   this.parentId = parentId;
   this.submitted = submitted;
+  this[immerable] = true;
 }
+
+const selectedTabChange = (state, action) => {
+  return produce(state, (draft) => {
+    const {payload} = action;
+    if (
+      payload.selectedTabVersionId === undefined ||
+      payload.entitiesVersions === undefined ||
+      payload.entitiesTests === undefined
+    ) {
+      throw new Error('Insufficient arguments to selectedTabChange');
+    }
+    const {selectedTabVersionId} = payload;
+    /*
+    selectedVersionId is kept just to keep track of tab changes and nothing else.
+    When user changes a version selection either form explorer or tabs, it needs
+    to reflect in both tabs and explorer. Explorer uses useEffect to check the
+    selected version and selects that after each update in selectedTabVersionId.
+    Since effect uses versions and tests entities to expand the nodes of
+    a version, effect also runs when one of these entities have changes, so for
+    example, user selects few versions that open in tabs. Now they select some
+    test/file and try renaming them, this will cause effect run, but 
+    selectedTabVersionId hasn't changed. How will we know whether to change
+    'selected' state? If we compare selectedTabVersionId with currently selected
+    node, they're different, means its a legit version change, but it's not
+    cause we have selected a test/file. To know the last selected version, keep
+    it separately in state and update it whenever a new selectedTabVersionId is
+    arrived by comparing both of them, once different update selectedVersionId
+    with latest selectedTabVersionId, this way even when the effect runs on
+    test/file updates, we will never de select their selection nor will we
+    expand nodes unnecessarily, we will expand only when a version selection
+    is changed.
+    */
+    if (selectedTabVersionId === draft.selectedVersionId) {
+      // no version changed but something else changed like a test was renamed.
+      return;
+    }
+    if (!selectedTabVersionId) {
+      // if the incoming tab is null (for instance, last tab closed), reset
+      // selectedNode only if currently a version is selected. If a test or file
+      // is selected we don't want to deselect it.
+      if (draft.selectedNode) {
+        const node = getBrokenNodeId(draft.selectedNode);
+        if (node.itemType === ExplorerItemType.VERSION) {
+          draft.selectedNode = null;
+        }
+      }
+      // reassign into selectedVersionId
+      draft.selectedVersionId = null;
+      return;
+    }
+    draft.selectedNode = getNodeId(
+      ExplorerItemType.VERSION,
+      selectedTabVersionId
+    );
+    // expand test and file for this version
+    const version = payload.entitiesVersions[selectedTabVersionId];
+    const testNode = getNodeId(ExplorerItemType.TEST, version.testId);
+    const fileNode = getNodeId(
+      ExplorerItemType.FILE,
+      payload.entitiesTests[version.testId].fileId
+    );
+    const {expandedNodes} = draft;
+    if (!expandedNodes.includes(testNode)) {
+      expandedNodes.push(testNode);
+    }
+    if (!expandedNodes.includes(fileNode)) {
+      expandedNodes.push(fileNode);
+    }
+    // reassign into selectedVersionId
+    draft.selectedVersionId = selectedTabVersionId;
+  });
+};
+
+const actionTypes = {
+  SELECTED_TAB_CHANGE: 'SELECTED_TAB_CHANGE',
+  NODE_SELECTED: 'NODE_SELECTED',
+  NODE_TOGGLE: 'NODE_TOGGLE',
+  EXPAND_NODE: 'EXPAND_NODE',
+  ADD_NEW_ITEM: 'ADD_NEW_ITEM',
+  NEW_ITEM_SUBMITTED: 'NEW_ITEM_SUBMITTED',
+  NEW_ITEM_SET_NULL: 'NEW_ITEM_SET_NULL',
+};
+
+const reducer = (state, action) => {
+  const {type} = action;
+  switch (type) {
+    case actionTypes.SELECTED_TAB_CHANGE:
+      return selectedTabChange(state, action);
+    case actionTypes.NODE_SELECTED:
+      if (action.payload.nodeId === undefined) {
+        throw new Error(`Insufficient arguments to ${type}`);
+      }
+      return produce(state, (draft) => {
+        draft.selectedNode = action.payload.nodeId;
+      });
+    case actionTypes.NODE_TOGGLE:
+      if (action.payload.nodeIds === undefined) {
+        throw new Error(`Insufficient arguments to ${type}`);
+      }
+      return produce(state, (draft) => {
+        draft.expandedNodes = action.payload.nodeIds;
+      });
+    case actionTypes.EXPAND_NODE:
+      if (action.payload.nodeId === undefined) {
+        throw new Error(`Insufficient arguments to ${type}`);
+      }
+      return produce(state, (draft) => {
+        if (!draft.expandedNodes.includes(action.payload.nodeId)) {
+          draft.expandedNodes.push(action.payload.nodeId);
+        }
+      });
+    case actionTypes.ADD_NEW_ITEM: {
+      const {payload} = action;
+      if (payload.itemType === undefined) {
+        throw new Error(`Insufficient arguments to ${type}`);
+      }
+      return produce(state, (draft) => {
+        let newItem;
+        if (payload.itemParentId === undefined) {
+          newItem = new AddNewItem(payload.itemType);
+        } else {
+          newItem = new AddNewItem(payload.itemType, payload.itemParentId);
+        }
+        draft.addNewItem = newItem;
+      });
+    }
+    case actionTypes.NEW_ITEM_SUBMITTED:
+      return produce(state, (draft) => {
+        if (!draft.addNewItem) {
+          throw new Error(
+            'addNewItem can not be marked submitted because it does not exist.'
+          );
+        }
+        draft.addNewItem.submitted = true;
+      });
+    case actionTypes.NEW_ITEM_SET_NULL:
+      return produce(state, (draft) => {
+        draft.addNewItem = null;
+      });
+    default:
+      return state;
+  }
+};
+
+const initialState = {
+  selectedNode: null,
+  expandedNodes: [],
+  selectedVersionId: null,
+  addNewItem: null,
+};
 
 /* Re render only if the subscribed context or local state changes, not when
 parent re renders. */
 const Explorer = React.memo(({closeButton}) => {
-  const dispatch = useContext(IdeDispatchContext);
+  const dispatchGlobal = useContext(IdeDispatchContext);
   const files = useContext(IdeFilesContext);
   const editor = useContext(IdeEditorContext);
-  const [addNewItem, setAddNewItem] = useState(null);
-  console.log('Explorer received files:');
-  console.log(files);
-  const [expanded, setExpanded] = useState([]);
-  const [selected, setSelected] = useState([]);
+  const [state, dispatchLocal] = useReducer(reducer, initialState);
+  console.log(`Explorer renders ${Date.now()}`);
   const filesRef = useRef(files);
-  const selectedNodesRef = useRef();
   const errorContainerRef = useRef(null);
   // ref object doesn't change thus safe to use in pure components. It's mutable
   // current property will give us latest set value without a re render of
   // component that uses it.
   const classes = useStyles();
 
-  const expandItem = (itemType, itemId) => {
-    const item = getNodeId(itemType, itemId);
-    setExpanded((current) =>
-      !current.includes(item) ? [...current, item] : current
-    );
-  };
-
   // Sets state changes into various refs
   useEffect(() => {
     if (filesRef.current !== files) {
       filesRef.current = files;
     }
-    // setting a new ref to be used in tree items so that whenever 'selected'
-    // state changes it doesn't have to re render.
-    if (selectedNodesRef.current !== selected) {
-      selectedNodesRef.current = selected;
-    }
   });
 
   useEffect(() => {
-    const v = editor.tabs.selectedTabVersionId;
-    if (!v) {
-      setSelected((s) => (s.length > 0 ? [] : s));
-      return;
-    }
-    console.log(`useEffect v ${v}`);
-    const nodeToSelect = getNodeId(ExplorerItemType.VERSION, v);
-    setSelected((s) => {
-      if (s.length === 1 && s[0] === nodeToSelect) {
-        return s;
-      }
-      const version = files.entities.versions[v];
-      if (!version) {
-        // it is possible that the files context is changed after a deletion
-        // of version before tabs context, if this selected version is not in
-        // files, we should wait for tabs context to change.
-        return s;
-      }
-      const {testId} = version;
-      const {fileId} = files.entities.tests[testId];
-      expandItem(ExplorerItemType.FILE, fileId);
-      expandItem(ExplorerItemType.TEST, testId);
-      return [nodeToSelect];
+    console.log(`version/tab selection change effect run ${Date.now()}`);
+    dispatchLocal({
+      type: actionTypes.SELECTED_TAB_CHANGE,
+      payload: {
+        selectedTabVersionId: editor.tabs.selectedTabVersionId,
+        entitiesVersions: files.entities.versions,
+        entitiesTests: files.entities.tests,
+      },
     });
   }, [
+    // Don't assume that we don't need tests/versions in dependencies as they
+    // are not primitives. Whenever there is an change in any of
+    // these, we create new object and replace these, if we don't add, it will
+    // refer to the old objects, that's why these are needed here. Important
+    // thing is we never mutate but create new.
     editor.tabs.selectedTabVersionId,
     files.entities.tests,
     files.entities.versions,
   ]);
 
-  const handleSelect = (e, nodeIds) => {
-    // decide whether to send a dispatch if this is a version select and there
-    // is nothing else selected.
-    if (nodeIds.length === 1) {
-      const node = getBrokenNodeId(nodeIds[0]);
-      if (node.itemType === ExplorerItemType.VERSION) {
-        console.log('handleSelect fired');
-        // dispatch a version select when user explicitly selects a version.
-        // Don't update local selected state, it will be updated after
-        // the dispatch due to editor.tabs's selectedVersion change.
-        dispatch({
-          type: EDR_EXP_VERSION_CLICK,
-          payload: {versionId: node.itemId},
-        });
-        return;
-      }
+  const handleSelect = (e, nodeId) => {
+    const node = getBrokenNodeId(nodeId);
+    // when the same selected version is clicked, nothing happens and tabs
+    // context doesn't change, if we send a dispatch in that and return
+    // , the selection state doesn't change. This is desirable when clicking
+    // on a version that is highlighted but if for example version's test is
+    // clicked and again version is clicked, that click doesn't select version
+    // cause selected state didn't change (as the version is the selected tab)
+    // To let version > test > version, or version > file > version navigation
+    // work for versions that are selected as tabs, don't send a dispatch for
+    // those version click and just change the selected state.
+    // when version > version click occurs, selected state logic doesn't
+    // update itself.
+    if (
+      node.itemType === ExplorerItemType.VERSION &&
+      node.itemId !== editor.tabs.selectedTabVersionId
+    ) {
+      // dispatch a version select when user explicitly selects a version.
+      // Don't update local selected state, it will be updated after
+      // the dispatch due to editor.tabs's selectedVersion change.
+      dispatchGlobal({
+        type: EDR_EXP_VERSION_CLICK,
+        payload: {versionId: node.itemId},
+      });
+      return;
     }
-    // Always change local selected state when multi selection is taking place
-    // or it's a different node than a version.
-    setSelected(nodeIds);
+    // Always change local selected state for different node than a version.
+    // Don't change selected state if incoming nodeId is already selected,
+    // for example clicking on the same item that's selected.
+    // since nodeId is a primitive, if it's the same as what's selected, state
+    // won't change.
+    // Note: when double click happens, this can cause an extra re render after
+    // the first click goes, because 2 click happens before a dbl click, and
+    // on second click, even though no state change occurs, react may still
+    // re render.
+    dispatchLocal({type: actionTypes.NODE_SELECTED, payload: {nodeId}});
   };
 
   const handleToggle = (e, nodeIds) => {
     // nodeIds have all expanded nodeIds, including ones opened on 'new item'
     // call, thus it's safe to reset entire array.
-    setExpanded(nodeIds);
+    dispatchLocal({type: actionTypes.NODE_TOGGLE, payload: {nodeIds}});
   };
 
   // !!! Note: Very uncompleted functionality.
@@ -261,20 +404,30 @@ const Explorer = React.memo(({closeButton}) => {
     // For now, assume we've the selected raw files form api and take sample
     // files.
     const filesToLoad = normalize(sampleFilesForOnLoad, filesSchema);
-    dispatch({type: EXP_LOAD_FILES, payload: {filesToLoad}});
+    dispatchGlobal({type: EXP_LOAD_FILES, payload: {filesToLoad}});
   };
 
   const onNewFile = () => {
-    const fileItemType = ExplorerItemType.FILE;
-    setAddNewItem(new AddNewItem(fileItemType));
+    dispatchLocal({
+      type: actionTypes.ADD_NEW_ITEM,
+      payload: {itemType: ExplorerItemType.FILE},
+    });
   };
 
   const newItemCallback = useCallback((itemType, itemParentId) => {
-    setAddNewItem(new AddNewItem(itemType, itemParentId));
+    dispatchLocal({
+      type: actionTypes.ADD_NEW_ITEM,
+      payload: {itemType, itemParentId},
+    });
     if (!itemParentId) {
       return;
     }
-    expandItem(getExplorerParentTypeByChild(itemType), itemParentId);
+    dispatchLocal({
+      type: actionTypes.EXPAND_NODE,
+      payload: {
+        nodeId: getNodeId(getExplorerParentTypeByChild(itemType), itemParentId),
+      },
+    });
   }, []);
 
   // TODO: uncompleted functionality
@@ -303,6 +456,7 @@ const Explorer = React.memo(({closeButton}) => {
     // data is null while simulating
     // eslint-disable-next-line no-unused-vars
     const onSuccess = (data) => {
+      console.log('onSuccess');
       // generate random ids while simulating
       const newRandom = () => {
         return random(1000, 10000);
@@ -318,9 +472,12 @@ const Explorer = React.memo(({closeButton}) => {
           // validate data: should have testId, name, versions, versionId, versionName, code,
           // isCurrent.
           const newTestId = newRandom();
-          newItem = new Test(newTestId, newItemName, addNewItem.parentId, [
-            new Version(newRandom(), 'v1', newTestId, '', true),
-          ]); // !!!This is sample
+          newItem = new Test(
+            newTestId,
+            newItemName,
+            state.addNewItem.parentId,
+            [new Version(newRandom(), 'v1', newTestId, '', true)]
+          ); // !!!This is sample
           break;
         }
         case ExplorerItemType.VERSION:
@@ -333,7 +490,7 @@ const Explorer = React.memo(({closeButton}) => {
           newItem = new Version(
             newRandom(),
             newItemName,
-            addNewItem.parentId,
+            state.addNewItem.parentId,
             'openUrl("https://twitter.com")', // This code will actually be latest version's code.
             true
           ); // !!!This is sample
@@ -341,15 +498,16 @@ const Explorer = React.memo(({closeButton}) => {
         default:
           throw new Error(`Couldn't add new item of type ${newItemType}`);
       }
-      // now dispatch
-      dispatch({
-        type: EXP_NEW_ITEM,
-        payload: {
-          item: newItem,
-          itemType: newItemType,
-          itemParentId: addNewItem.parentId,
+      const actions = [
+        {
+          type: EXP_NEW_ITEM,
+          payload: {
+            item: newItem,
+            itemType: newItemType,
+            itemParentId: state.addNewItem.parentId,
+          },
         },
-      });
+      ];
       // if new item was version or test, select the new version
       if (
         newItemType === ExplorerItemType.TEST ||
@@ -360,31 +518,33 @@ const Explorer = React.memo(({closeButton}) => {
         // dispatch a version select when an implicit selection of a version
         // occurs. Don't update local selected state, it will be updated after
         // the dispatch due to editor.tabs's selectedVersion change.
-        dispatch({
+        console.log('dispatching explorerVersionClick');
+        actions.push({
           type: EDR_EXP_VERSION_CLICK,
           payload: {versionId: newVersion.id},
         });
       }
-      setAddNewItem(null);
+      dispatchGlobal(batchActions(actions));
+      dispatchLocal({type: actionTypes.NEW_ITEM_SET_NULL});
     };
 
     // eslint-disable-next-line no-unused-vars
     const onError = (error) => {
-      setAddNewItem(null);
+      dispatchLocal({type: actionTypes.NEW_ITEM_SET_NULL});
       // show error in form of snackbar etc.
     };
     // Assume that following setTimeout is api request and it's function is
     // the callback needs to run on completion.
     // Things that need to be sent to api:
     // newItemType, newItemName, (parentType = TEST/VERSION,
-    // addNewItem.parentId) only when newItemType !== FILE
+    // state.addNewItem.parentId) only when newItemType !== FILE
     setTimeout(onSuccess, 1000);
     // hide the input box and let api return in sometime and change state.
-    setAddNewItem((i) => new AddNewItem(i.type, i.parentId, true));
+    dispatchLocal({type: actionTypes.NEW_ITEM_SUBMITTED});
   };
 
   const newItemCancelCallback = useCallback(() => {
-    setAddNewItem(null);
+    dispatchLocal({type: actionTypes.NEW_ITEM_SET_NULL});
   }, []);
 
   const getNewItemEditor = (existingNames) => {
@@ -397,11 +557,11 @@ const Explorer = React.memo(({closeButton}) => {
             px={0.5}
             minHeight={28}
             className={classes.highlight}>
-            {!addNewItem.submitted ? (
+            {!state.addNewItem.submitted ? (
               <TreeItemEditor
                 defaultName=""
                 existingNames={existingNames}
-                itemType={addNewItem.type}
+                itemType={state.addNewItem.type}
                 onCommit={newItemCommitCallback}
                 onCancel={newItemCancelCallback}
                 errorContainerRef={errorContainerRef}
@@ -409,7 +569,7 @@ const Explorer = React.memo(({closeButton}) => {
             ) : (
               <Box display="flex" flex={1}>
                 <Box display="flex" alignItems="center" flex={1}>
-                  <ColoredItemIcon itemType={addNewItem.type} />
+                  <ColoredItemIcon itemType={state.addNewItem.type} />
                   <Skeleton
                     variant="text"
                     className={classes.newItemSkelton}
@@ -443,7 +603,6 @@ const Explorer = React.memo(({closeButton}) => {
       hasError={hasError}
       isCurrentVersion={isCurrentVersion}
       onNewItem={newItemCallback}
-      selectedNodesRef={selectedNodesRef}
       filesRef={filesRef}
     />
   );
@@ -483,13 +642,12 @@ const Explorer = React.memo(({closeButton}) => {
             defaultCollapseIcon={<ArrowDropDownIcon />}
             defaultExpandIcon={<ArrowRightIcon />}
             defaultEndIcon={<div style={{width: 24}} />}
-            multiSelect
             onNodeToggle={handleToggle}
             onNodeSelect={handleSelect}
-            expanded={expanded}
-            selected={selected}>
-            {Boolean(addNewItem) &&
-              addNewItem.type === ExplorerItemType.FILE &&
+            expanded={state.expandedNodes}
+            selected={state.selectedNode}>
+            {Boolean(state.addNewItem) &&
+              state.addNewItem.type === ExplorerItemType.FILE &&
               getNewItemEditor(
                 getNamesByIdMapping(files.result, files.entities.files)
               )}
@@ -520,9 +678,9 @@ const Explorer = React.memo(({closeButton}) => {
                 appended type to id because id's are not unique across
                 file/test/version and also I'd need it to know what type of
                 items selected */}
-                  {Boolean(addNewItem) &&
-                    addNewItem.type === ExplorerItemType.TEST &&
-                    addNewItem.parentId === fid &&
+                  {Boolean(state.addNewItem) &&
+                    state.addNewItem.type === ExplorerItemType.TEST &&
+                    state.addNewItem.parentId === fid &&
                     getNewItemEditor(
                       getNamesByIdMapping(
                         files.entities.files[fid].tests,
@@ -554,9 +712,9 @@ const Explorer = React.memo(({closeButton}) => {
                           label: classes.label,
                           iconContainer: classes.iconContainer,
                         }}>
-                        {Boolean(addNewItem) &&
-                          addNewItem.type === ExplorerItemType.VERSION &&
-                          addNewItem.parentId === tid &&
+                        {Boolean(state.addNewItem) &&
+                          state.addNewItem.type === ExplorerItemType.VERSION &&
+                          state.addNewItem.parentId === tid &&
                           getNewItemEditor(
                             getNamesByIdMapping(
                               files.entities.tests[tid].versions,

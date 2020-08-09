@@ -114,7 +114,7 @@ const fileToLoad = [
     new Test(6, 'anchor should change when i click on back button', 6, [
       new Version(
         10,
-        'd2',
+        'v2',
         6,
         `typeActive("apple.com", keys.enter)
       # this selector gives all results but findElement will return the first

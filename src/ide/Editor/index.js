@@ -79,13 +79,6 @@ const Editor = React.memo(() => {
     const [versionId, tab] = tabMap;
     const et = files.entities;
     const version = et.versions[versionId];
-    // it could be possible when explorer items are deleted, that change in
-    // context is applied separate with the change in editor context, which may
-    // result in version in editor with no matching version in files. This check
-    // makes sure we don't render in such situation.
-    if (!version) {
-      return null;
-    }
     const test = et.tests[version.testId];
     const file = et.files[test.fileId];
     const tabContent = (
@@ -117,32 +110,27 @@ const Editor = React.memo(() => {
   return (
     <div className={classes.root}>
       {/* if editor.tabs are there, files must have something too */}
-      {/* Make sure that selected tab is in files, if it's deleted in files,
-      let's not render anything and wait for tabs context change. */}
-      {tabs &&
-        Array.isArray(tabs.maps) &&
-        tabs.maps.length > 0 &&
-        files.entities.versions[tabs.selectedTabVersionId] && (
-          <>
-            <Box
-              position="static"
-              display="flex"
-              flexDirection="row"
-              className={classes.tabBar}
-              boxShadow={3}>
-              <Tabs
-                value={tabs.selectedTabVersionId}
-                onChange={handleChange}
-                variant="scrollable"
-                scrollButtons="off"
-                aria-label="tabbed layout of test versions"
-                classes={{root: classes.tabs, indicator: classes.indicator}}>
-                {tabs.maps.map((m) => getTab(m))}
-              </Tabs>
-            </Box>
-            {getTabPanel(tabs.selectedTabVersionId)}
-          </>
-        )}
+      {tabs && Array.isArray(tabs.maps) && tabs.maps.length > 0 && (
+        <>
+          <Box
+            position="static"
+            display="flex"
+            flexDirection="row"
+            className={classes.tabBar}
+            boxShadow={3}>
+            <Tabs
+              value={tabs.selectedTabVersionId}
+              onChange={handleChange}
+              variant="scrollable"
+              scrollButtons="off"
+              aria-label="tabbed layout of test versions"
+              classes={{root: classes.tabs, indicator: classes.indicator}}>
+              {tabs.maps.map((m) => getTab(m))}
+            </Tabs>
+          </Box>
+          {getTabPanel(tabs.selectedTabVersionId)}
+        </>
+      )}
     </div>
   );
 });

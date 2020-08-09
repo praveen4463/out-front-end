@@ -7,7 +7,7 @@ import Content from './Content';
 import darkTheme from './Themes';
 import {files as sampleFiles} from './Explorer/sample';
 import {filesSchema} from './Explorer/model';
-import {SET_FILES} from './actionTypes';
+import {BATCH_ACTIONS, SET_FILES} from './actionTypes';
 import {
   IdeDispatchContext,
   IdeStateContext,
@@ -31,18 +31,29 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-// - Reducer must be pure https://redux.js.org/basics/reducers#handling-actions
+// - Reducers must be pure https://redux.js.org/basics/reducers#handling-actions
 // - Don't use 'produce' on root reducer https://immerjs.github.io/immer/docs/example-reducer
-const ideRootReducer = (state, action) => {
-  const {type} = action;
-  if (type.startsWith('EXP_')) {
-    return explorerReducer(state, action);
+
+// https://github.com/reduxjs/redux/issues/911
+function ideRootReducer(state, action) {
+  switch (action.type) {
+    case BATCH_ACTIONS:
+      return action.actions.reduce(ideRootReducer, state);
+    default: {
+      console.log('got actions:');
+      console.log(action);
+      console.log(Date.now());
+      const {type} = action;
+      if (type.startsWith('EXP_')) {
+        return explorerReducer(state, action);
+      }
+      if (type.startsWith('EDR_')) {
+        return editorReducer(state, action);
+      }
+      return ideReducer(state, action);
+    }
   }
-  if (type.startsWith('EDR_')) {
-    return editorReducer(state, action);
-  }
-  return ideReducer(state, action);
-};
+}
 
 // This is the root state of IDE
 const initialState = {

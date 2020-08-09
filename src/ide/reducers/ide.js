@@ -1,10 +1,5 @@
 import produce from 'immer';
-import {
-  SET_FILES,
-  SET_PROJECT,
-  RUN_BUILD,
-  RUN_BUILD_MULTI,
-} from '../actionTypes';
+import {SET_FILES, SET_PROJECT, RUN_BUILD} from '../actionTypes';
 import getDeepClonedFiles from './common';
 
 const setFiles = (draft, payload) => {
@@ -34,16 +29,6 @@ const runBuild = (draft, payload) => {
   build.items = [{itemType: payload.itemType, itemId: payload.itemId}];
 };
 
-const runBuildMulti = (draft, payload) => {
-  if (payload.selectedNodes === undefined) {
-    throw new Error('Insufficient arguments passed to runBuildMulti.');
-  }
-
-  const {build} = draft;
-  build.start = true;
-  build.items = payload.selectedNodes;
-};
-
 const ideReducer = produce((draft, action) => {
   const {payload} = action;
   switch (action.type) {
@@ -55,9 +40,6 @@ const ideReducer = produce((draft, action) => {
       break;
     case RUN_BUILD:
       runBuild(draft, payload);
-      break;
-    case RUN_BUILD_MULTI:
-      runBuildMulti(draft, payload);
       break;
     default:
       break;

@@ -37,6 +37,7 @@ const useStyles = makeStyles((theme) => ({
     width: '100%',
     display: 'inline-block',
     userSelect: 'none',
+    whiteSpace: 'nowrap',
   },
   linkHover: {
     '&:hover': {

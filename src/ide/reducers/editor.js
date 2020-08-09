@@ -62,6 +62,7 @@ const deleteTab = (editor, versionId) => {
 };
 
 const explorerVersionsDeleted = (draft, payload) => {
+  console.log('explorerVersionsDeleted invoked');
   if (!Array.isArray(payload.versionIds)) {
     throw new Error(
       'Insufficient arguments passed to explorerVersionsDeleted.'
