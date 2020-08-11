@@ -217,14 +217,12 @@ const TreeItemContent = React.memo(
     };
 
     const deleteHandler = (e) => {
-      console.log('deleteHandler');
       e.stopPropagation();
       setShowDeleteDialog(true);
     };
 
     const deleteAcceptHandler = (e) => {
       e.stopPropagation();
-      console.log('deleteAcceptHandler');
       const actions = [
         {
           type: EXP_DELETE_ITEM,

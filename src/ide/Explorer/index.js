@@ -311,7 +311,6 @@ const Explorer = React.memo(({closeButton}) => {
   });
 
   useEffect(() => {
-    console.log(`version/tab selection change effect run ${Date.now()}`);
     dispatchLocal({
       type: actionTypes.SELECTED_TAB_CHANGE,
       payload: {
@@ -415,6 +414,8 @@ const Explorer = React.memo(({closeButton}) => {
   };
 
   const newItemCallback = useCallback((itemType, itemParentId) => {
+    // I've checked these two dispatches causes just a single re render not two,
+    // if this may cause two, keep expand logic within add new item.
     dispatchLocal({
       type: actionTypes.ADD_NEW_ITEM,
       payload: {itemType, itemParentId},
@@ -456,7 +457,6 @@ const Explorer = React.memo(({closeButton}) => {
     // data is null while simulating
     // eslint-disable-next-line no-unused-vars
     const onSuccess = (data) => {
-      console.log('onSuccess');
       // generate random ids while simulating
       const newRandom = () => {
         return random(1000, 10000);
@@ -518,7 +518,6 @@ const Explorer = React.memo(({closeButton}) => {
         // dispatch a version select when an implicit selection of a version
         // occurs. Don't update local selected state, it will be updated after
         // the dispatch due to editor.tabs's selectedVersion change.
-        console.log('dispatching explorerVersionClick');
         actions.push({
           type: EDR_EXP_VERSION_CLICK,
           payload: {versionId: newVersion.id},

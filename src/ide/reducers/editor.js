@@ -62,7 +62,6 @@ const deleteTab = (editor, versionId) => {
 };
 
 const explorerVersionsDeleted = (draft, payload) => {
-  console.log('explorerVersionsDeleted invoked');
   if (!Array.isArray(payload.versionIds)) {
     throw new Error(
       'Insufficient arguments passed to explorerVersionsDeleted.'
@@ -133,7 +132,6 @@ const changeTabSelection = (editor, changeToTabVersionId) => {
 };
 
 const explorerVersionClick = (draft, payload) => {
-  console.log('explorerVersionClick comes');
   if (payload.versionId === undefined) {
     throw new Error('Insufficient arguments passed to explorerVersionClick.');
   }

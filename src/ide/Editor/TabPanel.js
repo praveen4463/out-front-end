@@ -25,11 +25,16 @@ const TabPanel = React.memo(({version, testName, fileName}) => {
       aria-labelledby={`scrollable-auto-tab-${version.id}`}
       className={classes.root}>
       <Box boxShadow={3}>
-        <Typography variant="caption" className={classes.breadcrumb}>
+        <Typography
+          variant="caption"
+          className={classes.breadcrumb}
+          data-testid="breadcrumb">
           {`${fileName} > ${testName} > ${version.name}`}
         </Typography>
       </Box>
-      <Typography variant="body1">{version.code}</Typography>
+      <Typography variant="body1" data-testid="code">
+        {version.code}
+      </Typography>
     </Box>
   );
 });

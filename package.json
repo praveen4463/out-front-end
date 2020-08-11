@@ -8,8 +8,6 @@
     "@material-ui/lab": "^4.0.0-alpha.56",
     "@material-ui/styles": "^4.10.0",
     "@material-ui/system": "^4.9.14",
-    "@testing-library/jest-dom": "^4.2.4",
-    "@testing-library/react": "^9.5.0",
     "@testing-library/user-event": "^7.2.1",
     "clsx": "^1.1.1",
     "fontsource-roboto": "^2.1.4",
@@ -26,7 +24,9 @@
     "react-split-pane": "^0.1.91",
     "scheduler": "^0.19.1",
     "styled-components": "^5.1.1",
-    "uuid": "^8.2.0"
+    "uuid": "^8.2.0",
+    "@testing-library/jest-dom": "^4.2.4",
+    "@testing-library/react": "^9.5.0"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -72,5 +72,10 @@
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx,json,md}": "eslint --cache --fix",
     "src/**/*.{css,scss}": "stylelint --cache --fix"
+  },
+  "jest": {
+    "transformIgnorePatterns": [
+      "node_modules/(?!lodash-es/)"
+    ]
   }
 }

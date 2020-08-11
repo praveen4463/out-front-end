@@ -4,7 +4,6 @@ import ToolBar from '@material-ui/core/Toolbar';
 import IconButton from '@material-ui/core/IconButton';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import BugReportIcon from '@material-ui/icons/BugReport';
 import StopIcon from '@material-ui/icons/Stop';
 import BuildIcon from '@material-ui/icons/Build';
 import Box from '@material-ui/core/Box';
@@ -65,11 +64,6 @@ const TopNavigation = () => {
         <Tooltip title="Run Build R">
           <IconButton aria-label="Run Build">
             <PlayArrowIcon color="primary" fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Start Debug Mode D">
-          <IconButton aria-label="Start Debug Mode">
-            <BugReportIcon color="primary" fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title="Stop Build ^C">

@@ -40,9 +40,6 @@ function ideRootReducer(state, action) {
     case BATCH_ACTIONS:
       return action.actions.reduce(ideRootReducer, state);
     default: {
-      console.log('got actions:');
-      console.log(action);
-      console.log(Date.now());
       const {type} = action;
       if (type.startsWith('EXP_')) {
         return explorerReducer(state, action);

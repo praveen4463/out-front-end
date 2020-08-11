@@ -81,7 +81,7 @@ const TabContent = React.memo(({tab, versionName, testName, fileName}) => {
       alignItems="center"
       onDoubleClick={dblClickHandler}
       className={classes.root}>
-      <Box flex={1} title={getTabTitle()}>
+      <Box flex={1} title={getTabTitle()} data-testid="tab">
         <Typography
           variant="caption"
           className={clsx(
