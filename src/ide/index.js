@@ -2,12 +2,13 @@ import React, {useState, useEffect, useReducer} from 'react';
 import {ThemeProvider, makeStyles} from '@material-ui/core/styles';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import {normalize} from 'normalizr';
+import {ErrorBoundary} from 'react-error-boundary';
 import TopNavigation from './TopNavigation';
 import Content from './Content';
 import darkTheme from './Themes';
 import {files as sampleFiles} from './Explorer/sample';
 import {filesSchema} from './Explorer/model';
-import {BATCH_ACTIONS, SET_FILES} from './actionTypes';
+import {BATCH_ACTIONS, SET_FILES, RESET_STATE_ON_ERROR} from './actionTypes';
 import {
   IdeDispatchContext,
   IdeStateContext,
@@ -17,6 +18,7 @@ import {
 import explorerReducer from './reducers/explorer';
 import editorReducer from './reducers/editor';
 import ideReducer from './reducers/ide';
+import RootErrorFallback, {rootErrorHandler} from '../ErrorBoundary';
 import './index.css';
 
 const useStyles = makeStyles((theme) => ({
@@ -30,27 +32,6 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: '10%',
   },
 }));
-
-// - Reducers must be pure https://redux.js.org/basics/reducers#handling-actions
-// - Don't use 'produce' on root reducer https://immerjs.github.io/immer/docs/example-reducer
-
-// https://github.com/reduxjs/redux/issues/911
-function ideRootReducer(state, action) {
-  switch (action.type) {
-    case BATCH_ACTIONS:
-      return action.actions.reduce(ideRootReducer, state);
-    default: {
-      const {type} = action;
-      if (type.startsWith('EXP_')) {
-        return explorerReducer(state, action);
-      }
-      if (type.startsWith('EDR_')) {
-        return editorReducer(state, action);
-      }
-      return ideReducer(state, action);
-    }
-  }
-}
 
 // This is the root state of IDE
 const initialState = {
@@ -70,6 +51,30 @@ const initialState = {
   },
 };
 
+// - Reducers must be pure https://redux.js.org/basics/reducers#handling-actions
+// - Don't use 'produce' on root reducer https://immerjs.github.io/immer/docs/example-reducer
+
+// https://github.com/reduxjs/redux/issues/911
+function ideRootReducer(state, action) {
+  switch (action.type) {
+    case BATCH_ACTIONS:
+      return action.actions.reduce(ideRootReducer, state);
+    default: {
+      const {type} = action;
+      if (type === RESET_STATE_ON_ERROR) {
+        return initialState;
+      }
+      if (type.startsWith('EXP_')) {
+        return explorerReducer(state, action);
+      }
+      if (type.startsWith('EDR_')) {
+        return editorReducer(state, action);
+      }
+      return ideReducer(state, action);
+    }
+  }
+}
+
 // TODO: This is the root component for IDE, on every dispatch it's state changes
 // and it re renders, make sure you memoize child components those don't require
 // a re render.
@@ -77,6 +82,7 @@ const Ide = () => {
   const [state, dispatch] = useReducer(ideRootReducer, initialState);
   const classes = useStyles();
   const [allSet, setAllSet] = useState(false);
+
   useEffect(() => {
     /*
     - Fetching and populating files into state:
@@ -121,7 +127,7 @@ const Ide = () => {
       setAllSet(true);
     };
     // simulate api call using setTimeout
-    setTimeout(onSuccess, 500);
+    setTimeout(onSuccess, 50);
     // invoke following error handler when an error occurs
     // eslint-disable-next-line no-unused-vars
     const onError = (error) => {
@@ -160,37 +166,42 @@ const Ide = () => {
 
   return (
     <ThemeProvider theme={darkTheme}>
-      <IdeDispatchContext.Provider value={dispatch}>
-        <IdeStateContext.Provider value={state}>
-          <IdeFilesContext.Provider value={state.files}>
-            <IdeEditorContext.Provider value={state.editor}>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  height: '100%',
-                  margin: 0,
-                }}>
-                <div style={{display: 'flex', flex: '1 1 auto'}}>
-                  <div
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      position: 'fixed',
-                      left: 0,
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                    }}>
-                    <TopNavigation />
-                    <Content />
+      <ErrorBoundary
+        FallbackComponent={RootErrorFallback}
+        onReset={() => dispatch({type: RESET_STATE_ON_ERROR})}
+        onError={rootErrorHandler}>
+        <IdeDispatchContext.Provider value={dispatch}>
+          <IdeStateContext.Provider value={state}>
+            <IdeFilesContext.Provider value={state.files}>
+              <IdeEditorContext.Provider value={state.editor}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '100%',
+                    margin: 0,
+                  }}>
+                  <div style={{display: 'flex', flex: '1 1 auto'}}>
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        position: 'fixed',
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                      }}>
+                      <TopNavigation />
+                      <Content />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </IdeEditorContext.Provider>
-          </IdeFilesContext.Provider>
-        </IdeStateContext.Provider>
-      </IdeDispatchContext.Provider>
+              </IdeEditorContext.Provider>
+            </IdeFilesContext.Provider>
+          </IdeStateContext.Provider>
+        </IdeDispatchContext.Provider>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 };

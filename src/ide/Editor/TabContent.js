@@ -20,23 +20,18 @@ const useStyle = makeStyles((theme) => ({
   },
   tabText: {
     opacity: theme.textOpacity.mediumEmphasis,
+    '&:hover': {
+      opacity: theme.textOpacity.highEmphasis,
+    },
   },
   tabTextSelected: {
     opacity: theme.textOpacity.highEmphasis,
   },
   closeIconSize: {
-    fontSize: '1rem',
+    fontSize: '0.9rem',
   },
   closeIcon: {
     marginLeft: theme.spacing(0.5),
-    opacity: 0,
-    '&:hover': {
-      opacity: theme.textOpacity.highEmphasis,
-    },
-  },
-  closeIconSelected: {
-    marginLeft: theme.spacing(0.5),
-    opacity: theme.textOpacity.highEmphasis,
   },
 }));
 
@@ -80,25 +75,25 @@ const TabContent = React.memo(({tab, versionName, testName, fileName}) => {
       display="flex"
       alignItems="center"
       onDoubleClick={dblClickHandler}
-      className={classes.root}>
+      className={clsx(
+        classes.root,
+        tab.selected ? classes.tabTextSelected : classes.tabText
+      )}
+      data-testid="tabContainer">
       <Box flex={1} title={getTabTitle()} data-testid="tab">
         <Typography
           variant="caption"
-          className={clsx(
-            tab.temporary && classes.temporaryTab,
-            tab.selected ? classes.tabTextSelected : classes.tabText
-          )}>
+          className={clsx(tab.temporary && classes.temporaryTab)}>
           {getTabText()}
         </Typography>
       </Box>
       <CloseIcon
         fontSize="small"
         classes={{fontSizeSmall: classes.closeIconSize}}
-        className={clsx(
-          tab.selected ? classes.closeIconSelected : classes.closeIcon
-        )}
+        className={classes.closeIcon}
         onClick={closeHandler}
         titleAccess="Close"
+        data-testid="closeIcon"
       />
     </Box>
   );

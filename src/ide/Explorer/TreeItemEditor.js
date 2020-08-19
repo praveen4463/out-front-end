@@ -7,6 +7,7 @@ import Box from '@material-ui/core/Box';
 import Portal from '@material-ui/core/Portal';
 import validator from './treeItemValidator';
 import ColoredItemIcon from '../ColoredItemIcon';
+import {ExplorerItemType, ExplorerEditOperationType} from '../Constants';
 
 const useStyles = makeStyles((theme) => ({
   text: {
@@ -38,6 +39,7 @@ const TreeItemEditor = ({
   defaultName,
   existingNames,
   itemType,
+  operationType,
   onCommit,
   onCancel,
   onHovering,
@@ -54,11 +56,20 @@ const TreeItemEditor = ({
 
   const commitHandler = () => {
     const name = value.trim();
-    if (value === defaultName || name.length === 0) {
+    if (name === defaultName || name.length === 0) {
       onCancel();
       return;
     }
-    const errorMsg = validator(name, existingNames, itemType);
+    // if this is a rename and renamed value as just different case, allow the
+    // renaming here itself.
+    if (
+      operationType === ExplorerEditOperationType.RENAME &&
+      name.toLowerCase() === defaultName.toLowerCase()
+    ) {
+      onCommit(name, itemType);
+      return;
+    }
+    const errorMsg = validator(name, existingNames, itemType, operationType);
     if (errorMsg !== null) {
       setError(errorMsg);
       return;
@@ -107,7 +118,11 @@ const TreeItemEditor = ({
       </Box>
       {error !== null && (
         <Portal container={errorContainerRef.current}>
-          <Typography variant="caption" color="error" display="block">
+          <Typography
+            variant="caption"
+            color="error"
+            display="block"
+            data-testid="explorerError">
             {error}
           </Typography>
         </Portal>
@@ -119,7 +134,9 @@ const TreeItemEditor = ({
 TreeItemEditor.propTypes = {
   defaultName: PropTypes.string.isRequired,
   existingNames: PropTypes.arrayOf(PropTypes.string),
-  itemType: PropTypes.string.isRequired,
+  itemType: PropTypes.oneOf(Object.keys(ExplorerItemType)).isRequired,
+  operationType: PropTypes.oneOf(Object.keys(ExplorerEditOperationType))
+    .isRequired,
   onCommit: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
   errorContainerRef: PropTypes.exact({

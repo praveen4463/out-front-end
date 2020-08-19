@@ -18,7 +18,7 @@ import Chip from '@material-ui/core/Chip';
 import clsx from 'clsx';
 import VersionIcon from '../newVersionIcon';
 import Tooltip from '../../TooltipCustom';
-import {ExplorerItemType} from '../Constants';
+import {ExplorerItemType, ExplorerEditOperationType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
 import ColoredItemIcon from '../ColoredItemIcon';
 import {IdeDispatchContext} from '../Contexts';
@@ -427,6 +427,7 @@ const TreeItemContent = React.memo(
               defaultName={itemName}
               existingNames={itemSiblingNames}
               itemType={itemType}
+              operationType={ExplorerEditOperationType.RENAME}
               onCommit={renameCommitCallback}
               onCancel={editCancelCallback}
               errorContainerRef={errorContainerRef}
@@ -449,7 +450,8 @@ const TreeItemContent = React.memo(
             minHeight={28}
             onMouseEnter={onHovering}
             onMouseLeave={onHoveringCancel}
-            onDoubleClick={handleDoubleClick}>
+            onDoubleClick={handleDoubleClick}
+            data-testid={`${itemType}-treeItemContent`}>
             <Box
               display="flex"
               alignItems="center"
@@ -458,11 +460,17 @@ const TreeItemContent = React.memo(
               <ColoredItemIcon itemType={itemType} />
               <Typography
                 variant="caption"
-                className={clsx(hasError && classes.errorText)}>
+                className={clsx(hasError && classes.errorText)}
+                data-testid={`${itemType}-treeItemName`}>
                 {itemName}
               </Typography>
               {itemType === ExplorerItemType.VERSION && isCurrentVersion && (
-                <Chip size="small" label="Latest" className={classes.chip} />
+                <Chip
+                  size="small"
+                  label="Latest"
+                  className={classes.chip}
+                  data-testid="latestVersion"
+                />
               )}
             </Box>
             {hovering && (
@@ -595,13 +603,17 @@ const TreeItemContent = React.memo(
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={deleteDialogCancelHandler} size="small">
+            <Button
+              onClick={deleteDialogCancelHandler}
+              size="small"
+              aria-label="cancel">
               Cancel
             </Button>
             <Button
               onClick={deleteAcceptHandler}
               variant="contained"
-              size="small">
+              size="small"
+              aria-label="delete">
               Delete
             </Button>
           </DialogActions>
@@ -620,13 +632,17 @@ const TreeItemContent = React.memo(
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={unloadDialogCancelHandler} size="small">
+            <Button
+              onClick={unloadDialogCancelHandler}
+              size="small"
+              aria-label="cancel">
               Cancel
             </Button>
             <Button
               onClick={unloadAcceptHandler}
               variant="contained"
-              size="small">
+              size="small"
+              aria-label="unload">
               Unload
             </Button>
           </DialogActions>

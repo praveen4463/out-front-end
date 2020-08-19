@@ -14,8 +14,10 @@ import {EDR_SWITCH_TAB} from '../actionTypes';
 
 const useStyle = makeStyles((theme) => ({
   root: {
-    flexGrow: 1,
+    display: 'flex',
+    flexDirection: 'column',
     width: '100%',
+    height: '100%',
     backgroundColor: theme.palette.background.default,
   },
   tabBar: {
@@ -31,7 +33,7 @@ const useStyle = makeStyles((theme) => ({
     minWidth: 'fit-content',
     paddingLeft: theme.spacing(1),
     paddingRight: theme.spacing(0.5),
-    borderRight: `1px solid ${theme.palette.border.dark}`,
+    borderRight: `1px solid ${theme.palette.border.light}`,
     textTransform: 'none',
     '&$selected': {
       borderBottom: `1px solid ${theme.palette.secondary.main}`,

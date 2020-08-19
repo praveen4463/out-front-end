@@ -1,6 +1,11 @@
 import {Version, Test, File} from './model';
 // Reflects the similar data structure we'd get from db.
 // All data is in ascending order
+/*
+!! README:
+- Before modification, make sure id's remain unique and ordering within groups
+  are maintained.
+*/
 const versionsTestId1 = [
   new Version(
     1,
@@ -88,10 +93,25 @@ const versionsTestId3 = [
     true
   ),
 ];
+const versionsTestId11 = [
+  new Version(
+    11,
+    'v1',
+    7,
+    `progress = findElements("*[role='progressbar']", true)`,
+    true
+  ),
+];
 const testsFileId1 = [
   new Test(1, 'debug button changes color on click', 1, versionsTestId1),
   new Test(2, 'start button begins running test', 1, versionsTestId2),
   new Test(3, 'stop halts the execution of test', 1, versionsTestId3),
+  new Test(
+    7,
+    'until the tooltip is visible show progress',
+    1,
+    versionsTestId11
+  ),
 ];
 
 // Only files that user has explicitly asked to open will have a 'tests' field

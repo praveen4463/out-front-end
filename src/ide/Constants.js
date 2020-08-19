@@ -27,4 +27,17 @@ const MaxLengths = {
   [ExplorerItemType.VERSION]: 50,
 };
 
-export {LeftNavs, RightNavs, BottomNavs, None, ExplorerItemType, MaxLengths};
+const ExplorerEditOperationType = {
+  NEW_ITEM: 'NEW_ITEM',
+  RENAME: 'RENAME',
+};
+
+export {
+  LeftNavs,
+  RightNavs,
+  BottomNavs,
+  None,
+  ExplorerItemType,
+  MaxLengths,
+  ExplorerEditOperationType,
+};

@@ -43,9 +43,9 @@ const deleteTab = (editor, versionId) => {
   // are no more tabs, don't do anything.
   if (tabs.selectedTabVersionId === versionId) {
     if (maps.length > 1) {
-      const currentTabIndex = maps.findIndex((m) => m[0] === versionId);
+      const selectedTabIndex = maps.findIndex((m) => m[0] === versionId);
       const newSelectedTabIndex =
-        currentTabIndex === 0 ? 1 : currentTabIndex - 1;
+        selectedTabIndex === 0 ? 1 : selectedTabIndex - 1;
       const newSelectedTab = maps[newSelectedTabIndex];
       newSelectedTab[1].selected = true;
       [tabs.selectedTabVersionId] = newSelectedTab;
@@ -78,20 +78,62 @@ const explorerVersionsDeleted = (draft, payload) => {
     deleteTab(draft.editor, versionIds[0]);
     return;
   }
-  tabs.maps = tabs.maps.filter((m) => !versionIds.includes(m[0]));
-  // For now, just select the first tab when multiple are deleted, I could also
-  // find the lowest index among all deleted and then decide which one to
-  // select but leaving that for later time. This is a TODO for now.
-  const {maps} = tabs;
-  if (versionIds.includes(tabs.selectedTabVersionId) && maps.length > 0) {
-    const [first] = maps;
-    first[1].selected = true;
-    [tabs.selectedTabVersionId] = first;
-  }
   // If deleted tabs had temporary tab, reset temporaryVersionId
   if (versionIds.includes(tabs.temporaryTabVersionId)) {
     tabs.temporaryTabVersionId = null;
   }
+  // if selected version is not among deleting versions, just delete tabs and done.
+  if (!versionIds.includes(tabs.selectedTabVersionId)) {
+    tabs.maps = tabs.maps.filter((m) => !versionIds.includes(m[0]));
+    return;
+  }
+  const {maps} = tabs;
+  // keep remaining tabs separately, don't yet assign into tabs, we will make
+  // selected tab changes into it and then assign to tabs.
+  const tabsRemaining = tabs.maps.filter((m) => !versionIds.includes(m[0]));
+  if (tabsRemaining.length === 0) {
+    // if all tabs are going to delete, there won't be a selected tab
+    tabs.selectedTabVersionId = null;
+    tabs.maps = [];
+    return;
+  }
+  const selectedTabIndex = maps.findIndex(
+    (m) => m[0] === tabs.selectedTabVersionId
+  );
+  // if just one tab remains after deletion or the selected tab is in index 0
+  // or 1, we're going to make tab at index 0 the selected tab in the
+  // remaining tabs. This is done because tab at index 1 when deleted will
+  // always find either tab and left or right, if left is not deleting it is
+  // the selected (which is at index 0), and if left is deleting, any tab
+  // from the right not deleting becomes tab at index 0 hence selected.
+  if (
+    tabsRemaining.length === 1 ||
+    selectedTabIndex === 0 ||
+    selectedTabIndex === 1
+  ) {
+    tabsRemaining[0][1].selected = true;
+    [[tabs.selectedTabVersionId]] = tabsRemaining;
+  } else {
+    // When remaining tabs and selected tab index are higher than 1, we need to
+    // find which tab on the left is not going to delete, if one found, make it
+    // selected and assign it's versionId to selected. If none found, that would
+    // means all tabs on left are deleting, in which case we can just select
+    // 0th index tab from remaining tabs.
+    let found = false;
+    for (let i = selectedTabIndex - 1; i >= 0; i -= 1) {
+      if (!versionIds.includes(maps[i][0])) {
+        maps[i][1].selected = true;
+        [tabs.selectedTabVersionId] = maps[i];
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      tabsRemaining[0][1].selected = true;
+      [[tabs.selectedTabVersionId]] = tabsRemaining;
+    }
+  }
+  tabs.maps = tabsRemaining;
 };
 
 const addTab = (editor, versionId, temporary, atIndex = null) => {

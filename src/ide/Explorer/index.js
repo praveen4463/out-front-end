@@ -21,7 +21,7 @@ import {normalize} from 'normalizr';
 import {random} from 'lodash-es';
 import clsx from 'clsx';
 import produce, {immerable} from 'immer';
-import {ExplorerItemType} from '../Constants';
+import {ExplorerItemType, ExplorerEditOperationType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
 import TreeItemContent from './TreeItemContent';
 import Tooltip from '../../TooltipCustom';
@@ -119,7 +119,7 @@ const getExplorerParentTypeByChild = (childType) => {
   checking duplicates. I could have just placed them next to child array like
   'result', 'tests' but don't want to pollute 'files' too much with data that
   can be computed. There is surely a performance penalty with this as all the
-  items have to compute their siblings but there is a gotcha.
+  items have to compute their siblings but this is not that bad as it seems.
   TreeItem doesn't render all items at once, only the top nodes are rendered
   first and subsequent render occurs when nodes are expanded to only the child
   nodes and so on. So this computation will be done for fewer nodes at a time.
@@ -295,7 +295,7 @@ const Explorer = React.memo(({closeButton}) => {
   const files = useContext(IdeFilesContext);
   const editor = useContext(IdeEditorContext);
   const [state, dispatchLocal] = useReducer(reducer, initialState);
-  console.log(`Explorer renders ${Date.now()}`);
+  // console.log(`Explorer renders ${Date.now()}`);
   const filesRef = useRef(files);
   const errorContainerRef = useRef(null);
   // ref object doesn't change thus safe to use in pure components. It's mutable
@@ -415,7 +415,7 @@ const Explorer = React.memo(({closeButton}) => {
 
   const newItemCallback = useCallback((itemType, itemParentId) => {
     // I've checked these two dispatches causes just a single re render not two,
-    // if this may cause two, keep expand logic within add new item.
+    // if this may cause two, move expand logic within add new item.
     dispatchLocal({
       type: actionTypes.ADD_NEW_ITEM,
       payload: {itemType, itemParentId},
@@ -537,7 +537,7 @@ const Explorer = React.memo(({closeButton}) => {
     // Things that need to be sent to api:
     // newItemType, newItemName, (parentType = TEST/VERSION,
     // state.addNewItem.parentId) only when newItemType !== FILE
-    setTimeout(onSuccess, 1000);
+    setTimeout(onSuccess, 500);
     // hide the input box and let api return in sometime and change state.
     dispatchLocal({type: actionTypes.NEW_ITEM_SUBMITTED});
   };
@@ -561,6 +561,7 @@ const Explorer = React.memo(({closeButton}) => {
                 defaultName=""
                 existingNames={existingNames}
                 itemType={state.addNewItem.type}
+                operationType={ExplorerEditOperationType.NEW_ITEM}
                 onCommit={newItemCommitCallback}
                 onCancel={newItemCancelCallback}
                 errorContainerRef={errorContainerRef}
@@ -607,7 +608,7 @@ const Explorer = React.memo(({closeButton}) => {
   );
 
   return (
-    <Box className={classes.explorer}>
+    <Box className={classes.explorer} data-testid="explorer">
       <Box
         display="flex"
         alignItems="center"
@@ -672,7 +673,8 @@ const Explorer = React.memo(({closeButton}) => {
                     group: classes.group,
                     label: classes.label,
                     iconContainer: classes.iconContainer,
-                  }}>
+                  }}
+                  data-testid={`${ExplorerItemType.FILE}-treeItem`}>
                   {/* onNodeSelect passes nodeId as node parameter, I've
                 appended type to id because id's are not unique across
                 file/test/version and also I'd need it to know what type of
@@ -710,7 +712,8 @@ const Explorer = React.memo(({closeButton}) => {
                           group: classes.group,
                           label: classes.label,
                           iconContainer: classes.iconContainer,
-                        }}>
+                        }}
+                        data-testid={`${ExplorerItemType.TEST}-treeItem`}>
                         {Boolean(state.addNewItem) &&
                           state.addNewItem.type === ExplorerItemType.VERSION &&
                           state.addNewItem.parentId === tid &&
@@ -746,6 +749,7 @@ const Explorer = React.memo(({closeButton}) => {
                                 label: classes.label,
                                 iconContainer: classes.iconContainer,
                               }}
+                              data-testid={`${ExplorerItemType.VERSION}-treeItem`}
                             />
                           ))}
                       </TreeItem>
