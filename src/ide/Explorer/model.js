@@ -9,14 +9,24 @@ import {immerable} from 'immer';
 
 // Files model and schema, note that fields those don't belong to db may or may
 // not be in data/normalized data.
-function Version(id, name, testId, code, isCurrent, hasError, errorMsg) {
+function Version(
+  id,
+  name,
+  testId,
+  code,
+  isCurrent,
+  hasError,
+  lastRunOutput,
+  runType
+) {
   this.id = id;
   this.name = name;
   this.testId = testId;
   this.code = code;
   this.isCurrent = isCurrent;
   this.hasError = hasError;
-  this.errorMsg = errorMsg;
+  this.lastRunOutput = lastRunOutput;
+  this.runType = runType;
   this[immerable] = true;
 }
 

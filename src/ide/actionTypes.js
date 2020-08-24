@@ -18,6 +18,7 @@ export const EDR_EXP_VERSION_DBL_CLICK = 'EDR_EXP_VERSION_DBL_CLICK';
 export const EDR_SWITCH_TAB = 'EDR_SWITCH_TAB';
 export const EDR_CLOSE_TAB = 'EDR_CLOSE_TAB';
 export const EDR_DBL_CLICK_TAB = 'EDR_DBL_CLICK_TAB';
+export const EDR_VERSION_CODE_UPDATED = 'EDR_VERSION_CODE_UPDATED';
 
 // Build actions
 export const RUN_BUILD = 'RUN_BUILD';

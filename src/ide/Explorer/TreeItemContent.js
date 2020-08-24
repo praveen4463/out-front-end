@@ -657,15 +657,13 @@ const TreeItemContent = React.memo(
           // if one of prev or next itemSiblingNames is undefined, they are
           // unequal.
           k === 'itemSiblingNames' &&
-          Array.isArray(prevProps.itemSiblingNames) &&
-          Array.isArray(nextProps.itemSiblingNames) &&
-          prevProps.itemSiblingNames.length ===
-            nextProps.itemSiblingNames.length
+          Array.isArray(prevProps[k]) &&
+          Array.isArray(nextProps[k]) &&
+          prevProps[k].length === nextProps[k].length
         ) {
           return (
-            nextProps.itemSiblingNames.filter(
-              (name) => !prevProps.itemSiblingNames.includes(name)
-            ).length === 0
+            nextProps[k].filter((name) => !prevProps[k].includes(name))
+              .length === 0
           );
         }
         return false;

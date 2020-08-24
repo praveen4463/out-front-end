@@ -12,11 +12,11 @@ const versionsTestId1 = [
     'v1',
     1,
     `# when user doesn't give attention to previous offer, google tells to.
-    chromeHomePageOffer = findElements("div#gbw a.gb_Nd", true)
-    if size(chromeHomePageOffer) > 0 {
-      click(chromeHomePageOffer[0])
-      click("input[name='q']") # since we changed the focus, let's make search
-    }`,
+chromeHomePageOffer = findElements("div#gbw a.gb_Nd", true)
+if size(chromeHomePageOffer) > 0 {
+  click(chromeHomePageOffer[0])
+  click("input[name='q']") # since we changed the focus, let's make search
+}`,
     true
   ),
 ];
@@ -26,13 +26,13 @@ const versionsTestId2 = [
     'v1',
     2,
     `# 1. simple google search test
-    openUrl("https://google.com")
-    # sometime when IE opens, google tries to bully it by
-    chromeDownloadOffer = findElements("div#gbw a.gb_0", true)
-    if size(chromeDownloadOffer) > 0 {
-      click(chromeDownloadOffer[0])
-      click("input[name='q']") # since we changed the focus.
-    }`,
+openUrl("https://google.com")
+# sometime when IE opens, google tries to bully it by
+chromeDownloadOffer = findElements("div#gbw a.gb_0", true)
+if size(chromeDownloadOffer) > 0 {
+  click(chromeDownloadOffer[0])
+  click("input[name='q']") # since we changed the focus.
+}`,
     false
   ),
   new Version(
@@ -40,12 +40,12 @@ const versionsTestId2 = [
     'v2',
     2,
     `# 1. simple google search test
-    openUrl("https://google.com")
-    # sometime when IE opens, google tries to bully it by
-    chromeDownloadOffer = findElements("div#gbw a.gb_0", true)
-    if size(chromeDownloadOffer) > 0 {
-      click(chromeDownloadOffer[0])
-    }`,
+openUrl("https://google.com")
+# sometime when IE opens, google tries to bully it by
+chromeDownloadOffer = findElements("div#gbw a.gb_0", true)
+if size(chromeDownloadOffer) > 0 {
+  click(chromeDownloadOffer[0])
+}`,
     true
   ),
 ];
@@ -55,14 +55,14 @@ const versionsTestId3 = [
     'v1',
     3,
     `t = untilShown()
-    q = activeElement()
-    if browser.name == "chrome" {
-      text = "hi buddy ♻, whats up ⚜"
-    } else {
-      text = "hi buddy 😀 what's up 😆"
-    }
-    type(q, text)
-    assertTrue(getElementValue(q) == text)`,
+q = activeElement()
+if browser.name == "chrome" {
+  text = "hi buddy ♻, whats up ⚜"
+} else {
+  text = "hi buddy 😀 what's up 😆"
+}
+type(q, text)
+assertTrue(getElementValue(q) == text)`,
     false
   ),
   new Version(
@@ -70,13 +70,13 @@ const versionsTestId3 = [
     'v2',
     3,
     `q = activeElement()
-    if browser.name == "chrome" {
-      text = "hi buddy ♻, whats up ⚜"
-    } else {
-      text = "hi buddy 😀 what's up 😆"
-    }
-    type(q, text)
-    assertTrue(getElementValue(q) == text)`,
+if browser.name == "chrome" {
+  text = "hi buddy ♻, whats up ⚜"
+} else {
+  text = "hi buddy 😀 what's up 😆"
+}
+type(q, text)
+assertTrue(getElementValue(q) == text)`,
     false
   ),
   new Version(
@@ -84,12 +84,12 @@ const versionsTestId3 = [
     'v3',
     3,
     `if browser.name == "chrome" {
-      text = "hi buddy ♻, whats up ⚜"
-    } else {
-      text = "hi buddy 😀 what's up 😆"
-    }
-    type(q, text)
-    assertTrue(getElementValue(q) == text)`,
+  text = "hi buddy ♻, whats up ⚜"
+} else {
+  text = "hi buddy 😀 what's up 😆"
+}
+type(q, text)
+assertTrue(getElementValue(q) == text)`,
     true
   ),
 ];

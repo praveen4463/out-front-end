@@ -3,6 +3,7 @@ import {makeStyles} from '@material-ui/core/styles';
 import Box from '@material-ui/core/Box';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
+import PropTypes from 'prop-types';
 import {
   IdeDispatchContext,
   IdeFilesContext,
@@ -48,11 +49,12 @@ const useStyle = makeStyles((theme) => ({
   },
 }));
 
-const Editor = React.memo(() => {
+const Editor = React.memo((props) => {
   const dispatch = useContext(IdeDispatchContext);
   const files = useContext(IdeFilesContext);
   const {tabs} = useContext(IdeEditorContext);
   const classes = useStyle();
+  const {lineColContainerRef} = props;
 
   const handleChange = (e, value) => {
     const versionId = value;
@@ -73,7 +75,12 @@ const Editor = React.memo(() => {
     const test = et.tests[version.testId];
     const file = et.files[test.fileId];
     return (
-      <TabPanel version={version} testName={test.name} fileName={file.name} />
+      <TabPanel
+        version={version}
+        testName={test.name}
+        fileName={file.name}
+        lineColContainerRef={lineColContainerRef}
+      />
     );
   };
 
@@ -136,5 +143,11 @@ const Editor = React.memo(() => {
     </div>
   );
 });
+
+Editor.propTypes = {
+  lineColContainerRef: PropTypes.exact({
+    current: PropTypes.any,
+  }).isRequired,
+};
 
 export default Editor;

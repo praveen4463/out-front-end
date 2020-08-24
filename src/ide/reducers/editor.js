@@ -7,6 +7,7 @@ import {
   EDR_SWITCH_TAB,
   EDR_CLOSE_TAB,
   EDR_DBL_CLICK_TAB,
+  EDR_VERSION_CODE_UPDATED,
 } from '../actionTypes';
 import Tab from '../Editor/model';
 
@@ -303,6 +304,14 @@ const dblClickTab = (draft, payload) => {
   tabs.temporaryTabVersionId = null;
 };
 
+const editorVersionCodeUpdated = (draft, payload) => {
+  console.log('editor version code updating reducer invoked');
+  if (payload.versionId === undefined || payload.versionCode === undefined) {
+    throw new Error('Insufficient arguments passed to dblClickTab.');
+  }
+  draft.files.entities.versions[payload.versionId].code = payload.versionCode;
+};
+
 const editorReducer = produce((draft, action) => {
   const {payload} = action;
   switch (action.type) {
@@ -323,6 +332,9 @@ const editorReducer = produce((draft, action) => {
       break;
     case EDR_DBL_CLICK_TAB:
       dblClickTab(draft, payload);
+      break;
+    case EDR_VERSION_CODE_UPDATED:
+      editorVersionCodeUpdated(draft, payload);
       break;
     default:
       break;

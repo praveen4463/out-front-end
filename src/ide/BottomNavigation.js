@@ -60,7 +60,7 @@ const useStyles = makeStyles((theme) => ({
 
 // TODO: receive from props clickHandler from line
 const BottomNavigation = (props) => {
-  const {clickHandler, active} = props;
+  const {clickHandler, active, lineColContainerRef} = props;
   const classes = useStyles();
 
   return (
@@ -90,15 +90,12 @@ const BottomNavigation = (props) => {
         </Typography>
       </Box>
       <Box flex={1} className={classes.wrapper} />
-      <Box display="flex" className={classes.wrapper} style={{paddingRight: 8}}>
-        <Typography variant="caption">
-          <Link
-            color="inherit"
-            className={clsx(classes.link, classes.linkHover)}>
-            Ln 1, Col 10 {/* TODO: get from props and onclick handler */}
-          </Link>
-        </Typography>
-      </Box>
+      <Box
+        display="flex"
+        className={classes.wrapper}
+        style={{paddingRight: 8}}
+        ref={lineColContainerRef}
+      />
     </Paper>
   );
 };
@@ -106,6 +103,9 @@ const BottomNavigation = (props) => {
 BottomNavigation.propTypes = {
   clickHandler: PropTypes.func.isRequired,
   active: PropTypes.string.isRequired,
+  lineColContainerRef: PropTypes.exact({
+    current: PropTypes.any,
+  }).isRequired,
 };
 
 export default BottomNavigation;

@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useRef} from 'react';
 import SplitPane from 'react-split-pane';
 import LeftNavigation from './LeftNavigation';
 import BottomNavigation from './BottomNavigation';
@@ -35,6 +35,8 @@ const Content = () => {
 
   const [bottomNavSelected, setBottomNavSelected] = useState(None);
   const [bottomNavActiveIcon, setBottomNavActiveIcon] = useState(None);
+
+  const lineColContainerRef = useRef(null);
 
   const closeLeftNav = useCallback(() => {
     setLeftNavActiveIcon(None);
@@ -155,7 +157,7 @@ const Content = () => {
                     maxWidth: rightNavActiveIcon === None ? 0 : '100%',
                     minWidth: rightNavActiveIcon === None ? 0 : '25%',
                   }}>
-                  <MidContent />
+                  <MidContent lineColContainerRef={lineColContainerRef} />
                   {rightNavActiveIcon === None ? (
                     <div />
                   ) : (
@@ -193,6 +195,7 @@ const Content = () => {
           setBottomNavActiveIcon
         )}
         active={bottomNavActiveIcon}
+        lineColContainerRef={lineColContainerRef}
       />
     </div>
   );

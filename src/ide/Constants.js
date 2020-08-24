@@ -32,6 +32,12 @@ const ExplorerEditOperationType = {
   RENAME: 'RENAME',
 };
 
+const RunType = {
+  BUILD_RUN: 'BUILD_RUN',
+  DRY_RUN: 'DRY_RUN',
+  PARSE_RUN: 'PARSE_RUN',
+};
+
 export {
   LeftNavs,
   RightNavs,
@@ -40,4 +46,5 @@ export {
   ExplorerItemType,
   MaxLengths,
   ExplorerEditOperationType,
+  RunType,
 };

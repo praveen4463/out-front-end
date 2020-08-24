@@ -14,6 +14,7 @@ const useStyles = makeStyles((theme) => ({
     },
     paddingTop: theme.spacing(10),
     color: theme.palette.background.contrastText,
+    backgroundColor: theme.palette.background.default,
   },
   contentRoot: {
     width: '100%',
@@ -65,20 +66,16 @@ const RootErrorFallback = ({resetErrorBoundary}) => {
         </Box>
         <Typography variant="body2" className={classes.notice}>
           {`You caught some error, thank you for noticing. We've been
-              notified and will be fixing it very soon. ${
-                Boolean(resetErrorBoundary) &&
-                'For now, you may try again and possibly ignore the action that led to this error.'
-              }`}
+          notified and will be fixing it very soon. For now, you may try
+          again and possibly ignore the action that led to this error.`}
         </Typography>
         <Box display="flex" justifyContent="center" paddingTop={1}>
-          {Boolean(resetErrorBoundary) && (
-            <Button
-              variant="contained"
-              onClick={resetErrorBoundary}
-              className={classes.button}>
-              Retry
-            </Button>
-          )}
+          <Button
+            variant="contained"
+            onClick={resetErrorBoundary}
+            className={classes.button}>
+            Retry
+          </Button>
           <Button
             variant="contained"
             href="/dashboard"
