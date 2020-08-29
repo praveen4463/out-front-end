@@ -2,7 +2,7 @@ import {unstable_createMuiStrictModeTheme as createMuiTheme} from '@material-ui/
 
 const highEmphasisOpacity = 0.87;
 
-const darkTheme = createMuiTheme({
+const lightTheme = createMuiTheme({
   palette: {
     type: 'light',
     background: {
@@ -20,4 +20,4 @@ const darkTheme = createMuiTheme({
   },
 });
 
-export default darkTheme;
+export default lightTheme;

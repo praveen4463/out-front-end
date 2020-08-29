@@ -55,7 +55,11 @@
 }
 
 .cm-s-material-darker .CodeMirror-activeline-background {
-  background: rgba(0, 0, 0, 0.5);
+  background: #424242;
+}
+
+.cm-s-material-darker .CodeMirror-activeline-gutter > .CodeMirror-linenumber {
+  color: rgba(255, 255, 255, 0.87);
 }
 
 .cm-s-material-darker .cm-keyword {
@@ -127,12 +131,6 @@
   color: #DECB6B;
 }
 
-.cm-s-material-darker .cm-variable-3,
-.cm-s-material-darker .cm-type {
-  color: #DECB6B;
-}
-
-
 .cm-s-material-darker .cm-error {
   color: rgba(255, 255, 255, 1.0);
   background-color: #FF5370;
@@ -141,4 +139,26 @@
 .cm-s-material-darker .CodeMirror-matchingbracket {
   text-decoration: underline;
   color: white !important;
+}
+
+/* when matches are highlighted, match color should become black for contrast */
+.cm-atom.cm-matchhighlight,
+.cm-attribute.cm-matchhighlight,
+.cm-builtin.cm-matchhighlight,
+.cm-comment.cm-matchhighlight,
+.cm-def.cm-matchhighlight,
+.cm-keyword.cm-matchhighlight,
+.cm-meta.cm-matchhighlight,
+.cm-number.cm-matchhighlight,
+.cm-operator.cm-matchhighlight,
+.cm-property.cm-matchhighlight,
+.cm-qualifier.cm-matchhighlight,
+.cm-string.cm-matchhighlight,
+.cm-string-2.cm-matchhighlight,
+.cm-tag.cm-matchhighlight,
+.cm-type.cm-matchhighlight,
+.cm-variable.cm-matchhighlight,
+.cm-variable-2.cm-matchhighlight,
+.cm-variable-3.cm-matchhighlight {
+  color: #000000;
 }

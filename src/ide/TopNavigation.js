@@ -58,7 +58,7 @@ const TopNavigation = () => {
       <ToolBar
         variant="dense"
         classes={{root: classes.toolbarRoot, gutters: classes.toolbarGutters}}>
-        <div className="MuiIconButton-edgeStart">
+        <div>
           <MainMenu />
         </div>
         <Tooltip title="Run Build R">
@@ -99,7 +99,7 @@ const TopNavigation = () => {
           <ProjectSelector />
         </Box>
         <HelpMenu />
-        <div className="MuiIconButton-edgeEnd">
+        <div>
           <UserAvatar />
         </div>
       </ToolBar>

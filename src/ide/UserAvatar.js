@@ -36,6 +36,7 @@ const UserAvatar = () => {
           aria-controls="userAvatar"
           aria-haspopup="true"
           aria-label="user avatar"
+          edge="end"
           onClick={handleClick}>
           {/* Remember to get it from prop dynamically */}
           <Avatar className={classes.avatar}>P</Avatar>

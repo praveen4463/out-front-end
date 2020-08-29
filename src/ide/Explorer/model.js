@@ -9,44 +9,62 @@ import {immerable} from 'immer';
 
 // Files model and schema, note that fields those don't belong to db may or may
 // not be in data/normalized data.
+
+function LastRunError(msg, fromPos, toPos) {
+  this.msg = msg;
+  this.fromPos = fromPos;
+  this.toPos = toPos;
+  this[immerable] = true;
+}
+
+function LastRun(runType, output, error) {
+  this.runType = runType; // Constants.RunType
+  this.output = output; // the raw output received from api, may be null.
+  this.error = error; // error is an instance of LastRunError, in future this may be an
+  // array of LastRunError to contain multiple errors occurred, for example during
+  // parsing. Must be null when there is no error occurred, could be null.
+  this[immerable] = true;
+}
+
 function Version(
   id,
   name,
   testId,
   code,
   isCurrent,
-  hasError,
-  lastRunOutput,
-  runType
+  lastRun,
+  showAsErrorInExplorer
 ) {
   this.id = id;
   this.name = name;
   this.testId = testId;
   this.code = code;
   this.isCurrent = isCurrent;
-  this.hasError = hasError;
-  this.lastRunOutput = lastRunOutput;
-  this.runType = runType;
+  this.lastRun = lastRun;
+  this.showAsErrorInExplorer = showAsErrorInExplorer;
+  // showAsErrorInExplorer should be assigned to a version and it's test and file only when
+  // we want to mark them as 'Error' in explorer. For example usually a parse
+  // error is shown in explorer up to the root, and build run errors are not.
   this[immerable] = true;
 }
 
-function Test(id, name, fileId, versions, hasError) {
+function Test(id, name, fileId, versions, showAsErrorInExplorer) {
   this.id = id;
   this.name = name;
   this.fileId = fileId;
   this.versions = versions;
-  this.hasError = hasError;
-  // if any of version in this test has 'hasError=true', the test also contain
+  this.showAsErrorInExplorer = showAsErrorInExplorer;
+  // if any of version in this test has 'showAsErrorInExplorer=true', the test also contain
   // the flag so that the whole tree could be marked an error.
   this[immerable] = true;
 }
 
-function File(id, name, tests, hasError, loadToTree) {
+function File(id, name, tests, showAsErrorInExplorer, loadToTree) {
   this.id = id;
   this.name = name;
   this.tests = tests;
-  this.hasError = hasError;
-  // if any of version in this file has 'hasError=true', the file also contain
+  this.showAsErrorInExplorer = showAsErrorInExplorer;
+  // if any of version in this file has 'showAsErrorInExplorer=true', the file also contain
   // the flag so that the whole tree could be marked an error.
   this.loadToTree = loadToTree;
   this[immerable] = true;
@@ -72,7 +90,7 @@ When normalized the files array look like following:
         code:
           "# when ",
         isCurrent: true,
-        hasError: false
+        showAsErrorInExplorer: false
       },
       "2": {
         id: 2,
@@ -80,7 +98,7 @@ When normalized the files array look like following:
         code:
           '# 1. simple ',
         isCurrent: false,
-        hasError: false
+        showAsErrorInExplorer: false
       },
     },
     tests: {
@@ -88,13 +106,13 @@ When normalized the files array look like following:
         id: 1,
         name: "debug button changes color on click",
         versions: [1],
-        hasError: false
+        showAsErrorInExplorer: false
       },
       "2": {
         id: 2,
         name: "start button begins running test",
         versions: [2, 3],
-        hasError: false
+        showAsErrorInExplorer: false
       },
     },
     files: {
@@ -102,13 +120,13 @@ When normalized the files array look like following:
         id: 1,
         name: "IDE Tests",
         tests: [1, 2, 3],
-        hasError: false,
+        showAsErrorInExplorer: false,
         loadToTree: true
       },
       "2": {
         id: 2,
         name: "Build Run Tests",
-        hasError: false,
+        showAsErrorInExplorer: false,
         loadToTree: true
       }
     }
@@ -117,4 +135,4 @@ When normalized the files array look like following:
 };
 */
 
-export {Version, Test, File, filesSchema};
+export {Version, Test, File, filesSchema, LastRun, LastRunError};

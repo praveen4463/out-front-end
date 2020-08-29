@@ -38,6 +38,13 @@ const RunType = {
   PARSE_RUN: 'PARSE_RUN',
 };
 
+const ApiStatuses = {
+  SUCCESS: 'SUCCESS',
+  FAILURE: 'FAILURE',
+  RUNNING: 'RUNNING',
+  STOPPING: 'STOPPING',
+};
+
 export {
   LeftNavs,
   RightNavs,
@@ -47,4 +54,5 @@ export {
   MaxLengths,
   ExplorerEditOperationType,
   RunType,
+  ApiStatuses,
 };

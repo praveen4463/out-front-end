@@ -305,7 +305,7 @@ const dblClickTab = (draft, payload) => {
 };
 
 const editorVersionCodeUpdated = (draft, payload) => {
-  console.log('editor version code updating reducer invoked');
+  // console.log('editor version code updating reducer invoked', payload);
   if (payload.versionId === undefined || payload.versionCode === undefined) {
     throw new Error('Insufficient arguments passed to dblClickTab.');
   }

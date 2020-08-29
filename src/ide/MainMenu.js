@@ -32,6 +32,7 @@ const MainMenu = () => {
           aria-controls="mainMenu"
           aria-haspopup="true"
           aria-label="main menu"
+          edge="start"
           onClick={handleClick}>
           {/* Set some opacity on the menu icon */}
           <MenuIcon fontSize="small" />
@@ -53,7 +54,7 @@ const MainMenu = () => {
           horizontal: 'left',
         }}>
         <MenuItem onClick={handleClose}>New File</MenuItem>
-        <MenuItem onClick={handleClose}>Open File</MenuItem>
+        <MenuItem onClick={handleClose}>Open File(s)</MenuItem>
         <Divider variant="middle" component="li" />
         <MenuItem onClick={handleClose}>Preferences</MenuItem>
         <Divider variant="middle" component="li" />

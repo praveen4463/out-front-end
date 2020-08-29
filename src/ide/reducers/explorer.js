@@ -93,7 +93,7 @@ const unloadFile = (draft, payload) => {
     });
     et.files[fid].tests = null;
   }
-  et.files[fid].hasError = false;
+  et.files[fid].showAsErrorInExplorer = false;
   et.files[fid].loadToTree = false;
 };
 

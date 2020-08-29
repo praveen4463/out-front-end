@@ -92,8 +92,9 @@ const BottomNavigation = (props) => {
       <Box flex={1} className={classes.wrapper} />
       <Box
         display="flex"
+        alignItems="center"
         className={classes.wrapper}
-        style={{paddingRight: 8}}
+        style={{paddingRight: 22}}
         ref={lineColContainerRef}
       />
     </Paper>

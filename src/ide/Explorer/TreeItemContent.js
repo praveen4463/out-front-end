@@ -72,7 +72,7 @@ const useStyle = makeStyles((theme) => ({
     padding: theme.spacing(0.8),
   },
   errorText: {
-    color: theme.palette.error.dark,
+    color: theme.palette.error.main,
   },
   dialogText: {
     fontSize: '0.9125rem',
@@ -109,7 +109,7 @@ const TreeItemContent = React.memo(
     itemId,
     itemParentId,
     itemSiblingNames,
-    hasError,
+    showAsErrorInExplorer,
     isCurrentVersion,
     onNewItem,
     filesRef,
@@ -460,7 +460,7 @@ const TreeItemContent = React.memo(
               <ColoredItemIcon itemType={itemType} />
               <Typography
                 variant="caption"
-                className={clsx(hasError && classes.errorText)}
+                className={clsx(showAsErrorInExplorer && classes.errorText)}
                 data-testid={`${itemType}-treeItemName`}>
                 {itemName}
               </Typography>
@@ -688,7 +688,7 @@ TreeItemContent.propTypes = {
   itemId: PropTypes.number.isRequired,
   itemParentId: PropTypes.number,
   itemSiblingNames: PropTypes.arrayOf(PropTypes.string),
-  hasError: PropTypes.bool,
+  showAsErrorInExplorer: PropTypes.bool,
   isCurrentVersion: PropTypes.bool,
   onNewItem: PropTypes.func.isRequired,
   filesRef: PropTypes.exact({
@@ -699,7 +699,7 @@ TreeItemContent.propTypes = {
 TreeItemContent.defaultProps = {
   itemParentId: undefined,
   itemSiblingNames: null,
-  hasError: undefined,
+  showAsErrorInExplorer: undefined,
   isCurrentVersion: undefined,
 };
 

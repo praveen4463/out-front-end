@@ -436,11 +436,7 @@ const Explorer = React.memo(({closeButton}) => {
   const newItemCommitCallback = (newItemName, newItemType) => {
     /*
       We need to first create the new item before updating it locally based on
-      the returned data.
-      First investigate whether should we run effects in this callback or some
-      how use 'effects' to do so using following article from Dan
-      https://overreacted.io/a-complete-guide-to-useeffect/
-      Also see https://medium.com/@audisho.sada/using-react-hooks-to-asynchronously-make-api-requests-1fdf52f797ce
+      the returned data.see https://medium.com/@audisho.sada/using-react-hooks-to-asynchronously-make-api-requests-1fdf52f797ce
       and https://stackoverflow.com/questions/53845595/wrong-react-hooks-behaviour-with-event-listener
       Invoke api and expect new item based on itemType. When a response is
       received, dispatch to update the state and if failed, show some error
@@ -548,9 +544,28 @@ const Explorer = React.memo(({closeButton}) => {
 
   const getNewItemEditor = (existingNames) => {
     return (
-      <div className={`MuiTreeItem-content ${classes.content}`}>
-        <div className={`MuiTreeItem-iconContainer ${classes.iconContainer}`} />
-        <div className={`MuiTreeItem-label ${classes.label}`}>
+      <div
+        className={classes.content}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+        }}>
+        <div
+          className={classes.iconContainer}
+          style={{
+            width: '15px',
+            display: 'flex',
+            flexShrink: 0,
+            justifyContent: 'center',
+          }}
+        />
+        <div
+          className={classes.label}
+          style={{
+            width: '100%',
+            position: 'relative',
+          }}>
           <Box
             display="flex"
             px={0.5}
@@ -591,7 +606,7 @@ const Explorer = React.memo(({closeButton}) => {
     itemId,
     itemParentId,
     itemSiblingNames,
-    hasError,
+    showAsErrorInExplorer,
     isCurrentVersion
   ) => (
     <TreeItemContent
@@ -600,7 +615,7 @@ const Explorer = React.memo(({closeButton}) => {
       itemId={itemId}
       itemParentId={itemParentId}
       itemSiblingNames={itemSiblingNames}
-      hasError={hasError}
+      showAsErrorInExplorer={showAsErrorInExplorer}
       isCurrentVersion={isCurrentVersion}
       onNewItem={newItemCallback}
       filesRef={filesRef}
@@ -663,7 +678,7 @@ const Explorer = React.memo(({closeButton}) => {
                     fid,
                     null,
                     getNamesByIdMapping(files.result, files.entities.files),
-                    files.entities.files[fid].hasError
+                    files.entities.files[fid].showAsErrorInExplorer
                   )}
                   classes={{
                     root: classes.root,
@@ -702,7 +717,7 @@ const Explorer = React.memo(({closeButton}) => {
                             files.entities.files[fid].tests,
                             files.entities.tests
                           ),
-                          files.entities.tests[tid].hasError
+                          files.entities.tests[tid].showAsErrorInExplorer
                         )}
                         classes={{
                           root: classes.root,
@@ -737,7 +752,8 @@ const Explorer = React.memo(({closeButton}) => {
                                   files.entities.tests[tid].versions,
                                   files.entities.versions
                                 ),
-                                files.entities.versions[vid].hasError,
+                                files.entities.versions[vid]
+                                  .showAsErrorInExplorer,
                                 files.entities.versions[vid].isCurrent
                               )}
                               classes={{

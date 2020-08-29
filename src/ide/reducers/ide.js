@@ -1,6 +1,13 @@
 import produce from 'immer';
-import {SET_FILES, SET_PROJECT, RUN_BUILD} from '../actionTypes';
+import {
+  SET_FILES,
+  SET_PROJECT,
+  RUN_BUILD,
+  SET_VERSION_LAST_RUN,
+} from '../actionTypes';
 import getDeepClonedFiles from './common';
+import {LastRunError, LastRun} from '../Explorer/model';
+import {RunType} from '../Constants';
 
 const setFiles = (draft, payload) => {
   if (payload.files === undefined) {
@@ -29,6 +36,29 @@ const runBuild = (draft, payload) => {
   build.items = [{itemType: payload.itemType, itemId: payload.itemId}];
 };
 
+const setVersionLastRun = (draft, payload) => {
+  if (payload.versionId === undefined || payload.runType === undefined) {
+    throw new Error('Insufficient arguments passed to setVersionLastRun.');
+  }
+  if (!payload.output && !payload.error) {
+    throw new Error('Insufficient arguments passed to setVersionLastRun.');
+  }
+  if (payload.error && !(payload.error instanceof LastRunError)) {
+    throw new Error('Expected error to be instance of Error');
+  }
+  const et = draft.files.entities;
+  const version = et.versions[payload.versionId];
+  version.lastRun = new LastRun(payload.runType, payload.output, payload.error);
+  // show version/test/file in error only when it's a parse request.
+  if (payload.runType === RunType.PARSE_RUN) {
+    const showAsError = Boolean(payload.error);
+    version.showAsErrorInExplorer = showAsError;
+    const test = et.tests[version.testId];
+    test.showAsErrorInExplorer = showAsError;
+    et.files[test.fileId].showAsErrorInExplorer = showAsError;
+  }
+};
+
 const ideReducer = produce((draft, action) => {
   const {payload} = action;
   switch (action.type) {
@@ -40,6 +70,9 @@ const ideReducer = produce((draft, action) => {
       break;
     case RUN_BUILD:
       runBuild(draft, payload);
+      break;
+    case SET_VERSION_LAST_RUN:
+      setVersionLastRun(draft, payload);
       break;
     default:
       break;
