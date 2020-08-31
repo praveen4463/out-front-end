@@ -199,6 +199,7 @@ const globalVars = [
   ),
   new GlobalVars(3, 'SELECTOR_TAB_TEXT_NODE', '.tabText'),
   new GlobalVars(4, 'TEST_ID_TAB', "*[data-testid='tab']"),
+  new GlobalVars(5, 'åjumen', 'unknown'), // shouldn't be suggested as non identifer
 ];
 
 // no duplicate key/value pairs
@@ -210,6 +211,7 @@ const buildVars = [
   new BuildVars(5, 'SUPPORT_EMAIL', 'support@zylitics.io'),
   new BuildVars(6, 'SUPPORT_EMAIL', 'priority@zylitics.io'),
   new BuildVars(7, 'SUPPORT_EMAIL', 'emergency@zylitics.io'),
+  new BuildVars(8, 'åjumen', 'unknown'), // shouldn't be suggested as non identifer
 ];
 
 export {files, fileToLoad, globalVars, buildVars};

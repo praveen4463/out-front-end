@@ -45,6 +45,11 @@ const ApiStatuses = {
   STOPPING: 'STOPPING',
 };
 
+const ZwlLexer = {
+  IDENTIFIER: /[a-zA-Z_]\w*/,
+  IDENTIFIER_WITH_START_END: /^[a-zA-Z_]\w*$/,
+};
+
 export {
   LeftNavs,
   RightNavs,
@@ -55,4 +60,5 @@ export {
   ExplorerEditOperationType,
   RunType,
   ApiStatuses,
+  ZwlLexer,
 };

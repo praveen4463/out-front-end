@@ -1,5 +1,6 @@
 import CodeMirror from 'codemirror';
 import 'codemirror/addon/mode/simple';
+import {ZwlLexer} from '../../Constants';
 
 CodeMirror.defineSimpleMode('zwl', {
   // The start state contains the rules that are intially used
@@ -24,8 +25,8 @@ CodeMirror.defineSimpleMode('zwl', {
     // indent and dedent properties guide autoindentation
     {regex: /[{[(]/, indent: true},
     {regex: /[}\])]/, dedent: true},
-    {regex: /([a-zA-Z_][0-9A-Za-z_]*)([(])/, token: ['def', null]},
-    {regex: /[a-zA-Z_][0-9A-Za-z_]*/, token: 'variable'},
+    {regex: /([a-zA-Z_]\w*)([(])/, token: ['def', null]},
+    {regex: ZwlLexer.IDENTIFIER, token: 'variable'},
     // add any other token that is frequently used but not allowed in zwl
     {regex: /;/, token: 'error'},
   ],

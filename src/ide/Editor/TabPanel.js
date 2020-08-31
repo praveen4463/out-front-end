@@ -44,7 +44,7 @@ import {BATCH_ACTIONS, EDR_VERSION_CODE_UPDATED} from '../actionTypes';
 import {IdeDispatchContext, IdeVarsContext} from '../Contexts';
 import Tooltip from '../../TooltipCustom';
 import {LastRun, LastRunError} from '../Explorer/model';
-import {ApiStatuses, RunType} from '../Constants';
+import {ApiStatuses, RunType, ZwlLexer} from '../Constants';
 import batchActions, {getLastRunAction} from '../actionCreators';
 import './material-darker.css';
 import './modes/zwl';
@@ -578,19 +578,24 @@ const TabPanel = React.memo(
         if (!event.isTrusted || !/(^\w|\.)$/.test(event.key)) {
           return;
         }
+        // send only keys that are valid identifiers, otherwise accessing non
+        // identifiers will result in parse error, users need to use non
+        // identifiers as string like age = globals["åjumen"]
+        // TODO: write in docs that hint would only hint valid identifiers for
+        // global variables.
         editor.showHint({
           hint: allHints,
           completeSingle: false,
           globals: vars.global
-            ? vars.global.result.map(
-                (r) => vars.global.entities.globalVars[r].key
-              )
+            ? vars.global.result
+                .map((r) => vars.global.entities.globalVars[r].key)
+                .filter((k) => ZwlLexer.IDENTIFIER_WITH_START_END.test(k))
             : [],
           buildVars: vars.build
             ? uniq(
-                vars.build.result.map(
-                  (r) => vars.build.entities.buildVars[r].key
-                )
+                vars.build.result
+                  .map((r) => vars.build.entities.buildVars[r].key)
+                  .filter((k) => ZwlLexer.IDENTIFIER_WITH_START_END.test(k))
               )
             : [],
         });
@@ -905,8 +910,6 @@ const TabPanel = React.memo(
     // Dry run makes it easier to also skip these by giving a default value to
     // these as well, browser = chrome, version = 70, platform = Windows are defaults
     // for browser and platform. For build variables, the first found is used.
-    // While setting up config, they don't need to add the test they intend to
-    // run from within the tab in the config, it will be set in it once they run.
     const handleDryRun = (event) => {
       // when panel is closed, and any action buttons are clicked, we want it to
       // open so that when the output arrives, we don't have to explicitly open

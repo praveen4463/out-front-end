@@ -8,6 +8,49 @@ const FUNC_NAME = /\w+(?=\()/;
 // selects just function name from a function with syntax foo(?param...)
 const RANGE = 500;
 
+const getConstantHints = (constant, options, toFilterStartingValue = '') => {
+  const filter = (values) => {
+    return values.filter((v) => v.lastIndexOf(toFilterStartingValue, 0) === 0);
+  };
+  const {maps} = Constants;
+  let hints;
+  switch (constant) {
+    case maps.browser:
+      hints = filter(Constants.browser);
+      break;
+    case maps.browsers:
+      hints = filter(Constants.browsers);
+      break;
+    case maps.buildVars:
+      hints = filter(options.buildVars);
+      break;
+    case maps.by:
+      hints = filter(Constants.by);
+      break;
+    case maps.colors:
+      hints = filter(Constants.colors);
+      break;
+    case maps.exceptions:
+      hints = filter(Constants.exceptions);
+      break;
+    case maps.globals:
+      hints = filter(options.globals);
+      break;
+    case maps.keys:
+      hints = filter(Constants.keys);
+      break;
+    case maps.platforms:
+      hints = filter(Constants.platforms);
+      break;
+    case maps.timeouts:
+      hints = filter(Constants.timeouts);
+      break;
+    default:
+      throw new Error(`Could not hint on ${constant}`);
+  }
+  return hints;
+};
+
 // TODO: somehow this runs twice on each keyup, find out later.
 // Note: if we ever need Ctrl+Space to open hints, convert this function to a
 // helper using Codemirror.registerHelper.
@@ -23,43 +66,8 @@ const allHints = (editor, options) => {
     ) {
       return null;
     }
-    let hints;
-    switch (tokBeforeDot.string) {
-      case maps.browser:
-        hints = Constants.browser;
-        break;
-      case maps.browsers:
-        hints = Constants.browsers;
-        break;
-      case maps.buildVars:
-        hints = options.buildVars;
-        break;
-      case maps.by:
-        hints = Constants.by;
-        break;
-      case maps.colors:
-        hints = Constants.colors;
-        break;
-      case maps.exceptions:
-        hints = Constants.exceptions;
-        break;
-      case maps.globals:
-        hints = options.globals;
-        break;
-      case maps.keys:
-        hints = Constants.keys;
-        break;
-      case maps.platforms:
-        hints = Constants.platforms;
-        break;
-      case maps.timeouts:
-        hints = Constants.timeouts;
-        break;
-      default:
-        throw new Error(`Could not hint on ${tokBeforeDot.string}`);
-    }
     return {
-      list: hints,
+      list: getConstantHints(tokBeforeDot.string, options),
       from: CodeMirror.Pos(cur.line, tok.start + 1),
       // + 1 cause we don't want to complete the dot but put the completion after
       // dot, if +1 is not given, completion replaced dot.
@@ -71,6 +79,26 @@ const allHints = (editor, options) => {
     return null;
   }
   const curVariable = tok.string;
+
+  // find out if user is typing after getting hints on constants means after dot operator
+  // if so, filter constant hints by what they typed
+  if (tok.start > 0) {
+    const dotToken = editor.getTokenAt({...cur, ch: tok.start});
+    if (dotToken.string === '.' && dotToken.start > 0) {
+      const tokBeforeDot = editor.getTokenAt({...cur, ch: dotToken.start});
+      if (
+        tokBeforeDot.type === 'variable' &&
+        Object.keys(maps).includes(tokBeforeDot.string)
+      ) {
+        return {
+          list: getConstantHints(tokBeforeDot.string, options, tok.string),
+          from: CodeMirror.Pos(cur.line, tok.start),
+          to: CodeMirror.Pos(cur.line, tok.end),
+        };
+      }
+    }
+  }
+
   const list = [];
   const seen = {};
 

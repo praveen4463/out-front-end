@@ -1,4 +1,5 @@
 // !! Maintain the sort order while changing.
+// !! All values should strictly be a valid identifier, see Constants.ZwlLexer.IDENTIFIER
 
 export const exceptions = [
   'assertionFailedEx',

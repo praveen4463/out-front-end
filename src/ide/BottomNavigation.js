@@ -85,7 +85,7 @@ const BottomNavigation = (props) => {
                 ? classes.activeTab
                 : classes.linkHover
             )}>
-            Build Status and Output
+            Run Status and Output
           </Link>
         </Typography>
       </Box>
