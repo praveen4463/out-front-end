@@ -4,11 +4,15 @@ import {
   SET_PROJECT,
   RUN_BUILD,
   SET_VERSION_LAST_RUN,
+  SET_GLOBAL_VARS,
+  SET_BUILD_VARS,
 } from '../actionTypes';
 import getDeepClonedFiles from './common';
 import {LastRunError, LastRun} from '../Explorer/model';
 import {RunType} from '../Constants';
 
+// !!if no reference if kept to the files sent via payload, there is no need to
+// deep clone files, remove it once we're using api to load data.
 const setFiles = (draft, payload) => {
   if (payload.files === undefined) {
     throw new Error('Insufficient arguments passed to setFiles.');
@@ -59,6 +63,20 @@ const setVersionLastRun = (draft, payload) => {
   }
 };
 
+const setGlobalVars = (draft, payload) => {
+  if (payload.globalVars === undefined) {
+    throw new Error('Insufficient arguments passed to setGlobalVars.');
+  }
+  draft.vars.global = payload.globalVars;
+};
+
+const setBuildVars = (draft, payload) => {
+  if (payload.buildVars === undefined) {
+    throw new Error('Insufficient arguments passed to setBuildVars.');
+  }
+  draft.vars.build = payload.buildVars;
+};
+
 const ideReducer = produce((draft, action) => {
   const {payload} = action;
   switch (action.type) {
@@ -73,6 +91,12 @@ const ideReducer = produce((draft, action) => {
       break;
     case SET_VERSION_LAST_RUN:
       setVersionLastRun(draft, payload);
+      break;
+    case SET_GLOBAL_VARS:
+      setGlobalVars(draft, payload);
+      break;
+    case SET_BUILD_VARS:
+      setBuildVars(draft, payload);
       break;
     default:
       break;

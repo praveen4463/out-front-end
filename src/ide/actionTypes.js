@@ -3,6 +3,8 @@ export const BATCH_ACTIONS = 'BATCH_ACTIONS';
 export const SET_FILES = 'SET_FILES';
 export const SET_PROJECT = 'SET_PROJECT';
 export const SET_VERSION_LAST_RUN = 'VERSION_LAST_RUN';
+export const SET_GLOBAL_VARS = 'SET_GLOBAL_VARS';
+export const SET_BUILD_VARS = 'SET_BUILD_VARS';
 
 // Explorer actions
 export const EXP_LOAD_FILES = 'EXP_LOAD_FILES';

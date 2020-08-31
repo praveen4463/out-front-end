@@ -6,14 +6,26 @@ import {ErrorBoundary} from 'react-error-boundary';
 import TopNavigation from './TopNavigation';
 import Content from './Content';
 import darkTheme from './Themes';
-import {files as sampleFiles} from './Explorer/sample';
-import {filesSchema} from './Explorer/model';
-import {BATCH_ACTIONS, SET_FILES, RESET_STATE_ON_ERROR} from './actionTypes';
+import {
+  files as sampleFiles,
+  globalVars as sampleGlobalVars,
+  buildVars as sampleBuildVars,
+} from './Explorer/sample';
+import {filesSchema, globalVarsSchema, buildVarsSchema} from './Explorer/model';
+import {
+  BATCH_ACTIONS,
+  SET_FILES,
+  SET_GLOBAL_VARS,
+  SET_BUILD_VARS,
+  RESET_STATE_ON_ERROR,
+} from './actionTypes';
+import batchActions from './actionCreators';
 import {
   IdeDispatchContext,
   IdeStateContext,
   IdeFilesContext,
   IdeEditorContext,
+  IdeVarsContext,
 } from './Contexts';
 import explorerReducer from './reducers/explorer';
 import editorReducer from './reducers/editor';
@@ -48,6 +60,10 @@ const initialState = {
       temporaryTabVersionId: null,
       selectedTabVersionId: null,
     },
+  },
+  vars: {
+    global: null,
+    build: null,
   },
 };
 
@@ -100,6 +116,8 @@ const Ide = () => {
         response using a json-schema.
       - make sure all content is ordered, i.e files, tests, versions should be
         in ascending order within their parent.
+    - We'll also fetch a few other things here:
+      - globals and build variables
     */
     const qsParams = new URLSearchParams(document.location.search);
     // TODO: remove '?? 1' after test done
@@ -110,8 +128,9 @@ const Ide = () => {
     const versionId = qsParams.get('version'); */
     // Send to api fileId (if not null) and get list of files, only the given
     // fileId will have it's tests fetched.
+    const actions = [];
     // eslint-disable-next-line no-unused-vars
-    const onSuccess = (files) => {
+    const onSuccess = (files, globals, build) => {
       // simulating
       // assume sampleFiles is what we got from api (it's actually argument 'files')
       if (Array.isArray(sampleFiles) && sampleFiles.length) {
@@ -119,8 +138,21 @@ const Ide = () => {
         if (normalizedFiles.result.includes(fileId)) {
           normalizedFiles.entities.files[fileId].loadToTree = true;
         }
-        dispatch({type: SET_FILES, payload: {files: normalizedFiles}});
+        actions.push({type: SET_FILES, payload: {files: normalizedFiles}});
       }
+      if (Array.isArray(sampleGlobalVars) && sampleGlobalVars.length) {
+        actions.push({
+          type: SET_GLOBAL_VARS,
+          payload: {globalVars: normalize(sampleGlobalVars, globalVarsSchema)},
+        });
+      }
+      if (Array.isArray(sampleBuildVars) && sampleBuildVars.length) {
+        actions.push({
+          type: SET_BUILD_VARS,
+          payload: {buildVars: normalize(sampleBuildVars, buildVarsSchema)},
+        });
+      }
+      dispatch(batchActions(actions));
       // set allSet after all the data required on load by ide is fetched,
       // there could be multiple promises so, this code need to be run when
       // all of them are resolved or one of them have error.
@@ -174,29 +206,31 @@ const Ide = () => {
           <IdeStateContext.Provider value={state}>
             <IdeFilesContext.Provider value={state.files}>
               <IdeEditorContext.Provider value={state.editor}>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    height: '100%',
-                    margin: 0,
-                  }}>
-                  <div style={{display: 'flex', flex: '1 1 auto'}}>
-                    <div
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        position: 'fixed',
-                        left: 0,
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                      }}>
-                      <TopNavigation />
-                      <Content />
+                <IdeVarsContext.Provider value={state.vars}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      height: '100%',
+                      margin: 0,
+                    }}>
+                    <div style={{display: 'flex', flex: '1 1 auto'}}>
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          position: 'fixed',
+                          left: 0,
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                        }}>
+                        <TopNavigation />
+                        <Content />
+                      </div>
                     </div>
                   </div>
-                </div>
+                </IdeVarsContext.Provider>
               </IdeEditorContext.Provider>
             </IdeFilesContext.Provider>
           </IdeStateContext.Provider>

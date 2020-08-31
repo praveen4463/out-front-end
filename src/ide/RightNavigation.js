@@ -120,6 +120,7 @@ const RightNavigation = (props) => {
                 : classes.linkHover
             )}>
             API Reference
+            {/* document site's api reference in an iframe */}
           </Link>
         </Typography>
       </Box>

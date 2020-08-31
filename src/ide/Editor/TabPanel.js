@@ -4,6 +4,7 @@ import React, {
   useRef,
   useCallback,
   useReducer,
+  useState,
 } from 'react';
 import Accordion from '@material-ui/core/Accordion';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
@@ -19,7 +20,7 @@ import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import BuildIcon from '@material-ui/icons/Build';
 import Portal from '@material-ui/core/Portal';
-import {debounce} from 'lodash-es';
+import {debounce, uniq} from 'lodash-es';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/addon/dialog/dialog.css';
 import './show-hint.css';
@@ -35,11 +36,12 @@ import 'codemirror/addon/edit/closebrackets';
 import 'codemirror/addon/edit/trailingspace';
 import 'codemirror/addon/hint/show-hint';
 import 'codemirror/addon/selection/active-line';
-import './addons/all-hints';
 import clsx from 'clsx';
 import produce, {immerable} from 'immer';
+
+import allHints from './addons/all-hints';
 import {BATCH_ACTIONS, EDR_VERSION_CODE_UPDATED} from '../actionTypes';
-import {IdeDispatchContext} from '../Contexts';
+import {IdeDispatchContext, IdeVarsContext} from '../Contexts';
 import Tooltip from '../../TooltipCustom';
 import {LastRun, LastRunError} from '../Explorer/model';
 import {ApiStatuses, RunType} from '../Constants';
@@ -134,6 +136,8 @@ const useSummaryStyle = makeStyles((theme) => ({
   },
 }));
 
+const CODE_SAVE_WAIT_TIME = 5000;
+
 const actionTypes = {
   VERSION_CHANGED: 'VERSION_CHANGED',
   CURSOR_POS_CHANGED: 'CURSOR_POS_CHANGED',
@@ -177,7 +181,7 @@ function VersionLocalStateControlled(
 const StatusMessageType = {
   NORMAL: 'NORMAL',
   ERROR: 'ERROR',
-  SUCCESS: 'ERROR',
+  SUCCESS: 'SUCCESS',
 };
 
 // reducer for controlled state.
@@ -229,21 +233,40 @@ const reducerInner = produce((draft, action) => {
   }
 });
 
-function reducer(state, action) {
-  switch (action.type) {
-    case BATCH_ACTIONS:
-      return action.actions.reduce(reducer, state);
-    default:
-      return reducerInner(state, action);
-  }
-}
-
-let unmounted = false;
-
+// !! This component mounts once a tab is opened and kept mounted until all tabs
+// are closed, so if there is one tab, and another replaces it, it will keep mounted.
+// All tabs share this same component instance, which means it re renders on each
+// tab change and has to show everything specific to the selected tab. To maintain
+// this specificity, we should keep state by versionId which uniquely identifies
+// a tab. A state that is not kept by versionId will be treated as global to this
+// component and will reflect in all tabs.
+// effect are written very precisely here to keep the uncontrolled code editor's
+// state in sync with tab changes and user actions. Pay special attention to the
+// dependency list while changing/adding anything and measure that component is
+// re rendering just about right time.
+// Re rendering due to context/local state changes don't affect uncontrolled
+// component but we should make sure effect don't run unnecessarily by keeping
+// their dependency list exact what is required for them.
 const TabPanel = React.memo(
   ({version, testName, fileName, lineColContainerRef}) => {
     // console.log('re rendering..');
     const dispatchGlobal = useContext(IdeDispatchContext);
+    const vars = useContext(IdeVarsContext);
+    const unmounted = useRef(false);
+
+    function reducer(state, action) {
+      if (unmounted.current) {
+        // if this component is unmounted, don't change local state.
+        return state;
+      }
+      switch (action.type) {
+        case BATCH_ACTIONS:
+          return action.actions.reduce(reducer, state);
+        default:
+          return reducerInner(state, action);
+      }
+    }
+
     /* state looks like following:
     {
       versionId: VersionLocalStateControlled,
@@ -254,6 +277,8 @@ const TabPanel = React.memo(
       reducer,
       {}
     );
+    // this is a global state for component, setting it reflects in all tabs
+    const [runOngoing, setRunOngoing] = useState(false);
     /*
     Together with a controlled state, an uncontrolled version wise state is also
     kept in a ref rather than using a reducer cause
@@ -277,6 +302,7 @@ const TabPanel = React.memo(
     const classes = useStyle();
     const summary = useSummaryStyle();
 
+    // !! should remain dependency free like any other dispatch.
     const dispatchUncontrolled = useCallback((action) => {
       const state = versionsStateUncontrolled.current;
       const {type, payload} = action;
@@ -367,12 +393,6 @@ const TabPanel = React.memo(
               : null
           );
           dispatchGlobal(batchActions([codeUpdateAction, lastRunAction]));
-          if (unmounted) {
-            // component unmounted, do not run anything that change state. We've
-            // this check cause this function runs after unmount if there are
-            // unsaved changes.
-            return;
-          }
           writeStatusMessage('All changes saved.');
           // When changes saved messages is printed, we want it to disappear
           // after sometime so that user know exactly when their code is getting
@@ -389,10 +409,6 @@ const TabPanel = React.memo(
           // when version couldn't save, no parsing is done.
           // save the code in state even if it's not saved to db.
           dispatchGlobal(codeUpdateAction);
-          if (unmounted) {
-            // component unmounted, do not run anything that change state
-            return;
-          }
           writeStatusMessage(
             `Couldn't save changes, ${response.error.reason}`,
             StatusMessageType.ERROR
@@ -488,14 +504,8 @@ const TabPanel = React.memo(
       [dispatchUncontrolled, version.id]
     );
 
-    const handleAutoComplete = useCallback((editor, event) => {
-      if (!event.isTrusted || !/^\w$/.test(event.key)) {
-        return;
-      }
-      editor.showHint({hint: CodeMirror.hint.allhints, completeSingle: false});
-    }, []);
-
     // !!! Order of following effects matter.
+    // !! should remain dependency free
     useEffect(() => {
       // console.log('effect to instantiate editor run');
       editorRef.current = CodeMirror.fromTextArea(textAreaRef.current, {
@@ -528,7 +538,7 @@ const TabPanel = React.memo(
         if (editor) {
           editor.toTextArea();
         }
-        unmounted = true;
+        unmounted.current = true;
       };
     }, []);
 
@@ -539,24 +549,63 @@ const TabPanel = React.memo(
       // dependency of this effect shouldn't re create until a version is
       // changed. If we change debounce, it's own state that keeps last invoke
       // time will reset.
-      const afterChangeDebounce = debounce(handleAfterChange, 10000, {
-        leading: false,
-        trailing: true,
-      });
+      const afterChangeDebounce = debounce(
+        handleAfterChange,
+        CODE_SAVE_WAIT_TIME,
+        {
+          leading: false,
+          trailing: true,
+        }
+      );
       const manageEvents = (shouldRegister) => {
         const editor = editorRef.current;
         const fn = shouldRegister ? CodeMirror.on : CodeMirror.off;
         fn(editor, 'change', afterChangeDebounce);
         fn(editor, 'cursorActivity', handleCursor);
         fn(editor, 'scroll', handleScroll);
-        fn(editor, 'keyup', handleAutoComplete);
       };
       manageEvents(true);
       return () => {
         afterChangeDebounce.flush();
         manageEvents(false);
       };
-    }, [handleAfterChange, handleCursor, handleScroll, handleAutoComplete]);
+    }, [handleAfterChange, handleCursor, handleScroll]);
+
+    // auto complete event depends on vars context, thus it's kept separate.
+    useEffect(() => {
+      const handleAutoComplete = (editor, event) => {
+        // The key should be either a-z 0-9 or a dot char
+        if (!event.isTrusted || !/(^\w|\.)$/.test(event.key)) {
+          return;
+        }
+        editor.showHint({
+          hint: allHints,
+          completeSingle: false,
+          globals: vars.global
+            ? vars.global.result.map(
+                (r) => vars.global.entities.globalVars[r].key
+              )
+            : [],
+          buildVars: vars.build
+            ? uniq(
+                vars.build.result.map(
+                  (r) => vars.build.entities.buildVars[r].key
+                )
+              )
+            : [],
+        });
+      };
+
+      const manageEvents = (shouldRegister) => {
+        const editor = editorRef.current;
+        const fn = shouldRegister ? CodeMirror.on : CodeMirror.off;
+        fn(editor, 'keyup', handleAutoComplete);
+      };
+      manageEvents(true);
+      return () => {
+        manageEvents(false);
+      };
+    }, [vars.build, vars.global]);
 
     useEffect(() => {
       dispatchUncontrolled({
@@ -611,14 +660,53 @@ const TabPanel = React.memo(
     };
 
     // When a version's lastRun is changed, i.e something has just run, show the
-    // results. When a version is changed, show it's completed runs if any.
+    // results. When a version is changed, show it's last completed run if any.
+    // This last run loading effect runs when some version loads and has lastRun and
+    // on completion of an ongoing run.
+    /*
+    TODO: write following in site docs
+    The output panel with editor is meant to show recent run information and won't
+    keep previous runs expect the most recent. For example if you dry run from within
+    the tab, it's result will show up in tab's own panel, but as soon as you edit
+    something, the auto parser runs, overwrite the result of dry run and show result
+    of parsing. This is intentional to keep tab's output panel focused on the most
+    recent run and it's output.
+    When you run using controls at header panel, the run information is kept at
+    bottom panel until any other run is requested.
+    */
     useEffect(() => {
       const getStatusMsg = (runType) => {
         return `There were ${getRunTypeShort(runType)} errors, click to see`;
       };
 
-      if (!version.lastRun) {
+      if (!version.lastRun || runOngoing) {
+        // if something is running, don't load lastRun for any tab. We're treating
+        // editor as frozen once something is running and don't want to load any
+        // previously completed runs to prevent following bug.
+        // Imagine user has completed a dry run and the result of that is in
+        // editor's output panel. They start another dry run after making some
+        // change. While it's being running, they opened another tab but immediately
+        // moved to the one where second dry run is running. Since that version has
+        // already completed a dry run, it's result loads into panel replacing the
+        // dry run running.. loading message and after sometime the result of currently
+        // running dry run appears. If previous and current results were same, user
+        // may not know when their dry run completed. So, we should not load any last
+        // run detail if something is running.
+        // I could have kept ongoing run per version but that will require version wise
+        // storage of it together with a single session storage, also since we're freezing
+        // editor while something is running, I feel it is ok if we don't load last run in
+        // midst while anything running, it makes sense because user can't interact with
+        // editor anyway.
+        // TODO: write this behaviour in site docs.
         return;
+      }
+      const editor = editorRef.current;
+      const doc = editor.getDoc();
+      const allMarks = doc.getAllMarks();
+      if (Array.isArray(allMarks)) {
+        allMarks.forEach((m) => {
+          m.clear();
+        });
       }
       const actions = [
         {
@@ -626,9 +714,12 @@ const TabPanel = React.memo(
           payload: {versionId: version.id},
         },
       ];
-      // const editor = editorRef.current;
       const run = version.lastRun;
-      if (run.error) {
+      const {error} = run;
+      // Write a status only when last run was an error. Don't open output panel
+      // when some version has lastRun and its tab is loaded, just write status
+      // on error and let them see it and open on their will.
+      if (error) {
         const statusMessage = getStatusMsg(run.runType);
         actions.push({
           type: actionTypes.UPDATE_STATUS_MESSAGE,
@@ -642,8 +733,17 @@ const TabPanel = React.memo(
         });
         actions.push({
           type: actionTypes.SET_OUTPUT_ERROR,
-          payload: {versionId: version.id, outputError: run.error.msg},
+          payload: {versionId: version.id, outputError: error.msg},
         });
+        // markText requires 0 index based line:ch whereas api returns actual
+        // line:ch, thus need to -1 and create new objects.
+        const from = {line: error.fromPos.line - 1, ch: error.fromPos.ch - 1};
+        const to = {line: error.toPos.line - 1, ch: error.toPos.ch - 1};
+        doc.markText(from, to, {
+          className: 'cm-errorText',
+        });
+        editor.scrollIntoView({from, to});
+        // scroll to the mark but don't change cursor position.
       }
       if (run.output) {
         actions.push({
@@ -652,9 +752,7 @@ const TabPanel = React.memo(
         });
       }
       dispatchControlled(batchActions(actions));
-      // mark error line:ch in editor if this is an error else reset if there
-      // is any mark.
-    }, [version.id, version.lastRun]);
+    }, [version.id, version.lastRun, runOngoing]);
 
     const toggleOutputPanel = (isExpanded) => {
       dispatchControlled({
@@ -689,6 +787,19 @@ const TabPanel = React.memo(
       return null;
     };
 
+    // uses state rather than state by version because at a time only
+    // one version could be in running state. So once a run request initiated
+    // from any version, editor becomes readonly and run controls disabled for
+    // all versions in editor, since the run feature with editor is meant to
+    // run one version only. If user wants more than one version running, they
+    // can use top icons.
+    // TODO: find way to invoke this from outside so that 'run all' can use it
+    // to freeze editor contents.
+    const toggleRunOngoing = (running) => {
+      setRunOngoing(running);
+      editorRef.current.setOption('readOnly', running);
+    };
+
     const handleBuild = (event) => {
       // when panel is closed, and any action buttons are clicked, we want it to
       // open so that when the output arrives, we don't have to explicitly open
@@ -715,8 +826,9 @@ const TabPanel = React.memo(
       // global reducer, but it will work same as this component doing for dry
       // run, so no need to replicate.
 
-      // just trigger a build run (i.e clicking on the top run icon and default
-      // select current version) and forget, no other action is needed.
+      // set text 'build running', set toggleRunOngoing(true), trigger a build run,
+      // pass toggleRunOngoing(false) that should be called back once build run
+      // completes/stopped/cancelled.
     };
 
     const handleParse = (event) => {
@@ -756,7 +868,9 @@ const TabPanel = React.memo(
           error: {
             msg: "token recognition error at: '@' line 3:10",
             from: {line: 3, ch: 10},
-            to: {line: 3, ch: 10},
+            // !!Note: when a single char is the offending char, api should send
+            // 'to' object's ch 1 higher than 'from' ch.
+            to: {line: 3, ch: 11},
           },
         };
         if (response.status === ApiStatuses.SUCCESS) {
@@ -764,6 +878,7 @@ const TabPanel = React.memo(
         } else {
           onError(response);
         }
+        toggleRunOngoing(false);
       }, 1000);
       dispatchControlled(
         batchActions([
@@ -774,8 +889,24 @@ const TabPanel = React.memo(
           },
         ])
       );
+      toggleRunOngoing(true);
     };
 
+    // TODO: write this as notes in docs for dry run:
+    // When dry run is initiated from within editor, it doesn't open up dry run
+    // config before running to save time and focus more on the tests. Users have
+    // to setup dry run config beforehand if their tests use any of following
+    // variables:
+    // build, browser, platform (from ZwlDryRunProperties.java)
+    // browser and platform is usually determined when a build is run using
+    // selected browser/platform but we don't know them while dry running that's why
+    // we need users to select them in config. build variables needs to be assigned
+    // so that user's desired build time value is taken.
+    // Dry run makes it easier to also skip these by giving a default value to
+    // these as well, browser = chrome, version = 70, platform = Windows are defaults
+    // for browser and platform. For build variables, the first found is used.
+    // While setting up config, they don't need to add the test they intend to
+    // run from within the tab in the config, it will be set in it once they run.
     const handleDryRun = (event) => {
       // when panel is closed, and any action buttons are clicked, we want it to
       // open so that when the output arrives, we don't have to explicitly open
@@ -806,7 +937,9 @@ const TabPanel = React.memo(
         dispatchGlobal(lastRunAction);
       };
       // TODO: Replace following timeout and sample values with real api call
-      // and results. This api will dry run using versionId and dry run config.
+      // and results. This api will dry run using versionId and dry run config,
+      // before sending request, set this versionId in dry run config so it
+      // always point to latest run version(s).
       setTimeout(() => {
         const response = {
           status: ApiStatuses.FAILURE,
@@ -816,24 +949,18 @@ const TabPanel = React.memo(
             to: {line: 3, ch: 20},
           },
           output: `Starting dry run...
-Executing function openUrl at line 2:0
+Executing function openUrl at line 2:10
 Executing function findElement with arguments .some-selector at line 3:10
 size of a is 3
 time taken is 456ms
-current url is http://localhost:3000/ide
-Executing function untilTitleIs with arguments Google at line 4:30
-Executing function untilTitleIs with arguments Google at line 4:30
-Executing function untilTitleIs with arguments Google at line 4:30
-Executing function untilTitleIs with arguments Google at line 4:30
-Executing function untilTitleIs with arguments Google at line 4:30
-Executing function untilTitleIs with arguments Google at line 4:30
-Executing function untilTitleIs with arguments Google at line 4:30`,
+current url is http://localhost:3000/ide`,
         };
         if (response.status === ApiStatuses.SUCCESS) {
           onSuccess(response);
         } else {
           onError(response);
         }
+        toggleRunOngoing(false);
       }, 3000);
       dispatchControlled(
         batchActions([
@@ -848,7 +975,7 @@ Executing function untilTitleIs with arguments Google at line 4:30`,
           },
         ])
       );
-      // will be overwritten when dry run completes and this re renders
+      toggleRunOngoing(true);
     };
 
     return (
@@ -899,6 +1026,7 @@ Executing function untilTitleIs with arguments Google at line 4:30`,
                   <IconButton
                     aria-label="Run Build For This Version"
                     className={classes.iconButton}
+                    disabled={runOngoing}
                     onClick={handleBuild}>
                     <PlayArrowIcon
                       fontSize="small"
@@ -910,6 +1038,7 @@ Executing function untilTitleIs with arguments Google at line 4:30`,
                   <IconButton
                     aria-label="Parse This Version"
                     className={classes.iconButton}
+                    disabled={runOngoing}
                     onClick={handleParse}>
                     <BuildIcon
                       fontSize="small"
@@ -921,6 +1050,7 @@ Executing function untilTitleIs with arguments Google at line 4:30`,
                   <IconButton
                     aria-label="Dry Run This Version"
                     className={classes.iconButton}
+                    disabled={runOngoing}
                     onClick={handleDryRun}>
                     <CheckCircleIcon
                       fontSize="small"

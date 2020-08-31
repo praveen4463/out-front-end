@@ -1,4 +1,4 @@
-import {Version, Test, File} from './model';
+import {Version, Test, File, GlobalVars, BuildVars} from './model';
 // Reflects the similar data structure we'd get from db.
 // All data is in ascending order
 /*
@@ -189,4 +189,27 @@ const fileToLoad = [
   ]),
 ];
 
-export {files, fileToLoad};
+// no duplicate keys
+const globalVars = [
+  new GlobalVars(1, 'TEST_ID_TEST_TREE_ITEM', "*[data-testid='TEST-treeitem']"),
+  new GlobalVars(
+    2,
+    'TEST_ID_VERSION_TREE_ITEM',
+    "*[data-testid='VERSION-treeitem']"
+  ),
+  new GlobalVars(3, 'SELECTOR_TAB_TEXT_NODE', '.tabText'),
+  new GlobalVars(4, 'TEST_ID_TAB', "*[data-testid='tab']"),
+];
+
+// no duplicate key/value pairs
+const buildVars = [
+  new BuildVars(1, 'SITE_URL', 'https://dev.zylitics.io'),
+  new BuildVars(2, 'SITE_URL', 'https://staging.zylitics.io'),
+  new BuildVars(3, 'SITE_URL', 'https://prod.zylitics.io'),
+  new BuildVars(4, 'SITE_URL', 'https://ci.zylitics.io'),
+  new BuildVars(5, 'SUPPORT_EMAIL', 'support@zylitics.io'),
+  new BuildVars(6, 'SUPPORT_EMAIL', 'priority@zylitics.io'),
+  new BuildVars(7, 'SUPPORT_EMAIL', 'emergency@zylitics.io'),
+];
+
+export {files, fileToLoad, globalVars, buildVars};

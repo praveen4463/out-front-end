@@ -389,8 +389,6 @@ const Explorer = React.memo(({closeButton}) => {
     in a column and below that is a button 'load selected files'. Dialog has a
     close button and clicking outside or escape closes it without committing
     any file for loading.
-    !!First investigate whether should we run api call from this event handler
-    or using 'effect', use the articles mentioned in this file.!!
     use swr or similar to make request to api and get available files, when it's
     not available show skelton in the modal box, once loaded show files, if
     error, show some error that make sense to the problem within the modal.

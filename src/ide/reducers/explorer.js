@@ -28,6 +28,8 @@ const loadFiles = (draft, payload) => {
   if (payload.filesToLoad === undefined) {
     throw new Error('Insufficient arguments passed to loadFiles.');
   }
+  // !!If no reference is kept to files for load, we can use them without cloning,
+  // remove it once api is used.
   // never mutate a payload, always clone it.
   const filesToLoad = getDeepClonedFiles(payload.filesToLoad);
   // files should already be ordered by names, i.e file/test/version
