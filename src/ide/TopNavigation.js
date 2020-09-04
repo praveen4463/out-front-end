@@ -4,7 +4,6 @@ import ToolBar from '@material-ui/core/Toolbar';
 import IconButton from '@material-ui/core/IconButton';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import StopIcon from '@material-ui/icons/Stop';
 import BuildIcon from '@material-ui/icons/Build';
 import Box from '@material-ui/core/Box';
 import {makeStyles} from '@material-ui/core/styles';
