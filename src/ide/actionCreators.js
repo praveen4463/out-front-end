@@ -8,7 +8,13 @@ const batchActions = (actions) => {
   };
 };
 
-export const getLastRunAction = (versionId, runType, output, error) => {
+export const getLastRunAction = (
+  versionId,
+  runType,
+  output,
+  error = null,
+  showSuccessMsgInStatus = true
+) => {
   if (error && !(error instanceof LastRunError)) {
     throw new Error('Expected error to be instance of LastRunError');
   }
@@ -19,6 +25,7 @@ export const getLastRunAction = (versionId, runType, output, error) => {
       runType,
       output,
       error,
+      showSuccessMsgInStatus,
     },
   };
 };

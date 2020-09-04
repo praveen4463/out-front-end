@@ -137,6 +137,7 @@ const useSummaryStyle = makeStyles((theme) => ({
 }));
 
 const CODE_SAVE_WAIT_TIME = 5000;
+const SAVE_MSG = 'All changes saved';
 
 const actionTypes = {
   VERSION_CHANGED: 'VERSION_CHANGED',
@@ -299,6 +300,8 @@ const TabPanel = React.memo(
     const textAreaRef = useRef();
     const editorRef = useRef();
     const lineColTextRef = useRef();
+    const editorStatusMessageRef = useRef(); // used in checking the current message in status
+    const afterChangeDebounceRef = useRef(); // used in flushing or cancelling changes from anywhere
     const classes = useStyle();
     const summary = useSummaryStyle();
 
@@ -380,28 +383,42 @@ const TabPanel = React.memo(
         };
 
         const onSuccess = (response) => {
+          const actions = [codeUpdateAction];
           const parseRes = response.parseResult;
-          const {error} = parseRes;
-          const lastRunAction = getLastRunAction(
-            version.id,
-            RunType.PARSE_RUN,
-            parseRes.status === ApiStatuses.FAILURE
-              ? null
-              : 'Parsing completed, no problems found',
-            parseRes.status === ApiStatuses.FAILURE
-              ? new LastRunError(error.msg, error.from, error.to)
-              : null
-          );
-          dispatchGlobal(batchActions([codeUpdateAction, lastRunAction]));
-          writeStatusMessage('All changes saved.');
+          if (parseRes) {
+            const lastRunAction = getLastRunAction(
+              version.id,
+              RunType.PARSE_RUN,
+              parseRes.status === ApiStatuses.FAILURE
+                ? null
+                : 'Parsing completed, no problems found',
+              parseRes.status === ApiStatuses.FAILURE
+                ? new LastRunError(
+                    parseRes.error.msg,
+                    parseRes.error.from,
+                    parseRes.error.to
+                  )
+                : null,
+              false
+            );
+            actions.push(lastRunAction);
+          }
+          dispatchGlobal(batchActions(actions));
+          writeStatusMessage(SAVE_MSG);
           // When changes saved messages is printed, we want it to disappear
           // after sometime so that user know exactly when their code is getting
           // saved rather than showing it forever.
-          // we want to clear saved message only when current parsing result
-          // is not bearing an error, otherwise the error message will have to
-          // be displayed in status message, thus no clearing.
-          if (parseRes.status === ApiStatuses.SUCCESS) {
-            setTimeout(() => writeStatusMessage(''), 5000);
+          if (!parseRes || parseRes.status === ApiStatuses.SUCCESS) {
+            setTimeout(() => {
+              const statusMsgRef = editorStatusMessageRef.current;
+              if (
+                statusMsgRef &&
+                statusMsgRef.textContent &&
+                statusMsgRef.textContent.trim() === SAVE_MSG
+              ) {
+                writeStatusMessage('');
+              }
+            }, 5000);
           }
         };
 
@@ -417,30 +434,28 @@ const TabPanel = React.memo(
         // TODO: Replace following timeout and sample values with real api call
         // and results.
         setTimeout(() => {
-          /*
-          const response = {
-            status: ApiStatuses.SUCCESS,
-            parseResult: {
-              status: ApiStatuses.FAILURE,
-              // error key should be available with null when there is no error
-              error: {
-                msg: "no viable alternative at input 'a++' line 2:20",
-                from: {line: 2, ch: 20},
-                to: {line: 2, ch: 20},
-              },
-            },
-            errorMsg: null, // error message if couldn't save.
-          }; */
-          const response = {
-            status: ApiStatuses.SUCCESS,
-            parseResult: {
-              status: ApiStatuses.SUCCESS,
-              // error key should be available with null when there is no error
-              error: null,
-            },
-            error: null,
-          };
-          /*
+          const response = value.includes('FAIL_TEST')
+            ? {
+                status: ApiStatuses.SUCCESS,
+                parseResult: {
+                  status: ApiStatuses.FAILURE,
+                  error: {
+                    msg: "no viable alternative at input 'a+' line 2:2",
+                    from: {line: 2, ch: 1},
+                    to: {line: 2, ch: 2}, // !!Note: api should always send the 'to' column that is after the 'to' char
+                  },
+                },
+              }
+            : {
+                status: ApiStatuses.SUCCESS,
+                parseResult:
+                  value && value.replace(/[\s\n\r\t]*/, '').length
+                    ? {
+                        status: ApiStatuses.SUCCESS,
+                      }
+                    : null, // TODO: !!if there was no real code, api shouldn't do any parsing
+              };
+          /* sample response when save fails
           const response = {
             status: ApiStatuses.FAILURE,
             parseResult: null,
@@ -472,21 +487,24 @@ const TabPanel = React.memo(
             cursor.ch + 1
           );
         }
-        if (cursor.sticky) {
+        if (cursor.sticky === null && cursor.line === 0 && cursor.ch === 0) {
           // sticky: https://codemirror.net/doc/manual.html#api
           // whenever events are added to editor, cursor change fires with 0, 0
           // and sticky null, we don't want to listen to that particular event,
           // as it rewrites previously saved state of version, thus checking
           // whether it's null prevents running the state change code during
           // mount and tab changes.
-          dispatchUncontrolled({
-            type: actionTypes.CURSOR_POS_CHANGED,
-            payload: {
-              versionId: version.id,
-              cursorPos: cursor,
-            },
-          });
+          // this condition seems safe as when cursor is manually moves to 0, 0
+          // sticky is not null.
+          return;
         }
+        dispatchUncontrolled({
+          type: actionTypes.CURSOR_POS_CHANGED,
+          payload: {
+            versionId: version.id,
+            cursorPos: cursor,
+          },
+        });
       },
       [dispatchUncontrolled, version.id]
     );
@@ -549,7 +567,7 @@ const TabPanel = React.memo(
       // dependency of this effect shouldn't re create until a version is
       // changed. If we change debounce, it's own state that keeps last invoke
       // time will reset.
-      const afterChangeDebounce = debounce(
+      afterChangeDebounceRef.current = debounce(
         handleAfterChange,
         CODE_SAVE_WAIT_TIME,
         {
@@ -560,13 +578,17 @@ const TabPanel = React.memo(
       const manageEvents = (shouldRegister) => {
         const editor = editorRef.current;
         const fn = shouldRegister ? CodeMirror.on : CodeMirror.off;
-        fn(editor, 'change', afterChangeDebounce);
+        // !! don't use blur for flushing debounce when something else is going to run
+        // like a dry run because it will have to use latest code. Using blur can
+        // trigger flushing on anything like mouse clicking on hints. invoke flush
+        // method on the debounce ref instead from wherever we need it.
+        fn(editor, 'change', afterChangeDebounceRef.current);
         fn(editor, 'cursorActivity', handleCursor);
         fn(editor, 'scroll', handleScroll);
       };
       manageEvents(true);
       return () => {
-        afterChangeDebounce.flush();
+        afterChangeDebounceRef.current.flush();
         manageEvents(false);
       };
     }, [handleAfterChange, handleCursor, handleScroll]);
@@ -651,19 +673,6 @@ const TabPanel = React.memo(
       editor.focus();
     }, [dispatchUncontrolled, version.id]);
 
-    const getRunTypeShort = (runType) => {
-      switch (runType) {
-        case RunType.PARSE_RUN:
-          return 'parse';
-        case RunType.DRY_RUN:
-          return 'dry run';
-        case RunType.BUILD_RUN:
-          return 'build run';
-        default:
-          throw new Error('Unrecognized run type');
-      }
-    };
-
     // When a version's lastRun is changed, i.e something has just run, show the
     // results. When a version is changed, show it's last completed run if any.
     // This last run loading effect runs when some version loads and has lastRun and
@@ -680,8 +689,23 @@ const TabPanel = React.memo(
     bottom panel until any other run is requested.
     */
     useEffect(() => {
-      const getStatusMsg = (runType) => {
-        return `There were ${getRunTypeShort(runType)} errors, click to see`;
+      const getRunTypeShort = (runType) => {
+        switch (runType) {
+          case RunType.PARSE_RUN:
+            return 'parsing';
+          case RunType.DRY_RUN:
+            return 'dry run';
+          case RunType.BUILD_RUN:
+            return 'build run';
+          default:
+            throw new Error('Unrecognized run type');
+        }
+      };
+
+      const getStatusMsg = (runType, success = false) => {
+        return `${getRunTypeShort(runType)} ${
+          success ? 'passed' : 'failed'
+        }, expand for ${success ? 'output' : 'error'}`;
       };
 
       if (!version.lastRun || runOngoing) {
@@ -721,21 +745,24 @@ const TabPanel = React.memo(
       ];
       const run = version.lastRun;
       const {error} = run;
-      // Write a status only when last run was an error. Don't open output panel
-      // when some version has lastRun and its tab is loaded, just write status
-      // on error and let them see it and open on their will.
-      if (error) {
-        const statusMessage = getStatusMsg(run.runType);
+      if (error || run.showSuccessMsgInStatus) {
         actions.push({
           type: actionTypes.UPDATE_STATUS_MESSAGE,
           payload: {
             versionId: version.id,
             statusMessage: {
-              message: statusMessage,
-              messageType: StatusMessageType.ERROR,
+              message: getStatusMsg(run.runType, !error),
+              messageType: error
+                ? StatusMessageType.ERROR
+                : StatusMessageType.SUCCESS,
             },
           },
         });
+      }
+      // Don't open output panel
+      // when some version has lastRun and its tab is loaded, just write status
+      // and let them see it and open on their will.
+      if (error) {
         actions.push({
           type: actionTypes.SET_OUTPUT_ERROR,
           payload: {versionId: version.id, outputError: error.msg},
@@ -805,6 +832,27 @@ const TabPanel = React.memo(
       editorRef.current.setOption('readOnly', running);
     };
 
+    const stopRunWhenNoCode = () => {
+      const error = 'Want to write some code before trying to build it?';
+      const code = editorRef.current.getValue();
+      if (!(code && code.replace(/[\s\n\r\t]*/, '').length)) {
+        dispatchControlled(
+          batchActions([
+            {
+              type: actionTypes.CLEAR_OUTPUT,
+              payload: {versionId: version.id},
+            },
+            {
+              type: actionTypes.SET_OUTPUT_ERROR,
+              payload: {versionId: version.id, outputError: error},
+            },
+          ])
+        );
+        return true;
+      }
+      return false;
+    };
+
     const handleBuild = (event) => {
       // when panel is closed, and any action buttons are clicked, we want it to
       // open so that when the output arrives, we don't have to explicitly open
@@ -815,6 +863,10 @@ const TabPanel = React.memo(
       if (isOutputPanelOpened()) {
         event.stopPropagation();
       }
+      if (stopRunWhenNoCode()) {
+        return;
+      }
+      afterChangeDebounceRef.current.flush();
       // TODO: trigger a build run the normal way, i.e open the build config
       // and select this version only, then all should work normally. This works
       // as just a shortcut. While build is running, continuous output appears
@@ -846,6 +898,10 @@ const TabPanel = React.memo(
       if (isOutputPanelOpened()) {
         event.stopPropagation();
       }
+      if (stopRunWhenNoCode()) {
+        return;
+      }
+      afterChangeDebounceRef.current.flush();
       const onSuccess = () => {
         const lastRunAction = getLastRunAction(
           version.id,
@@ -868,16 +924,19 @@ const TabPanel = React.memo(
       // TODO: Replace following timeout and sample values with real api call
       // and results. This api will just parse using a versionId.
       setTimeout(() => {
-        const response = {
-          status: ApiStatuses.FAILURE,
-          error: {
-            msg: "token recognition error at: '@' line 3:10",
-            from: {line: 3, ch: 10},
-            // !!Note: when a single char is the offending char, api should send
-            // 'to' object's ch 1 higher than 'from' ch.
-            to: {line: 3, ch: 11},
-          },
-        };
+        const response = editorRef.current.getValue().includes('FAIL_TEST')
+          ? {
+              status: ApiStatuses.FAILURE,
+              error: {
+                msg: "token recognition error at: '@' line 3:12",
+                from: {line: 3, ch: 12},
+                // !!Note: api should always send the 'to' column that is after the 'to' char
+                to: {line: 3, ch: 13},
+              },
+            }
+          : {
+              status: ApiStatuses.SUCCESS,
+            };
         if (response.status === ApiStatuses.SUCCESS) {
           onSuccess();
         } else {
@@ -920,6 +979,10 @@ const TabPanel = React.memo(
       if (isOutputPanelOpened()) {
         event.stopPropagation();
       }
+      if (stopRunWhenNoCode()) {
+        return;
+      }
+      afterChangeDebounceRef.current.flush();
       const onSuccess = (response) => {
         const lastRunAction = getLastRunAction(
           version.id,
@@ -944,20 +1007,24 @@ const TabPanel = React.memo(
       // before sending request, set this versionId in dry run config so it
       // always point to latest run version(s).
       setTimeout(() => {
-        const response = {
-          status: ApiStatuses.FAILURE,
-          error: {
-            msg: 'Index out of bounds exception line 2:10 to 3:20',
-            from: {line: 2, ch: 10},
-            to: {line: 3, ch: 20},
-          },
-          output: `Starting dry run...
-Executing function openUrl at line 2:10
-Executing function findElement with arguments .some-selector at line 3:10
-size of a is 3
-time taken is 456ms
-current url is http://localhost:3000/ide`,
-        };
+        // this is done to support tests until api is integrated
+        const response = editorRef.current.getValue().includes('FAIL_TEST')
+          ? {
+              status: ApiStatuses.FAILURE,
+              error: {
+                msg:
+                  "function: findElement with parameters count: 4 isn't defined. at line 2:1 to 7:2",
+                from: {line: 2, ch: 1},
+                to: {line: 7, ch: 2}, // api should send the to column that is after the char
+              },
+              output: `Starting dry run...
+Executing function findElement with arguments .some-selector, Push Me, TEXT, true at line 2:1 to line 7:2`,
+            }
+          : {
+              status: ApiStatuses.SUCCESS,
+              output: `Starting dry run...
+Everything run just fine`,
+            };
         if (response.status === ApiStatuses.SUCCESS) {
           onSuccess(response);
         } else {
@@ -998,8 +1065,15 @@ current url is http://localhost:3000/ide`,
               {`${fileName} > ${testName} > ${version.name}`}
             </Typography>
           </Box>
-          <Box display="flex" flexDirection="column" flex={1}>
-            <textarea ref={textAreaRef} />
+          <Box
+            display="flex"
+            flexDirection="column"
+            flex={1}
+            data-testid="codeEditor">
+            {/* https://github.com/codemirror/CodeMirror/issues/4895#issuecomment-320521498 */}
+            <Box position="relative" flex={1}>
+              <textarea ref={textAreaRef} />
+            </Box>
           </Box>
           <Box>
             {/* TODO: Right now accordion can't be resized, later if neeeded we
@@ -1030,7 +1104,8 @@ current url is http://localhost:3000/ide`,
                     aria-label="Run Build For This Version"
                     className={classes.iconButton}
                     disabled={runOngoing}
-                    onClick={handleBuild}>
+                    onClick={handleBuild}
+                    data-testid="outputPanelRunBuild">
                     <PlayArrowIcon
                       fontSize="small"
                       classes={{fontSizeSmall: classes.fontSizeSmall}}
@@ -1042,7 +1117,8 @@ current url is http://localhost:3000/ide`,
                     aria-label="Parse This Version"
                     className={classes.iconButton}
                     disabled={runOngoing}
-                    onClick={handleParse}>
+                    onClick={handleParse}
+                    data-testid="outputPanelParse">
                     <BuildIcon
                       fontSize="small"
                       classes={{fontSizeSmall: classes.fontSizeXSmall}}
@@ -1054,7 +1130,8 @@ current url is http://localhost:3000/ide`,
                     aria-label="Dry Run This Version"
                     className={classes.iconButton}
                     disabled={runOngoing}
-                    onClick={handleDryRun}>
+                    onClick={handleDryRun}
+                    data-testid="outputPanelDryRun">
                     <CheckCircleIcon
                       fontSize="small"
                       classes={{fontSizeSmall: classes.fontSizeXSmall}}
@@ -1065,13 +1142,16 @@ current url is http://localhost:3000/ide`,
                   variant="caption"
                   aria-label="Status"
                   className={clsx(classes.statusMessage, getStatusMsgStyle())}
-                  data-testid="editorStatusMessage">
+                  data-testid="editorStatusMessage"
+                  ref={editorStatusMessageRef}>
                   {versionsStateControlled[version.id]
                     ? versionsStateControlled[version.id].statusMessage.message
                     : null}
                 </Typography>
               </AccordionSummary>
-              <AccordionDetails classes={{root: classes.accordionDetails}}>
+              <AccordionDetails
+                classes={{root: classes.accordionDetails}}
+                data-testid="editorOutput">
                 <pre className={classes.output}>
                   {versionsStateControlled[version.id]
                     ? versionsStateControlled[version.id].outputNormal

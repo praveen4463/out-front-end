@@ -41,7 +41,11 @@ const runBuild = (draft, payload) => {
 };
 
 const setVersionLastRun = (draft, payload) => {
-  if (payload.versionId === undefined || payload.runType === undefined) {
+  if (
+    payload.versionId === undefined ||
+    payload.runType === undefined ||
+    payload.showSuccessMsgInStatus === undefined
+  ) {
     throw new Error('Insufficient arguments passed to setVersionLastRun.');
   }
   if (!payload.output && !payload.error) {
@@ -52,7 +56,12 @@ const setVersionLastRun = (draft, payload) => {
   }
   const et = draft.files.entities;
   const version = et.versions[payload.versionId];
-  version.lastRun = new LastRun(payload.runType, payload.output, payload.error);
+  version.lastRun = new LastRun(
+    payload.runType,
+    payload.output,
+    payload.showSuccessMsgInStatus,
+    payload.error
+  );
   // show version/test/file in error only when it's a parse request.
   if (payload.runType === RunType.PARSE_RUN) {
     const showAsError = Boolean(payload.error);

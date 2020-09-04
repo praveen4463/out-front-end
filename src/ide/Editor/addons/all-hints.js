@@ -4,13 +4,27 @@ import wdFunctions from '../../../config/all-wd-func';
 import langFunctions from '../../../config/all-lang-func';
 import * as Constants from '../../../config/all-zwl-constants';
 
+// TODO: write a unit test for this entire functionality.
 const FUNC_NAME = /\w+(?=\()/;
 // selects just function name from a function with syntax foo(?param...)
 const RANGE = 500;
 
+const matches = (textToMatch, matcher) => {
+  return textToMatch.toLowerCase().includes(matcher.toLowerCase());
+};
+
 const getConstantHints = (constant, options, toFilterStartingValue = '') => {
   const filter = (values) => {
-    return values.filter((v) => v.lastIndexOf(toFilterStartingValue, 0) === 0);
+    if (toFilterStartingValue === '') {
+      return values;
+    }
+    const preciseMatchList = values.filter(
+      (v) => v.lastIndexOf(toFilterStartingValue, 0) === 0
+    );
+    const fuzzyMatchList = values.filter(
+      (v) => !preciseMatchList.includes(v) && matches(v, toFilterStartingValue)
+    );
+    return preciseMatchList.concat(fuzzyMatchList);
   };
   const {maps} = Constants;
   let hints;
@@ -99,8 +113,9 @@ const allHints = (editor, options) => {
     }
   }
 
-  const list = [];
-  const seen = {};
+  const preciseList = [];
+  const fuzzyList = [];
+  const seen = {}; // track uniqueness using object cause key access is faster than includes
 
   // zwl functions are not overloaded, so we can safely condition on unique
   // names.
@@ -113,7 +128,18 @@ const allHints = (editor, options) => {
         seen[name[0]] === undefined
       ) {
         seen[name[0]] = true;
-        list.push(fn);
+        preciseList.push(fn);
+      }
+    });
+    functions.forEach((fn) => {
+      const name = fn.match(FUNC_NAME);
+      if (
+        name &&
+        matches(name[0], curVariable) &&
+        seen[name[0]] === undefined
+      ) {
+        seen[name[0]] = true;
+        fuzzyList.push(fn);
       }
     });
   };
@@ -125,7 +151,13 @@ const allHints = (editor, options) => {
     elements.forEach((el) => {
       if (el.lastIndexOf(curVariable, 0) === 0 && seen[el] === undefined) {
         seen[el] = true;
-        list.push(el);
+        preciseList.push(el);
+      }
+    });
+    elements.forEach((el) => {
+      if (matches(el, curVariable) && seen[el] === undefined) {
+        seen[el] = true;
+        fuzzyList.push(el);
       }
     });
   };
@@ -133,6 +165,7 @@ const allHints = (editor, options) => {
   addElements(Constants.readOnlyVars);
 
   // find variables from above the current line
+  // no fuzzy matches for variables as they are present in the editor
   let {line} = cur;
   const endLine =
     Math.min(
@@ -152,14 +185,14 @@ const allHints = (editor, options) => {
         ) {
           if (line !== cur.line || text !== curVariable) {
             seen[text] = true;
-            list.push(text);
+            preciseList.push(text);
           }
         }
       }
     }
   }
   return {
-    list,
+    list: preciseList.concat(fuzzyList),
     from: CodeMirror.Pos(cur.line, tok.start),
     to: CodeMirror.Pos(cur.line, tok.end),
   };

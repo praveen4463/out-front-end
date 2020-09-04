@@ -1,7 +1,7 @@
 // TODO:
 // put these in sorted
 // these are incomplete, complete them after api is modified to fix a few
-// functions.
+// functions. Also add functions in this list that work only inside performAction
 const all = [
   'openUrl(url)',
   'getCurrentUrl()',

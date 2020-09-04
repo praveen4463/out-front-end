@@ -17,9 +17,10 @@ function LastRunError(msg, fromPos, toPos) {
   this[immerable] = true;
 }
 
-function LastRun(runType, output, error) {
+function LastRun(runType, output, showSuccessMsgInStatus, error) {
   this.runType = runType; // Constants.RunType
   this.output = output; // the raw output received from api, may be null.
+  this.showSuccessMsgInStatus = showSuccessMsgInStatus;
   this.error = error; // error is an instance of LastRunError, in future this may be an
   // array of LastRunError to contain multiple errors occurred, for example during
   // parsing. Must be null when there is no error occurred, could be null.

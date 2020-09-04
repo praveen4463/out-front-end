@@ -39,7 +39,20 @@ export const exceptions = [
   'unknownDateTimeEx',
 ];
 
-export const by = ['id', 'lt', 'plt', 'name', 'tn', 'xp', 'cn', 'cs'];
+export const by = [
+  'className',
+  'cssSelector',
+  'id',
+  'linkText',
+  'name',
+  'partialLinkText',
+  'role',
+  'tagName',
+  'testId',
+  'text',
+  'title',
+  'xPath',
+];
 
 export const colors = [
   'aliceblue',

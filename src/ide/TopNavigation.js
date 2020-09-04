@@ -66,11 +66,11 @@ const TopNavigation = () => {
             <PlayArrowIcon color="primary" fontSize="small" />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Stop Build ^C">
+        {/* <Tooltip title="Stop Build ^C">
           <IconButton aria-label="Stop Build">
             <StopIcon color="disabled" fontSize="small" />
           </IconButton>
-        </Tooltip>
+        </Tooltip> */}
         <Tooltip title="Parse All P">
           <IconButton aria-label="Parse">
             <BuildIcon
