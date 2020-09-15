@@ -2,9 +2,7 @@ export const RESET_STATE_ON_ERROR = 'RESET_STATE_ON_ERROR';
 export const BATCH_ACTIONS = 'BATCH_ACTIONS';
 export const SET_FILES = 'SET_FILES';
 export const SET_PROJECT = 'SET_PROJECT';
-export const SET_VERSION_LAST_RUN = 'VERSION_LAST_RUN';
-export const SET_GLOBAL_VARS = 'SET_GLOBAL_VARS';
-export const SET_BUILD_VARS = 'SET_BUILD_VARS';
+export const SET_VERSION_LAST_RUN = 'SET_VERSION_LAST_RUN';
 
 // Explorer actions
 export const EXP_LOAD_FILES = 'EXP_LOAD_FILES';
@@ -25,3 +23,9 @@ export const EDR_VERSION_CODE_UPDATED = 'EDR_VERSION_CODE_UPDATED';
 
 // Build actions
 export const RUN_BUILD = 'RUN_BUILD';
+
+// Variable actions
+export const VAR_SET = 'VAR_SET';
+export const VAR_DELETE = 'VAR_DELETE';
+export const VAR_NEW = 'VAR_NEW';
+export const VAR_EDIT = 'VAR_EDIT';

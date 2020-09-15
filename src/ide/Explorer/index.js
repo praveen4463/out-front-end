@@ -293,6 +293,10 @@ parent re renders. */
 const Explorer = React.memo(({closeButton}) => {
   const dispatchGlobal = useContext(IdeDispatchContext);
   const files = useContext(IdeFilesContext);
+  const etFiles = files !== null ? files.entities.files : null;
+  const etTests = files !== null ? files.entities.tests : null;
+  const etVersions = files !== null ? files.entities.versions : null;
+  const filesResult = files !== null ? files.result : null;
   const editor = useContext(IdeEditorContext);
   const [state, dispatchLocal] = useReducer(reducer, initialState);
   // console.log(`Explorer renders ${Date.now()}`);
@@ -311,12 +315,14 @@ const Explorer = React.memo(({closeButton}) => {
   });
 
   useEffect(() => {
+    // etVersions and etTests could be undefined when none of the files have
+    // a test
     dispatchLocal({
       type: actionTypes.SELECTED_TAB_CHANGE,
       payload: {
         selectedTabVersionId: editor.tabs.selectedTabVersionId,
-        entitiesVersions: files.entities.versions,
-        entitiesTests: files.entities.tests,
+        entitiesVersions: etVersions === undefined ? null : etVersions,
+        entitiesTests: etTests === undefined ? null : etTests,
       },
     });
   }, [
@@ -326,8 +332,8 @@ const Explorer = React.memo(({closeButton}) => {
     // refer to the old objects, that's why these are needed here. Important
     // thing is we never mutate but create new.
     editor.tabs.selectedTabVersionId,
-    files.entities.tests,
-    files.entities.versions,
+    etTests,
+    etVersions,
   ]);
 
   const handleSelect = (e, nodeId) => {
@@ -438,11 +444,7 @@ const Explorer = React.memo(({closeButton}) => {
       and https://stackoverflow.com/questions/53845595/wrong-react-hooks-behaviour-with-event-listener
       Invoke api and expect new item based on itemType. When a response is
       received, dispatch to update the state and if failed, show some error
-      in some way like snackbar/alert (on top of explorer) etc. We may not show
-      some loading indicator because I don't want to interrupt any further
-      actions while new item is being created, it should be fine if nothing
-      happens for a sec and then new item appears in tree and opens in new
-      tab.
+      in some way like snackbar/alert etc.
       For now, simulate this and create data baed on random Ids, Use the same
       functions and similar functionality with exception that data will come
       from api.
@@ -649,22 +651,21 @@ const Explorer = React.memo(({closeButton}) => {
         </Tooltip>
         <div className={classes.borderLeftLight}>{closeButton}</div>
       </Box>
-      {files && Array.isArray(files.result) && files.result.length > 0 && (
-        <Box py={1}>
-          <TreeView
-            defaultCollapseIcon={<ArrowDropDownIcon />}
-            defaultExpandIcon={<ArrowRightIcon />}
-            defaultEndIcon={<div style={{width: 24}} />}
-            onNodeToggle={handleToggle}
-            onNodeSelect={handleSelect}
-            expanded={state.expandedNodes}
-            selected={state.selectedNode}>
-            {Boolean(state.addNewItem) &&
-              state.addNewItem.type === ExplorerItemType.FILE &&
-              getNewItemEditor(
-                getNamesByIdMapping(files.result, files.entities.files)
-              )}
-            {files.result
+      <Box py={1}>
+        <TreeView
+          defaultCollapseIcon={<ArrowDropDownIcon />}
+          defaultExpandIcon={<ArrowRightIcon />}
+          defaultEndIcon={<div style={{width: 24}} />}
+          onNodeToggle={handleToggle}
+          onNodeSelect={handleSelect}
+          expanded={state.expandedNodes}
+          selected={state.selectedNode}>
+          {Boolean(state.addNewItem) &&
+            state.addNewItem.type === ExplorerItemType.FILE &&
+            getNewItemEditor(getNamesByIdMapping(filesResult, etFiles))}
+          {files &&
+            Array.isArray(files.result) &&
+            files.result
               .filter((fid) => files.entities.files[fid].loadToTree)
               .map((fid) => (
                 <TreeItem
@@ -770,9 +771,8 @@ const Explorer = React.memo(({closeButton}) => {
                     ))}
                 </TreeItem>
               ))}
-          </TreeView>
-        </Box>
-      )}
+        </TreeView>
+      </Box>
     </Box>
   );
 });

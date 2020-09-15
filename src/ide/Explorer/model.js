@@ -136,32 +136,4 @@ When normalized the files array look like following:
 };
 */
 
-// key/value pair must be unique
-function GlobalVars(id, key, value) {
-  this.id = id;
-  this.key = key;
-  this.value = value;
-}
-
-// allows duplicate key/value
-function BuildVars(id, key, value) {
-  this.id = id;
-  this.key = key;
-  this.value = value;
-}
-
-const globalVarsSchema = [new schema.Entity('globalVars')];
-const buildVarsSchema = [new schema.Entity('buildVars')];
-
-export {
-  Version,
-  Test,
-  File,
-  filesSchema,
-  LastRun,
-  LastRunError,
-  GlobalVars,
-  BuildVars,
-  globalVarsSchema,
-  buildVarsSchema,
-};
+export {Version, Test, File, filesSchema, LastRun, LastRunError};

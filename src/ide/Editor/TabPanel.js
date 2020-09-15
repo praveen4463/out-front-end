@@ -41,7 +41,11 @@ import produce, {immerable} from 'immer';
 
 import allHints from './addons/all-hints';
 import {BATCH_ACTIONS, EDR_VERSION_CODE_UPDATED} from '../actionTypes';
-import {IdeDispatchContext, IdeVarsContext} from '../Contexts';
+import {
+  IdeDispatchContext,
+  IdeVarsContext,
+  IdeBuildRunningContext,
+} from '../Contexts';
 import Tooltip from '../../TooltipCustom';
 import {LastRun, LastRunError} from '../Explorer/model';
 import {ApiStatuses, RunType, ZwlLexer} from '../Constants';
@@ -253,6 +257,7 @@ const TabPanel = React.memo(
     // console.log('re rendering..');
     const dispatchGlobal = useContext(IdeDispatchContext);
     const vars = useContext(IdeVarsContext);
+    const globalRunOngoing = useContext(IdeBuildRunningContext);
     const unmounted = useRef(false);
 
     function reducer(state, action) {
@@ -278,6 +283,10 @@ const TabPanel = React.memo(
       reducer,
       {}
     );
+    // TODO: we're missing a stop button to stop parse/dry-run (we don't need a
+    // stop for build cause it use bottom output panel for status where there will
+    // be a button) but not doing that currently. For now let's assume user's won't
+    // really need to stop for single version, and try to put later.
     // this is a global state for component, setting it reflects in all tabs
     const [runOngoing, setRunOngoing] = useState(false);
     /*
@@ -786,6 +795,21 @@ const TabPanel = React.memo(
       dispatchControlled(batchActions(actions));
     }, [version.id, version.lastRun, runOngoing]);
 
+    // uses state rather than state by version because at a time only
+    // one version could be in running state. So once a run request initiated
+    // from any version, editor becomes readonly and run controls disabled for
+    // all versions in editor, since the run feature with editor is meant to
+    // run one version only. If user wants more than one version running, they
+    // can use top icons.
+    const toggleRunOngoing = (running) => {
+      setRunOngoing(running);
+      editorRef.current.setOption('readOnly', running);
+    };
+
+    useEffect(() => {
+      toggleRunOngoing(globalRunOngoing);
+    }, [globalRunOngoing]);
+
     const toggleOutputPanel = (isExpanded) => {
       dispatchControlled({
         type: actionTypes.OUTPUT_PANEL_TOGGLED,
@@ -817,19 +841,6 @@ const TabPanel = React.memo(
         return classes.statusMessageSuccess;
       }
       return null;
-    };
-
-    // uses state rather than state by version because at a time only
-    // one version could be in running state. So once a run request initiated
-    // from any version, editor becomes readonly and run controls disabled for
-    // all versions in editor, since the run feature with editor is meant to
-    // run one version only. If user wants more than one version running, they
-    // can use top icons.
-    // TODO: find way to invoke this from outside so that 'run all' can use it
-    // to freeze editor contents.
-    const toggleRunOngoing = (running) => {
-      setRunOngoing(running);
-      editorRef.current.setOption('readOnly', running);
     };
 
     const stopRunWhenNoCode = () => {
@@ -886,6 +897,9 @@ const TabPanel = React.memo(
       // set text 'build running', set toggleRunOngoing(true), trigger a build run,
       // pass toggleRunOngoing(false) that should be called back once build run
       // completes/stopped/cancelled.
+
+      // don't invoke toggleRunOngoing from here, global build run will update
+      // global state that should invoke it.
     };
 
     const handleParse = (event) => {
@@ -958,7 +972,7 @@ const TabPanel = React.memo(
 
     // TODO: write this as notes in docs for dry run:
     // When dry run is initiated from within editor, it doesn't open up dry run
-    // config before running to save time and focus more on the tests. Users have
+    // config. Users have
     // to setup dry run config beforehand if their tests use any of following
     // variables:
     // build, browser, platform (from ZwlDryRunProperties.java)
@@ -966,9 +980,10 @@ const TabPanel = React.memo(
     // selected browser/platform but we don't know them while dry running that's why
     // we need users to select them in config. build variables needs to be assigned
     // so that user's desired build time value is taken.
-    // Dry run makes it easier to also skip these by giving a default value to
-    // these as well, browser = chrome, version = 70, platform = Windows are defaults
-    // for browser and platform. For build variables, the first found is used.
+    // if no browser/version/platform is mentioned, chrome/70/windows are taken
+    // as default.
+    // all available build variable's primary entry is taken by default and if
+    // some build var is mentioned, that entry is taken rather than it's primary.
     const handleDryRun = (event) => {
       // when panel is closed, and any action buttons are clicked, we want it to
       // open so that when the output arrives, we don't have to explicitly open

@@ -33,6 +33,10 @@
   cursor: pointer;
 }
 
+.CodeMirror-hint:hover {
+  background: #424242;
+}
+
 li.CodeMirror-hint-active {
   background: #08f;
 }

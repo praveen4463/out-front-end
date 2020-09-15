@@ -7,18 +7,18 @@ import RemoveCircleOutlineIcon from '@material-ui/icons/RemoveCircleOutline';
 import EditIcon from '@material-ui/icons/Edit';
 import DeleteIcon from '@material-ui/icons/Delete';
 import Box from '@material-ui/core/Box';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
 import {ContextMenu, MenuItem, ContextMenuTrigger} from 'react-contextmenu';
 import TestIcon from '@material-ui/icons/Title';
 import Chip from '@material-ui/core/Chip';
 import clsx from 'clsx';
 import VersionIcon from '../newVersionIcon';
 import Tooltip from '../../TooltipCustom';
-import {ExplorerItemType, ExplorerEditOperationType} from '../Constants';
+import {
+  ExplorerItemType,
+  ExplorerEditOperationType,
+  RunType,
+  ApiStatuses,
+} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
 import ColoredItemIcon from '../ColoredItemIcon';
 import {IdeDispatchContext} from '../Contexts';
@@ -32,6 +32,8 @@ import {
   EDR_EXP_VERSION_DBL_CLICK,
   RUN_BUILD,
 } from '../actionTypes';
+import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
+import useConfirmationDialog from '../../hooks/useConfirmationDialog';
 import './contextMenu.css';
 
 const useStyle = makeStyles((theme) => ({
@@ -74,12 +76,6 @@ const useStyle = makeStyles((theme) => ({
   errorText: {
     color: theme.palette.error.main,
   },
-  dialogText: {
-    fontSize: '0.9125rem',
-  },
-  dialogPaper: {
-    marginBottom: '20%',
-  },
   fontSizeSmall: {
     fontSize: '0.875rem',
   },
@@ -117,8 +113,7 @@ const TreeItemContent = React.memo(
     const dispatch = useContext(IdeDispatchContext);
     const [editing, setEditing] = useState(false);
     const [hovering, setHovering] = useState(false);
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-    const [showUnloadDialog, setShowUnloadDialog] = useState(false);
+    const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
     const classes = useStyle();
     const errorContainerRef = useRef(null);
     const files = filesRef.current;
@@ -149,8 +144,8 @@ const TreeItemContent = React.memo(
       // before any re render.
 
       // eslint-disable-next-line no-unused-vars
-      const onError = (error) => {
-        // Show some precise error and revert to the original name
+      const onError = (response) => {
+        setSnackbarErrorMsg(`Couldn't rename, ${response.error.reason}`);
         dispatch({
           type: EXP_RENAME_ITEM,
           payload: {
@@ -167,7 +162,20 @@ const TreeItemContent = React.memo(
       For now simulate the error situation using a setTimeout, hide once test
       done. setTimeout(onError, 500);
       */
-
+      setTimeout(() => {
+        /* const response = {
+          status: ApiStatuses.FAILURE,
+          error: {
+            reason: 'Network error',
+          },
+        }; */
+        const response = {
+          status: ApiStatuses.SUCCESS,
+        };
+        if (response.status === ApiStatuses.FAILURE) {
+          onError(response);
+        }
+      }, 500);
       setEditing(false);
       /*
         Note on the re render react functionality.
@@ -216,13 +224,7 @@ const TreeItemContent = React.memo(
       });
     };
 
-    const deleteHandler = (e) => {
-      e.stopPropagation();
-      setShowDeleteDialog(true);
-    };
-
-    const deleteAcceptHandler = (e) => {
-      e.stopPropagation();
+    const deleteAcceptHandler = () => {
       const actions = [
         {
           type: EXP_DELETE_ITEM,
@@ -356,17 +358,21 @@ const TreeItemContent = React.memo(
       For now simulate the error situation using a setTimeout, hide once test
       done. setTimeout(onError, 500);
       */
-      setShowDeleteDialog(false);
     };
 
-    const unloadHandler = (e) => {
+    const [setShowDeleteDialog, deleteDialog] = useConfirmationDialog(
+      deleteAcceptHandler,
+      'Delete',
+      `Are you sure you want to delete ${itemType.toLowerCase()} ${itemName}?`,
+      'delete-alert-dialog-description'
+    );
+
+    const deleteHandler = (e) => {
       e.stopPropagation();
-      setShowUnloadDialog(true);
+      setShowDeleteDialog(true);
     };
 
-    const unloadAcceptHandler = (e) => {
-      e.stopPropagation();
-      setShowUnloadDialog(false);
+    const unloadAcceptHandler = () => {
       const actions = [{type: EXP_UNLOAD_FILE, payload: {itemType, itemId}}];
       // find all versions within this file, all of them need to be removed from
       // tabs
@@ -386,27 +392,46 @@ const TreeItemContent = React.memo(
       dispatch(batchActions(actions));
     };
 
-    const deleteDialogCancelHandler = (e) => {
+    const [setShowUnloadDialog, unloadDialog] = useConfirmationDialog(
+      unloadAcceptHandler,
+      'Unload',
+      `Are you sure you want to unload ${itemType.toLowerCase()} ${itemName} from workspace?`,
+      'unload-alert-dialog-description'
+    );
+
+    const unloadHandler = (e) => {
       e.stopPropagation();
-      setShowDeleteDialog(false);
+      setShowUnloadDialog(true);
     };
 
-    const unloadDialogCancelHandler = (e) => {
-      e.stopPropagation();
-      setShowUnloadDialog(false);
-    };
-
-    const getBuildRunTextPerExplorerItem = () => {
+    const getBuildRunTextPerExplorerItem = (runType) => {
+      let runText;
+      switch (runType) {
+        case RunType.BUILD_RUN:
+          runText = 'Run Build';
+          break;
+        case RunType.DRY_RUN:
+          runText = 'Dry Run';
+          break;
+        case RunType.PARSE_RUN:
+          runText = 'Parse';
+          break;
+        default:
+          throw new Error(`Can't find runType ${runType}`);
+      }
+      const initialText = `${runText} ${
+        runType === RunType.BUILD_RUN ? 'For ' : ''
+      }`;
       let text;
       switch (itemType) {
         case ExplorerItemType.FILE:
-          text = 'Run Build For All Tests (Latest Version Only)';
+          text = `${initialText} All Tests (Latest Version Only)`;
           break;
         case ExplorerItemType.TEST:
-          text = 'Run Build For This Test (Latest Version Only)';
+          text = `${initialText} This Test (Latest Version Only)`;
           break;
         case ExplorerItemType.VERSION:
-          text = 'Run Build For This Version Only';
+          text = `${initialText} This Version Only`;
           break;
         default:
           throw new Error(`Can't find build run text for ${itemType}`);
@@ -554,7 +579,17 @@ const TreeItemContent = React.memo(
             <MenuItem
               onClick={runBuildHandler}
               className={classes.contextMenuItem}>
-              {getBuildRunTextPerExplorerItem()}
+              {getBuildRunTextPerExplorerItem(RunType.BUILD_RUN)}
+            </MenuItem>
+            <MenuItem
+              onClick={runBuildHandler}
+              className={classes.contextMenuItem}>
+              {getBuildRunTextPerExplorerItem(RunType.DRY_RUN)}
+            </MenuItem>
+            <MenuItem
+              onClick={runBuildHandler}
+              className={classes.contextMenuItem}>
+              {getBuildRunTextPerExplorerItem(RunType.PARSE_RUN)}
             </MenuItem>
             {itemType === ExplorerItemType.FILE && (
               <>
@@ -589,64 +624,9 @@ const TreeItemContent = React.memo(
             )}
           </>
         </ContextMenu>
-        <Dialog
-          open={showDeleteDialog}
-          onClose={deleteDialogCancelHandler}
-          classes={{paper: classes.dialogPaper}}
-          aria-describedby="delete-alert-dialog-description">
-          <DialogContent>
-            <DialogContentText
-              id="delete-alert-dialog-description"
-              className={classes.dialogText}>
-              Are you sure you want to delete {itemType.toLowerCase()}{' '}
-              {itemName}?
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={deleteDialogCancelHandler}
-              size="small"
-              aria-label="cancel">
-              Cancel
-            </Button>
-            <Button
-              onClick={deleteAcceptHandler}
-              variant="contained"
-              size="small"
-              aria-label="delete">
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
-        <Dialog
-          open={showUnloadDialog}
-          onClose={unloadDialogCancelHandler}
-          classes={{paper: classes.dialogPaper}}
-          aria-describedby="unload-alert-dialog-description">
-          <DialogContent>
-            <DialogContentText
-              id="unload-alert-dialog-description"
-              className={classes.dialogText}>
-              Are you sure you want to unload {itemType.toLowerCase()}{' '}
-              {itemName} from workspace?
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={unloadDialogCancelHandler}
-              size="small"
-              aria-label="cancel">
-              Cancel
-            </Button>
-            <Button
-              onClick={unloadAcceptHandler}
-              variant="contained"
-              size="small"
-              aria-label="unload">
-              Unload
-            </Button>
-          </DialogActions>
-        </Dialog>
+        {deleteDialog}
+        {unloadDialog}
+        {snackbarTypeError}
       </>
     );
   },

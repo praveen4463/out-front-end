@@ -14,8 +14,17 @@ const useStyles = makeStyles((theme) => ({
   formControl: {
     minWidth: '25%',
   },
+  addIcon: {
+    paddingBottom: 0,
+    '&:hover': {
+      background: 'none',
+    },
+  },
   addIconFont: {
     fontSize: '0.9rem',
+    '&:hover': {
+      color: '#07fae1',
+    },
   },
   input: {
     fontSize: '0.9rem',
@@ -29,14 +38,18 @@ const ProjectSelector = () => {
   const [projects, setProjects] = useState(null);
   const classes = useStyles();
   useEffect(() => {
+    setTimeout(
+      () =>
+        setProjects([
+          {value: 4, text: 'Zylitics Docs Site'},
+          {value: 2, text: 'Zylitics Front End'},
+          {value: 1, text: 'Zylitics IDE'},
+          {value: 3, text: 'Zylitics Marketing Site'},
+        ]),
+      2000
+    );
     // !! Sample data, load projects from db for the current user, sorted.
-    setProjects([
-      {value: 4, text: 'Zylitics Docs Site'},
-      {value: 2, text: 'Zylitics Front End'},
-      {value: 1, text: 'Zylitics IDE'},
-      {value: 3, text: 'Zylitics Marketing Site'},
-    ]);
-  }, []); // run this effect just once on mounting.
+  }, []);
 
   // We're using root context, to make sure this component doesn't render when
   // state other than projectId changes, memoize the return value and only
@@ -69,31 +82,34 @@ const ProjectSelector = () => {
       });
     };
 
-    if (projects === null) {
-      return <span>Loading...</span>;
-    }
-
     return (
       <>
         <FormControl className={classes.formControl}>
-          <InputLabel id="projectSelectLabel">Project</InputLabel>
+          <InputLabel id="projectSelectLabel">
+            {projectId ? '' : 'Select a project'}
+          </InputLabel>
           <Select
             labelId="projectSelectLabel"
             id="projectSelect"
             value={projectId ?? ''}
             className={classes.input}
             onChange={handleChange}>
-            {projects.map((p) => (
-              <MenuItem value={p.value} key={p.value}>
-                {p.text}
-              </MenuItem>
-            ))}
+            {projects ? (
+              projects.map((p) => (
+                <MenuItem value={p.value} key={p.value}>
+                  {p.text}
+                </MenuItem>
+              ))
+            ) : (
+              <MenuItem value="">Loading...</MenuItem>
+            )}
           </Select>
         </FormControl>
         <Tooltip title="Create & Switch to New Project">
           <IconButton
             aria-label="Create & Switch to New Project"
-            onClick={newProjectHandler}>
+            onClick={newProjectHandler}
+            className={classes.addIcon}>
             <AddCircleIcon
               color="secondary"
               classes={{root: classes.addIconFont}}

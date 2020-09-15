@@ -10,19 +10,7 @@ import {
   EXP_DELETE_ITEM,
   EXP_DELETE_REVERT,
 } from '../actionTypes';
-import getDeepClonedFiles from './common';
-
-const getSortedNames = (ids, namePropMapping) => {
-  const pairs = ids.map((id) => [id, namePropMapping[id].name]);
-  // The reference referenceStr should be string type, since our names comes
-  // via text inputs, it's always string and doesn't need conversion or
-  // string concat to make it a string.
-  // Note: localeCompare is by far the best for string comparison, reference:
-  // https://stackoverflow.com/a/26295229/1624454
-  pairs.sort((a, b) => a[1].localeCompare(b[1]));
-  // no locale specific options for now, TODO: for later.
-  return pairs.map((p) => p[0]);
-};
+import getDeepClonedFiles, {getSortedNames} from './common';
 
 const loadFiles = (draft, payload) => {
   if (payload.filesToLoad === undefined) {
@@ -122,7 +110,10 @@ const newItem = (draft, payload) => {
       const newFile = {...payload.item};
       newFile.loadToTree = true;
       if (draft.files === null) {
-        draft.files = {entities: {files: {newFile}}, result: [newFile.id]};
+        draft.files = {
+          entities: {files: {[newFile.id]: newFile}},
+          result: [newFile.id],
+        };
       } else {
         const {files} = draft;
         files.entities.files[newFile.id] = newFile;
@@ -144,8 +135,8 @@ const newItem = (draft, payload) => {
       const et = files.entities;
       if (et.tests === undefined) {
         // both tests and versions must be initialized.
-        et.tests = {newTest};
-        et.versions = {newDefaultVersion};
+        et.tests = {[newTest.id]: newTest};
+        et.versions = {[newDefaultVersion.id]: newDefaultVersion};
       } else {
         et.tests[newTest.id] = newTest;
         et.versions[newDefaultVersion.id] = newDefaultVersion;

@@ -6,17 +6,17 @@ import {ErrorBoundary} from 'react-error-boundary';
 import TopNavigation from './TopNavigation';
 import Content from './Content';
 import darkTheme from './Themes';
+import {files as sampleFiles} from './Explorer/sample';
 import {
-  files as sampleFiles,
   globalVars as sampleGlobalVars,
   buildVars as sampleBuildVars,
-} from './Explorer/sample';
-import {filesSchema, globalVarsSchema, buildVarsSchema} from './Explorer/model';
+} from '../variables/sample';
+import {filesSchema} from './Explorer/model';
+import {globalVarsSchema, buildVarsSchema} from '../variables/model';
 import {
   BATCH_ACTIONS,
   SET_FILES,
-  SET_GLOBAL_VARS,
-  SET_BUILD_VARS,
+  VAR_SET,
   RESET_STATE_ON_ERROR,
 } from './actionTypes';
 import batchActions from './actionCreators';
@@ -26,11 +26,14 @@ import {
   IdeFilesContext,
   IdeEditorContext,
   IdeVarsContext,
+  IdeBuildRunningContext,
 } from './Contexts';
 import explorerReducer from './reducers/explorer';
 import editorReducer from './reducers/editor';
+import varReducer from './reducers/var';
 import ideReducer from './reducers/ide';
 import RootErrorFallback, {rootErrorHandler} from '../ErrorBoundary';
+import {VarTypes} from './Constants';
 import './index.css';
 
 const useStyles = makeStyles((theme) => ({
@@ -53,6 +56,7 @@ const initialState = {
     start: null,
     stop: null,
     items: [],
+    runOngoing: false,
   },
   editor: {
     tabs: {
@@ -86,6 +90,9 @@ function ideRootReducer(state, action) {
       if (type.startsWith('EDR_')) {
         return editorReducer(state, action);
       }
+      if (type.startsWith('VAR_')) {
+        return varReducer(state, action);
+      }
       return ideReducer(state, action);
     }
   }
@@ -95,6 +102,8 @@ function ideRootReducer(state, action) {
 // and it re renders, make sure you memoize child components those don't require
 // a re render.
 const Ide = () => {
+  // !! after reducer has run for the first time, direct state updates won't
+  // happen as state object will be locked.
   const [state, dispatch] = useReducer(ideRootReducer, initialState);
   const classes = useStyles();
   const [allSet, setAllSet] = useState(false);
@@ -142,14 +151,20 @@ const Ide = () => {
       }
       if (Array.isArray(sampleGlobalVars) && sampleGlobalVars.length) {
         actions.push({
-          type: SET_GLOBAL_VARS,
-          payload: {globalVars: normalize(sampleGlobalVars, globalVarsSchema)},
+          type: VAR_SET,
+          payload: {
+            type: VarTypes.GLOBAL,
+            value: normalize(sampleGlobalVars, globalVarsSchema),
+          },
         });
       }
       if (Array.isArray(sampleBuildVars) && sampleBuildVars.length) {
         actions.push({
-          type: SET_BUILD_VARS,
-          payload: {buildVars: normalize(sampleBuildVars, buildVarsSchema)},
+          type: VAR_SET,
+          payload: {
+            type: VarTypes.BUILD,
+            value: normalize(sampleBuildVars, buildVarsSchema),
+          },
         });
       }
       dispatch(batchActions(actions));
@@ -207,29 +222,32 @@ const Ide = () => {
             <IdeFilesContext.Provider value={state.files}>
               <IdeEditorContext.Provider value={state.editor}>
                 <IdeVarsContext.Provider value={state.vars}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      height: '100%',
-                      margin: 0,
-                    }}>
-                    <div style={{display: 'flex', flex: '1 1 auto'}}>
-                      <div
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          position: 'fixed',
-                          left: 0,
-                          right: 0,
-                          top: 0,
-                          bottom: 0,
-                        }}>
-                        <TopNavigation />
-                        <Content />
+                  <IdeBuildRunningContext.Provider
+                    value={state.build.runOngoing}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: '100%',
+                        margin: 0,
+                      }}>
+                      <div style={{display: 'flex', flex: '1 1 auto'}}>
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            position: 'fixed',
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                          }}>
+                          <TopNavigation />
+                          <Content />
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </IdeBuildRunningContext.Provider>
                 </IdeVarsContext.Provider>
               </IdeEditorContext.Provider>
             </IdeFilesContext.Provider>

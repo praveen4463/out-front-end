@@ -19,6 +19,9 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+// if we keep it inside component, this will change on every render, making a
+// new function every time thus the input invokes it on every render too. If
+// it was inside component, should have use useCallback to remember.
 const selectOnMount = (input) => {
   if (input !== null) {
     input.select();
@@ -107,7 +110,7 @@ const TreeItemEditor = ({
           onChange={onChangeHandler}
           onKeyUp={keyUpHandler}
           inputRef={selectOnMount}
-          defaultValue={value}
+          value={value}
           fullWidth
           inputProps={{'aria-label': 'naked'}}
           id="input-tree-edit"

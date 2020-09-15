@@ -25,6 +25,7 @@ const MaxLengths = {
   [ExplorerItemType.FILE]: 50,
   [ExplorerItemType.TEST]: 200,
   [ExplorerItemType.VERSION]: 50,
+  VAR_KEY: 100,
 };
 
 const ExplorerEditOperationType = {
@@ -45,9 +46,20 @@ const ApiStatuses = {
   STOPPING: 'STOPPING',
 };
 
+const VarTypes = {
+  BUILD: 'BUILD',
+  GLOBAL: 'GLOBAL',
+};
+
 const ZwlLexer = {
   IDENTIFIER: /[a-zA-Z_]\w*/,
   IDENTIFIER_WITH_START_END: /^[a-zA-Z_]\w*$/,
+};
+
+const ErrorType = {
+  API_ERROR: 'API_ERROR',
+  BUILD_VAR_DUPE_ERROR: 'BUILD_VAR_DUPE_ERROR',
+  GLOBAL_VAR_DUPE_ERROR: 'GLOBAL_VAR_DUPE_ERROR',
 };
 
 export {
@@ -60,5 +72,7 @@ export {
   ExplorerEditOperationType,
   RunType,
   ApiStatuses,
+  VarTypes,
   ZwlLexer,
+  ErrorType,
 };
