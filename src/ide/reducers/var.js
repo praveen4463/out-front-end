@@ -1,7 +1,7 @@
 import produce from 'immer';
 import {pull} from 'lodash-es';
 import {VAR_SET, VAR_NEW, VAR_EDIT, VAR_DELETE} from '../actionTypes';
-import {VarTypes} from '../Constants';
+import {VarTypes} from '../../Constants';
 import {getSortedNames} from './common';
 
 const setVar = (draft, payload) => {

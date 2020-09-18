@@ -33,33 +33,9 @@ const ExplorerEditOperationType = {
   RENAME: 'RENAME',
 };
 
-const RunType = {
-  BUILD_RUN: 'BUILD_RUN',
-  DRY_RUN: 'DRY_RUN',
-  PARSE_RUN: 'PARSE_RUN',
-};
-
-const ApiStatuses = {
-  SUCCESS: 'SUCCESS',
-  FAILURE: 'FAILURE',
-  RUNNING: 'RUNNING',
-  STOPPING: 'STOPPING',
-};
-
-const VarTypes = {
-  BUILD: 'BUILD',
-  GLOBAL: 'GLOBAL',
-};
-
 const ZwlLexer = {
   IDENTIFIER: /[a-zA-Z_]\w*/,
   IDENTIFIER_WITH_START_END: /^[a-zA-Z_]\w*$/,
-};
-
-const ErrorType = {
-  API_ERROR: 'API_ERROR',
-  BUILD_VAR_DUPE_ERROR: 'BUILD_VAR_DUPE_ERROR',
-  GLOBAL_VAR_DUPE_ERROR: 'GLOBAL_VAR_DUPE_ERROR',
 };
 
 export {
@@ -70,9 +46,5 @@ export {
   ExplorerItemType,
   MaxLengths,
   ExplorerEditOperationType,
-  RunType,
-  ApiStatuses,
-  VarTypes,
   ZwlLexer,
-  ErrorType,
 };

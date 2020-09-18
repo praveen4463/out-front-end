@@ -29,7 +29,7 @@ import TableToolbar from '../components/TableToolbar';
 import {IdeDispatchContext, IdeVarsContext} from '../../Contexts';
 import useSnackbarTypeError from '../../../hooks/useSnackbarTypeError';
 import useConfirmationDialog from '../../../hooks/useConfirmationDialog';
-import {ApiStatuses, VarTypes, ErrorType} from '../../Constants';
+import {ApiStatuses, VarTypes, ErrorType} from '../../../Constants';
 import {VAR_NEW, VAR_EDIT, VAR_DELETE} from '../../actionTypes';
 import {BuildVars as BuildVariables} from '../../../variables/model';
 import {getCurrentPrimaryBuildVar} from '../../reducers/var';

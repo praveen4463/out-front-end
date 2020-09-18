@@ -21,8 +21,16 @@ export const EDR_CLOSE_TAB = 'EDR_CLOSE_TAB';
 export const EDR_DBL_CLICK_TAB = 'EDR_DBL_CLICK_TAB';
 export const EDR_VERSION_CODE_UPDATED = 'EDR_VERSION_CODE_UPDATED';
 
-// Build actions
+// Build run actions
 export const RUN_BUILD = 'RUN_BUILD';
+
+// Build config actions
+export const CONFIG_BUILD_ADD_BUILD_VAR = 'RUN_BUILD_ADD_BUILD_VAR';
+
+// Dry Run config actions
+export const CONFIG_DRY_ADD_BUILD_VAR = 'CONFIG_DRY_ADD_BUILD_VAR';
+export const CONFIG_DRY_UPDATE_BROWSER = 'CONFIG_DRY_UPDATE_BROWSER';
+export const CONFIG_DRY_UPDATE_PLATFORM = 'CONFIG_DRY_UPDATE_PLATFORM';
 
 // Variable actions
 export const VAR_SET = 'VAR_SET';

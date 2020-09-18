@@ -48,7 +48,9 @@ import {
 } from '../Contexts';
 import Tooltip from '../../TooltipCustom';
 import {LastRun, LastRunError} from '../Explorer/model';
-import {ApiStatuses, RunType, ZwlLexer} from '../Constants';
+import {ApiStatuses, RunType} from '../../Constants';
+import {ZwlLexer} from '../Constants';
+
 import batchActions, {getLastRunAction} from '../actionCreators';
 import './material-darker.css';
 import './modes/zwl';

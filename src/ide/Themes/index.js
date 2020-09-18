@@ -81,7 +81,7 @@ const darkTheme = createMuiTheme({
     MuiListItem: {
       gutters: {
         paddingLeft: defTheme.spacing(4),
-        paddingRight: defTheme.spacing(4),
+        paddingRight: defTheme.spacing(12),
       },
     },
     MuiTooltip: {

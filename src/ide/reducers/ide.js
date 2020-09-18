@@ -1,13 +1,8 @@
 import produce from 'immer';
-import {
-  SET_FILES,
-  SET_PROJECT,
-  RUN_BUILD,
-  SET_VERSION_LAST_RUN,
-} from '../actionTypes';
+import {SET_FILES, SET_PROJECT, SET_VERSION_LAST_RUN} from '../actionTypes';
 import getDeepClonedFiles from './common';
 import {LastRunError, LastRun} from '../Explorer/model';
-import {RunType} from '../Constants';
+import {RunType} from '../../Constants';
 
 // !!if no reference if kept to the files sent via payload, there is no need to
 // deep clone files, remove it once we're using api to load data.
@@ -26,16 +21,6 @@ const setProject = (draft, payload) => {
 
   draft.projectId = payload.projectId;
   // TODO: we need to also reset other things like files/tabs.
-};
-
-const runBuild = (draft, payload) => {
-  if (payload.itemType === undefined || payload.itemId === undefined) {
-    throw new Error('Insufficient arguments passed to runBuild.');
-  }
-
-  const {build} = draft;
-  build.start = true;
-  build.items = [{itemType: payload.itemType, itemId: payload.itemId}];
 };
 
 const setVersionLastRun = (draft, payload) => {
@@ -78,9 +63,6 @@ const ideReducer = produce((draft, action) => {
       break;
     case SET_PROJECT:
       setProject(draft, payload);
-      break;
-    case RUN_BUILD:
-      runBuild(draft, payload);
       break;
     case SET_VERSION_LAST_RUN:
       setVersionLastRun(draft, payload);

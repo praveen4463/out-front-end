@@ -1,5 +1,6 @@
 // !! Maintain the sort order while changing.
 // !! All values should strictly be a valid identifier, see Constants.ZwlLexer.IDENTIFIER
+import {Browsers, Platforms} from '../Constants';
 
 export const exceptions = [
   'assertionFailedEx',
@@ -270,9 +271,9 @@ export const timeouts = ['elemAccess', 'js', 'pageLoad'];
 
 export const browser = ['name', 'version'];
 
-export const browsers = ['chrome', 'firefox', 'IE'];
+export const browsers = Object.values(Browsers).map((o) => o.VALUE);
 
-export const platforms = ['windows'];
+export const platforms = Object.values(Platforms).map((o) => o.VALUE);
 
 // variables those are maps
 export const maps = {

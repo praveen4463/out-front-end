@@ -27,13 +27,19 @@ import {
   IdeEditorContext,
   IdeVarsContext,
   IdeBuildRunningContext,
+  IdeDryRunConfigContext,
+  IdeBuildRunBuildVarContext,
 } from './Contexts';
 import explorerReducer from './reducers/explorer';
 import editorReducer from './reducers/editor';
 import varReducer from './reducers/var';
 import ideReducer from './reducers/ide';
+import dryConfigReducer from './reducers/dryConfig';
+import buildConfigReducer from './reducers/buildConfig';
+import buildRunReducer from './reducers/buildRun';
 import RootErrorFallback, {rootErrorHandler} from '../ErrorBoundary';
-import {VarTypes} from './Constants';
+import {VarTypes, Browsers, Platforms} from '../Constants';
+import Browser from '../model';
 import './index.css';
 
 const useStyles = makeStyles((theme) => ({
@@ -57,6 +63,22 @@ const initialState = {
     stop: null,
     items: [],
     runOngoing: false,
+  },
+  // currently not deleting buildVars from config when corresponding var is deleted
+  // , reason: if delete fails and we restore, I won't know the deleted var was
+  // restored. Since we're not saving configs in db, this is ok to keep deleted
+  // vars here as they're going to vanish time to time on reloads. This is true for
+  // tests/versions selected in build config too.
+  // selectedBuildVarsPerKey is an object containing pairs of buildVar.key and buildVar.id
+  config: {
+    dry: {
+      browser: new Browser(Browsers.CHROME.VALUE, '70'),
+      platform: Platforms.WINDOWS.VALUE,
+      selectedBuildVarsPerKey: {},
+    },
+    build: {
+      selectedBuildVarsPerKey: {},
+    },
   },
   editor: {
     tabs: {
@@ -92,6 +114,15 @@ function ideRootReducer(state, action) {
       }
       if (type.startsWith('VAR_')) {
         return varReducer(state, action);
+      }
+      if (type.startsWith('RUN_BUILD_')) {
+        return buildRunReducer(state, action);
+      }
+      if (type.startsWith('CONFIG_BUILD_')) {
+        return buildConfigReducer(state, action);
+      }
+      if (type.startsWith('CONFIG_DRY_')) {
+        return dryConfigReducer(state, action);
       }
       return ideReducer(state, action);
     }
@@ -224,29 +255,34 @@ const Ide = () => {
                 <IdeVarsContext.Provider value={state.vars}>
                   <IdeBuildRunningContext.Provider
                     value={state.build.runOngoing}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: '100%',
-                        margin: 0,
-                      }}>
-                      <div style={{display: 'flex', flex: '1 1 auto'}}>
+                    <IdeDryRunConfigContext.Provider value={state.config.dry}>
+                      <IdeBuildRunBuildVarContext.Provider
+                        value={state.config.build.selectedBuildVarsPerKey}>
                         <div
                           style={{
-                            width: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
                             height: '100%',
-                            position: 'fixed',
-                            left: 0,
-                            right: 0,
-                            top: 0,
-                            bottom: 0,
+                            margin: 0,
                           }}>
-                          <TopNavigation />
-                          <Content />
+                          <div style={{display: 'flex', flex: '1 1 auto'}}>
+                            <div
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                position: 'fixed',
+                                left: 0,
+                                right: 0,
+                                top: 0,
+                                bottom: 0,
+                              }}>
+                              <TopNavigation />
+                              <Content />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      </IdeBuildRunBuildVarContext.Provider>
+                    </IdeDryRunConfigContext.Provider>
                   </IdeBuildRunningContext.Provider>
                 </IdeVarsContext.Provider>
               </IdeEditorContext.Provider>

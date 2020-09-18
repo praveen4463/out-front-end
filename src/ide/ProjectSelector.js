@@ -30,6 +30,9 @@ const useStyles = makeStyles((theme) => ({
     fontSize: '0.9rem',
     opacity: theme.textOpacity.highEmphasis,
   },
+  list: {
+    minHeight: theme.spacing(8),
+  },
 }));
 
 const ProjectSelector = () => {
@@ -93,6 +96,7 @@ const ProjectSelector = () => {
             id="projectSelect"
             value={projectId ?? ''}
             className={classes.input}
+            MenuProps={{classes: {list: classes.list}}}
             onChange={handleChange}>
             {projects ? (
               projects.map((p) => (

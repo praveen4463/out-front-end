@@ -14,7 +14,8 @@ import TextField from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Checkbox from '@material-ui/core/Checkbox';
-import {VarTypes, MaxLengths, ErrorType} from '../../Constants';
+import {VarTypes, ErrorType} from '../../../Constants';
+import {MaxLengths} from '../../Constants';
 
 const KEY = 'key';
 const VALUE = 'value';
@@ -118,8 +119,9 @@ const NewVariable = ({addHandler, varType}) => {
     if (syncResponse && syncResponse.error) {
       if (syncResponse.errorType === ErrorType.BUILD_VAR_DUPE_ERROR) {
         errors[KEY] = '';
-        errors[VALUE] =
-          'This is a duplicate key-value pair, no two values can be same in a key group.';
+        errors[
+          VALUE
+        ] = `This is a duplicate value for key group ${variable[KEY]}, no two values can be same for a key group`;
       } else if (syncResponse.errorType === ErrorType.GLOBAL_VAR_DUPE_ERROR) {
         errors[KEY] = 'This key already exists.';
         errors[VALUE] = '';
