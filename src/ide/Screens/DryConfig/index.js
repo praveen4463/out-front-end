@@ -52,7 +52,6 @@ const useStyles = makeStyles((theme) => ({
 const DryConfig = () => {
   const dispatch = useContext(IdeDispatchContext);
   const dryConfig = useContext(IdeDryRunConfigContext);
-  console.log(dryConfig);
   const {build} = useContext(IdeVarsContext);
   const classes = useStyles();
 
@@ -121,7 +120,7 @@ const DryConfig = () => {
           <BrowserSelect
             platform={dryConfig.platform}
             onChange={handleBrowserChange}
-            defaultValue={dryConfig.browser}
+            selectedBrowser={dryConfig.browser}
           />
         </Box>
         <Box display="flex" flexDirection="column" pb={2}>
@@ -130,7 +129,7 @@ const DryConfig = () => {
           </Typography>
           <SelectBuildVars
             varBuild={build}
-            selectedBuildVarsPerKey={dryConfig.selectedBuildVarsPerKey}
+            selectedBuildVarIdPerKey={dryConfig.selectedBuildVarIdPerKey}
             onSelect={handleBuildVarSelect}
           />
         </Box>

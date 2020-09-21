@@ -42,11 +42,10 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-// onChange accept a Browser and defaultValue, selectedBrw are also of type Browser.
+// onChange accept a Browser.
 const BrowserSelect = React.memo(
-  ({platform, onChange, defaultValue = null}) => {
-    const [brwWiseVersions, setBrwWiseVersions] = useState(null);
-    const [selectedBrw, setSelectedBrw] = useState(null);
+  ({platform, onChange, selectedBrowser = null}) => {
+    const [browserWiseVersions, setBrowserWiseVersions] = useState(null);
     const [expanded, setExpanded] = useState(false);
     const classes = useStyles();
 
@@ -56,7 +55,7 @@ const BrowserSelect = React.memo(
     // https://swr.vercel.app/docs/revalidation
     useEffect(() => {
       const onSuccess = (response) => {
-        setBrwWiseVersions(response.data);
+        setBrowserWiseVersions(response.data);
       };
       // send api request for browser versions data based on platform
       setTimeout(() => {
@@ -79,6 +78,9 @@ const BrowserSelect = React.memo(
                   '81',
                   '82',
                   '83',
+                  '84',
+                  '85',
+                  '90',
                 ],
                 [Browsers.FIREFOX.VALUE]: [
                   '70',
@@ -110,30 +112,27 @@ const BrowserSelect = React.memo(
       setExpanded(isExpanded);
     };
 
-    const handleBrwChange = (selectedBrowser) => {
-      onChange(selectedBrowser);
+    const handleBrowserChange = (browser) => {
+      onChange(browser);
       setExpanded(false);
-      setSelectedBrw(selectedBrowser);
     };
 
     const currentBrowser = useMemo(() => {
-      if (!brwWiseVersions || !Object.keys(brwWiseVersions).length) {
-        return null;
-      }
-      if (selectedBrw) {
-        return selectedBrw;
-      }
+      // if selectedBrowser is in list of browser, then only make it current.
       if (
-        defaultValue &&
-        brwWiseVersions[defaultValue.name] &&
-        brwWiseVersions[defaultValue.name].includes(defaultValue.version)
+        selectedBrowser &&
+        browserWiseVersions &&
+        browserWiseVersions[selectedBrowser.name] &&
+        browserWiseVersions[selectedBrowser.name].indexOf(
+          selectedBrowser.version
+        ) >= 0
       ) {
-        return defaultValue;
+        return selectedBrowser;
       }
       return null;
-    }, [brwWiseVersions, defaultValue, selectedBrw]);
+    }, [selectedBrowser, browserWiseVersions]);
 
-    const getBrwDisplayName = (name) => {
+    const getBrowserDisplayName = (name) => {
       let display;
       switch (name) {
         case Browsers.CHROME.VALUE:
@@ -151,18 +150,18 @@ const BrowserSelect = React.memo(
       return display;
     };
 
-    const getSelectedBrwDisplayText = () => {
-      if (!brwWiseVersions || !Object.keys(brwWiseVersions).length) {
+    const getSelectedBrowserDisplayText = () => {
+      if (!browserWiseVersions || !Object.keys(browserWiseVersions).length) {
         return 'Loading...';
       }
       const selected = currentBrowser;
       if (!selected) {
         return 'Select a browser';
       }
-      return `${getBrwDisplayName(selected.name)} ${selected.version}`;
+      return `${getBrowserDisplayName(selected.name)} ${selected.version}`;
     };
 
-    const getBrwIcon = (name) => {
+    const getBrowserIcon = (name) => {
       let icon;
       switch (name) {
         case Browsers.CHROME.VALUE:
@@ -180,12 +179,12 @@ const BrowserSelect = React.memo(
       return <img src={icon} alt={name} style={{verticalAlign: 'middle'}} />;
     };
 
-    const getSelectedBrwIcon = () => {
+    const getSelectedBrowserIcon = () => {
       const selected = currentBrowser;
       if (!selected) {
         return null;
       }
-      return getBrwIcon(selected.name);
+      return getBrowserIcon(selected.name);
     };
 
     return (
@@ -196,24 +195,24 @@ const BrowserSelect = React.memo(
             aria-controls="browserSelect-content"
             id="browserSelect-header">
             <div>
-              {getSelectedBrwIcon()}
+              {getSelectedBrowserIcon()}
               <Typography
                 className={classes.text}
                 style={{
                   display: 'inline-block',
                   marginLeft: '4px',
                 }}>
-                {getSelectedBrwDisplayText()}
+                {getSelectedBrowserDisplayText()}
               </Typography>
             </div>
           </AccordionSummary>
           <AccordionDetails>
             <Box display="flex" flexDirection="column">
-              {brwWiseVersions &&
-                Object.keys(brwWiseVersions).map((k) => (
+              {browserWiseVersions &&
+                Object.keys(browserWiseVersions).map((k) => (
                   <Box className={classes.content} key={k}>
                     <Box width={80}>
-                      {getBrwIcon(k)}
+                      {getBrowserIcon(k)}
                       <Typography
                         className={classes.text}
                         style={{
@@ -221,11 +220,11 @@ const BrowserSelect = React.memo(
                           marginLeft: '4px',
                           paddingTop: '14px',
                         }}>
-                        {getBrwDisplayName(k)}
+                        {getBrowserDisplayName(k)}
                       </Typography>
                     </Box>
                     <Box flex={1} flexWrap="wrap">
-                      {brwWiseVersions[k].map((v) => (
+                      {browserWiseVersions[k].map((v) => (
                         <Button
                           className={clsx(
                             classes.version,
@@ -236,7 +235,7 @@ const BrowserSelect = React.memo(
                               ? classes.selectedVersion
                               : null
                           )}
-                          onClick={() => handleBrwChange(new Browser(k, v))}
+                          onClick={() => handleBrowserChange(new Browser(k, v))}
                           title="click to select"
                           key={`${k}-${v}`}>
                           {v}
@@ -256,11 +255,11 @@ const BrowserSelect = React.memo(
 BrowserSelect.propTypes = {
   platform: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
-  defaultValue: PropTypes.instanceOf(Browser),
+  selectedBrowser: PropTypes.instanceOf(Browser),
 };
 
 BrowserSelect.defaultProps = {
-  defaultValue: null,
+  selectedBrowser: null,
 };
 
 export default BrowserSelect;

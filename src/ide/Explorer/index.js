@@ -38,7 +38,7 @@ import {
 } from '../actionTypes';
 import {Version, Test, File, filesSchema} from './model';
 import {fileToLoad as sampleFilesForOnLoad} from './sample';
-import ColoredItemIcon from '../ColoredItemIcon';
+import ColoredItemIcon from '../../components/ColoredItemIcon';
 import {getNodeId, getBrokenNodeId} from './internal';
 
 const useStyles = makeStyles((theme) => ({

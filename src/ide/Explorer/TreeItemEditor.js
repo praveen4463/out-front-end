@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 import Box from '@material-ui/core/Box';
 import Portal from '@material-ui/core/Portal';
 import validator from './treeItemValidator';
-import ColoredItemIcon from '../ColoredItemIcon';
+import ColoredItemIcon from '../../components/ColoredItemIcon';
 import {ExplorerItemType, ExplorerEditOperationType} from '../Constants';
 
 const useStyles = makeStyles((theme) => ({

@@ -24,9 +24,6 @@ export const EDR_VERSION_CODE_UPDATED = 'EDR_VERSION_CODE_UPDATED';
 // Build run actions
 export const RUN_BUILD = 'RUN_BUILD';
 
-// Build config actions
-export const CONFIG_BUILD_ADD_BUILD_VAR = 'RUN_BUILD_ADD_BUILD_VAR';
-
 // Dry Run config actions
 export const CONFIG_DRY_ADD_BUILD_VAR = 'CONFIG_DRY_ADD_BUILD_VAR';
 export const CONFIG_DRY_UPDATE_BROWSER = 'CONFIG_DRY_UPDATE_BROWSER';

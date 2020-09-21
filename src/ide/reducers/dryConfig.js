@@ -11,13 +11,13 @@ const addBuildVar = (draft, payload) => {
     throw new Error('Insufficient arguments passed to addBuildVar.');
   }
   const {buildVar} = payload;
-  const {selectedBuildVarsPerKey} = draft.config.dry;
-  selectedBuildVarsPerKey[buildVar.key] = buildVar.id;
+  const {selectedBuildVarIdPerKey} = draft.config.dry;
+  selectedBuildVarIdPerKey[buildVar.key] = buildVar.id;
 };
 
 const updateBrowser = (draft, payload) => {
   if (payload.browser === undefined) {
-    throw new Error('Insufficient arguments passed to addBuildVar.');
+    throw new Error('Insufficient arguments passed to updateBrowser.');
   }
   if (payload.browser.constructor !== Browser) {
     throw new TypeError(`Argument is not of type ${Browser.constructor.name}`);
@@ -27,7 +27,7 @@ const updateBrowser = (draft, payload) => {
 
 const updatePlatform = (draft, payload) => {
   if (payload.platform === undefined) {
-    throw new Error('Insufficient arguments passed to addBuildVar.');
+    throw new Error('Insufficient arguments passed to updatePlatform.');
   }
   draft.config.dry.platform = payload.platform;
 };

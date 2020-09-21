@@ -13,21 +13,24 @@ export const Browsers = {
   },
 };
 
-export const Os = {
-  WIN10: {
-    DISPLAY_NAME: 'Windows 10',
-    VALUE: 'win10',
-  },
-  WIN8_1: {
-    DISPLAY_NAME: 'Windows 8.1',
-    VALUE: 'win8.1',
-  },
-};
-
 export const Platforms = {
   WINDOWS: {
     DISPLAY_NAME: 'Windows',
     VALUE: 'windows',
+  },
+};
+
+// put os in descending order of release
+export const Os = {
+  WIN10: {
+    DISPLAY_NAME: 'Windows 10',
+    VALUE: 'win10',
+    PLATFORM: Platforms.WINDOWS.VALUE,
+  },
+  WIN8_1: {
+    DISPLAY_NAME: 'Windows 8.1',
+    VALUE: 'win8_1',
+    PLATFORM: Platforms.WINDOWS.VALUE,
   },
 };
 

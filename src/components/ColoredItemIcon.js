@@ -5,7 +5,7 @@ import clsx from 'clsx';
 import TestIcon from '@material-ui/icons/Title';
 import ZwlFileIcon from './zwlFileIcon';
 import VersionIcon from './newVersionIcon';
-import {ExplorerItemType} from './Constants';
+import {ExplorerItemType} from '../ide/Constants';
 
 const useStyle = makeStyles((theme) => ({
   icon: {

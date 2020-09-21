@@ -21,6 +21,7 @@ import BuildVars from './Screens/BuildVars';
 const DEFAULT_WIDTH_DIALOG = 'lg';
 
 const MenuItems = {
+  BUILD_CAPS: 'BUILD_CAPS',
   BUILD_CONFIG: 'BUILD_CONFIG',
   DRY_CONFIG: 'DRY_CONFIG',
   GLOBAL_VAR: 'GLOBAL_VAR',
@@ -95,6 +96,18 @@ const EditMenu = ({editIconClasses, buildConfigTrigger}) => {
     );
   };
 
+  const handleClickBuildCaps = () => {
+    setState(
+      new EditMenuState(
+        null,
+        true,
+        'Build Capabilities',
+        DEFAULT_WIDTH_DIALOG,
+        MenuItems.BUILD_CAPS
+      )
+    );
+  };
+
   const handleClickBuildConfig = () => {
     setState(
       new EditMenuState(
@@ -149,6 +162,8 @@ const EditMenu = ({editIconClasses, buildConfigTrigger}) => {
 
   const getItemComponent = () => {
     switch (state.menuItem) {
+      case MenuItems.BUILD_CAPS:
+        return <DryConfig />;
       case MenuItems.BUILD_CONFIG:
         return <BuildConfig buildConfigTrigger={buildConfigTrigger} />;
       case MenuItems.DRY_CONFIG:
@@ -170,7 +185,7 @@ const EditMenu = ({editIconClasses, buildConfigTrigger}) => {
 
   return (
     <>
-      <Tooltip title="Edit Configs & Variables E">
+      <Tooltip title="Edit Capabilities, Configs & Variables E">
         <IconButton
           aria-controls="editMenu"
           aria-haspopup="true"
@@ -198,6 +213,8 @@ const EditMenu = ({editIconClasses, buildConfigTrigger}) => {
           vertical: 'top',
           horizontal: 'left',
         }}>
+        <MenuItem onClick={handleClickBuildCaps}>Build Capabilities</MenuItem>
+        <Divider variant="middle" component="li" />
         <MenuItem onClick={handleClickBuildConfig}>Build Config</MenuItem>
         <MenuItem onClick={handleClickDryConfig}>Dry Run Config</MenuItem>
         <Divider variant="middle" component="li" />
@@ -235,7 +252,6 @@ EditMenu.propTypes = {
   }).isRequired,
   buildConfigTrigger: PropTypes.shape({
     open: PropTypes.bool,
-    versionIds: PropTypes.arrayOf(PropTypes.number),
   }),
 };
 

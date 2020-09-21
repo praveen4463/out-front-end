@@ -29,6 +29,7 @@
     "react-router-dom": "^5.2.0",
     "react-scripts": "3.4.3",
     "react-split-pane": "^0.1.92",
+    "react-spring": "^8.0.27",
     "react-table": "^7.5.0",
     "react-window": "^1.8.5",
     "scheduler": "^0.19.1",

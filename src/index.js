@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {ErrorBoundary} from 'react-error-boundary';
 import {ThemeProvider} from '@material-ui/core/styles';
+import {enableMapSet} from 'immer';
 import RootErrorFallback, {rootErrorHandler} from './ErrorBoundary';
 import './index.css';
 import Ide from './ide';
@@ -13,6 +14,8 @@ import 'fontsource-roboto/latin-700.css';
 import 'fontsource-source-code-pro/latin-200.css';
 import 'fontsource-source-code-pro/latin-300.css';
 import 'fontsource-fira-mono/latin-400.css';
+
+enableMapSet();
 
 // TODO: implement onReset error boundary
 ReactDOM.render(

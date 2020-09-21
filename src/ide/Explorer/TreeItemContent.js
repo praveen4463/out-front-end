@@ -11,12 +11,12 @@ import {ContextMenu, MenuItem, ContextMenuTrigger} from 'react-contextmenu';
 import TestIcon from '@material-ui/icons/Title';
 import Chip from '@material-ui/core/Chip';
 import clsx from 'clsx';
-import VersionIcon from '../newVersionIcon';
+import VersionIcon from '../../components/newVersionIcon';
 import Tooltip from '../../TooltipCustom';
 import {ApiStatuses, RunType} from '../../Constants';
 import {ExplorerItemType, ExplorerEditOperationType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
-import ColoredItemIcon from '../ColoredItemIcon';
+import ColoredItemIcon from '../../components/ColoredItemIcon';
 import {IdeDispatchContext} from '../Contexts';
 import batchActions from '../actionCreators';
 import {

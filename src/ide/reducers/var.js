@@ -15,6 +15,22 @@ const setVar = (draft, payload) => {
   }
 };
 
+// when build var is deleted, delete it from configs, storage etc.
+// not considering the edge case when a delete is reverted on api error, this
+// will be a TODO for later.
+const onDeleteBuildVar = (buildVar, draft) => {
+  // delete from both configs, locally
+  if (draft.config.dry.selectedBuildVarIdPerKey[buildVar.key] === buildVar.id) {
+    delete draft.config.dry.selectedBuildVarIdPerKey[buildVar.key];
+  }
+  if (
+    draft.config.build.selectedBuildVarIdPerKey[buildVar.key] === buildVar.id
+  ) {
+    delete draft.config.build.selectedBuildVarIdPerKey[buildVar.key];
+  }
+  // delete in storage
+};
+
 const deleteVar = (draft, payload) => {
   if (payload.id === undefined) {
     throw new Error('Insufficient arguments passed to deleteVar.');
@@ -42,6 +58,7 @@ const deleteVar = (draft, payload) => {
     }
     delete buildVars[id];
     pull(vars.build.result, id);
+    onDeleteBuildVar(entry, draft);
   } else if (payload.type === VarTypes.GLOBAL) {
     delete vars.global.entities.globalVars[id];
     pull(vars.global.result, id);

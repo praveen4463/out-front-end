@@ -75,7 +75,7 @@ const getFormattedValue = (rawValue) => {
 };
 
 const SelectBuildVars = React.memo(
-  ({varBuild, selectedBuildVarsPerKey, onSelect}) => {
+  ({varBuild, selectedBuildVarIdPerKey, onSelect}) => {
     const {buildVars} = varBuild.entities;
     const groupedData = useMemo(
       () =>
@@ -122,8 +122,8 @@ const SelectBuildVars = React.memo(
                 </Typography>
                 <Box display="flex" flexDirection="column" overflow="auto">
                   {Object.keys(groupedData).map((key) => {
-                    const keyResolveTo = selectedBuildVarsPerKey[key]
-                      ? buildVars[selectedBuildVarsPerKey[key]]
+                    const keyResolveTo = selectedBuildVarIdPerKey[key]
+                      ? buildVars[selectedBuildVarIdPerKey[key]]
                       : groupedData[key].find((buildVar) => buildVar.primary);
                     return (
                       <Accordion
@@ -222,7 +222,7 @@ SelectBuildVars.propTypes = {
     }),
     result: PropTypes.arrayOf(PropTypes.number),
   }).isRequired,
-  selectedBuildVarsPerKey: PropTypes.shape({
+  selectedBuildVarIdPerKey: PropTypes.shape({
     key: PropTypes.string,
     id: PropTypes.number,
   }).isRequired,

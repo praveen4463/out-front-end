@@ -7,4 +7,10 @@ const normalizeString = (s) => {
   return null;
 };
 
+export const pushIfNotExists = (array, value) => {
+  if (array.indexOf(value) === -1) {
+    array.push(value);
+  }
+};
+
 export default normalizeString;
