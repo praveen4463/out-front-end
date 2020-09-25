@@ -10,7 +10,8 @@ import {
   EXP_DELETE_ITEM,
   EXP_DELETE_REVERT,
 } from '../actionTypes';
-import getDeepClonedFiles, {getSortedNames} from './common';
+import getDeepClonedFiles from './common';
+import {getSortedNames} from '../../common';
 
 const loadFiles = (draft, payload) => {
   if (payload.filesToLoad === undefined) {

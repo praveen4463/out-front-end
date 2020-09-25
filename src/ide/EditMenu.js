@@ -17,6 +17,7 @@ import BuildConfig from './Screens/BuildConfig';
 import DryConfig from './Screens/DryConfig';
 import GlobalVars from './Screens/GlobalVars';
 import BuildVars from './Screens/BuildVars';
+import BuildCapability from '../Screens/BuildCapability';
 
 const DEFAULT_WIDTH_DIALOG = 'lg';
 
@@ -163,7 +164,7 @@ const EditMenu = ({editIconClasses, buildConfigTrigger}) => {
   const getItemComponent = () => {
     switch (state.menuItem) {
       case MenuItems.BUILD_CAPS:
-        return <DryConfig />;
+        return <BuildCapability />;
       case MenuItems.BUILD_CONFIG:
         return <BuildConfig buildConfigTrigger={buildConfigTrigger} />;
       case MenuItems.DRY_CONFIG:

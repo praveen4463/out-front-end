@@ -96,6 +96,9 @@ const EditableCell = React.memo(({cell, row, column, update}) => {
         value={value ? 'on' : 'off'}
         checked={Boolean(value)} // primary is undefined too, when undefined we want that to parse into bool
         onChange={onRadioChange}
+        title={
+          value ? 'primary variable' : 'click to make this variable primary'
+        }
       />
     );
   }
@@ -109,6 +112,8 @@ const EditableCell = React.memo(({cell, row, column, update}) => {
       fullWidth
       error={Boolean(error)}
       helperText={error ?? ''}
+      InputProps={{disableUnderline: true}}
+      title="click to edit, focus out to update"
     />
   );
 });

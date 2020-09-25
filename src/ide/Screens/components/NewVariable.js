@@ -131,10 +131,6 @@ const NewVariable = ({addHandler, varType}) => {
         return;
       }
     }
-    // doesn't look like there is any need for this as we're resetting on change.
-    /* if (Object.keys(error).some((k) => error[k])) {
-      setError(initialError);
-    } */
     setVariable(initialVar);
     setOpen(switchState.addMultiple);
     if (switchState.addMultiple) {

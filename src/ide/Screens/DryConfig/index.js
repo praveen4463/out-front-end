@@ -43,6 +43,7 @@ const useStyles = makeStyles((theme) => ({
   },
   label: {
     paddingBottom: theme.spacing(1),
+    color: theme.palette.text.secondary,
   },
   iconFilled: {
     right: '14px',

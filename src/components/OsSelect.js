@@ -7,14 +7,22 @@ import Typography from '@material-ui/core/Typography';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
+import {FormHelperText} from '@material-ui/core';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
-import {Os, Platforms} from '../Constants';
-import windowsIcon from '../icons/windows.png';
+import {Os} from '../Constants';
+import {
+  getOsDisplayName,
+  getPlatformDisplayName,
+  getOsIcon as getOsIcon_,
+} from '../common';
 
 const useStyles = makeStyles((theme) => ({
   root: {
     width: '100%',
+  },
+  error: {
+    border: `1px solid ${theme.palette.error.main}`,
   },
   text: {
     fontSize: '0.875rem',
@@ -40,7 +48,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 // selectedOs is the value part of an Os, such as win10 for Windows 10
-const OsSelect = React.memo(({onChange, selectedOs = null}) => {
+const OsSelect = React.memo(({onChange, selectedOs, error, disabled}) => {
   const [expanded, setExpanded] = useState(false);
   const classes = useStyles();
 
@@ -66,33 +74,6 @@ const OsSelect = React.memo(({onChange, selectedOs = null}) => {
     setExpanded(false);
   };
 
-  const getPlatformDisplayName = (platform) => {
-    let display;
-    switch (platform) {
-      case Platforms.WINDOWS.VALUE:
-        display = Platforms.WINDOWS.DISPLAY_NAME;
-        break;
-      default:
-        throw new Error(`Unrecognized platform ${platform}`);
-    }
-    return display;
-  };
-
-  const getOsDisplayName = (os) => {
-    let display;
-    switch (os) {
-      case Os.WIN10.VALUE:
-        display = Os.WIN10.DISPLAY_NAME;
-        break;
-      case Os.WIN8_1.VALUE:
-        display = Os.WIN8_1.DISPLAY_NAME;
-        break;
-      default:
-        throw new Error(`Unrecognized os ${os}`);
-    }
-    return display;
-  };
-
   const getSelectedOsDisplayText = () => {
     if (!selectedOs) {
       return 'Select an OS';
@@ -101,16 +82,9 @@ const OsSelect = React.memo(({onChange, selectedOs = null}) => {
   };
 
   const getOsIcon = (os) => {
-    let icon;
-    switch (os) {
-      case Os.WIN10.VALUE:
-      case Os.WIN8_1.VALUE:
-        icon = windowsIcon;
-        break;
-      default:
-        throw new Error(`Unrecognized os ${os}`);
-    }
-    return <img src={icon} alt={os} style={{verticalAlign: 'middle'}} />;
+    return (
+      <img src={getOsIcon_(os)} alt={os} style={{verticalAlign: 'middle'}} />
+    );
   };
 
   const getSelectedOsIcon = () => {
@@ -122,7 +96,11 @@ const OsSelect = React.memo(({onChange, selectedOs = null}) => {
 
   return (
     <Box className={classes.root}>
-      <Accordion expanded={expanded} onChange={handleAccordionChange}>
+      <Accordion
+        expanded={expanded}
+        disabled={disabled}
+        onChange={handleAccordionChange}
+        className={Boolean(error) && classes.error}>
         <AccordionSummary
           expandIcon={<ExpandMoreIcon />}
           aria-controls="osSelect-content"
@@ -182,6 +160,7 @@ const OsSelect = React.memo(({onChange, selectedOs = null}) => {
           </Box>
         </AccordionDetails>
       </Accordion>
+      {Boolean(error) && <FormHelperText error>{error}</FormHelperText>}
     </Box>
   );
 });
@@ -189,10 +168,14 @@ const OsSelect = React.memo(({onChange, selectedOs = null}) => {
 OsSelect.propTypes = {
   onChange: PropTypes.func.isRequired,
   selectedOs: PropTypes.string,
+  error: PropTypes.string,
+  disabled: PropTypes.bool,
 };
 
 OsSelect.defaultProps = {
   selectedOs: null,
+  error: null,
+  disabled: false,
 };
 
 export default OsSelect;

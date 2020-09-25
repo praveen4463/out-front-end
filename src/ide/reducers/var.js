@@ -2,7 +2,7 @@ import produce from 'immer';
 import {pull} from 'lodash-es';
 import {VAR_SET, VAR_NEW, VAR_EDIT, VAR_DELETE} from '../actionTypes';
 import {VarTypes} from '../../Constants';
-import {getSortedNames} from './common';
+import {getSortedNames} from '../../common';
 
 const setVar = (draft, payload) => {
   if (payload.value === undefined) {
@@ -18,6 +18,7 @@ const setVar = (draft, payload) => {
 // when build var is deleted, delete it from configs, storage etc.
 // not considering the edge case when a delete is reverted on api error, this
 // will be a TODO for later.
+// eslint-disable-next-line no-unused-vars
 const onDeleteBuildVar = (buildVar, draft) => {
   // delete from both configs, locally
   if (draft.config.dry.selectedBuildVarIdPerKey[buildVar.key] === buildVar.id) {
@@ -58,7 +59,8 @@ const deleteVar = (draft, payload) => {
     }
     delete buildVars[id];
     pull(vars.build.result, id);
-    onDeleteBuildVar(entry, draft);
+    // onDeleteBuildVar(entry, draft); let's not delete from config for now, we're not saving it anyway so
+    // it will clear on it's own often.
   } else if (payload.type === VarTypes.GLOBAL) {
     delete vars.global.entities.globalVars[id];
     pull(vars.global.result, id);

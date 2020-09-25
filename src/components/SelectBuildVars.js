@@ -23,6 +23,7 @@ const useStyles = makeStyles((theme) => ({
   },
   description: {
     paddingBottom: theme.spacing(2),
+    color: theme.palette.text.secondary,
   },
   heading: {
     flexBasis: '33.33%',
@@ -50,6 +51,7 @@ const useStyles = makeStyles((theme) => ({
   },
   button: {
     fontSize: '0.725rem',
+    textTransform: 'unset',
   },
   groupVarsText: {
     marginLeft: theme.spacing(1),

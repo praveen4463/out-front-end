@@ -25,7 +25,7 @@ import {VAR_NEW, VAR_EDIT, VAR_DELETE} from '../../actionTypes';
 import {GlobalVars as GlobalVariables} from '../../../variables/model';
 import normalizeString from '../../../utils';
 
-const useStyle = makeStyles((theme) => ({
+const useStyles = makeStyles((theme) => ({
   deleteButton: {
     color: theme.palette.background.contrastText,
   },
@@ -78,6 +78,8 @@ const EditableCell = React.memo(({cell, row, column, update}) => {
       fullWidth
       error={Boolean(error)}
       helperText={error ?? ''}
+      InputProps={{disableUnderline: true}}
+      title="click to edit, focus out to update"
     />
   );
 });
@@ -96,7 +98,7 @@ EditableCell.propTypes = {
 };
 
 const Actions = ({row: {original}, onDelete}) => {
-  const classes = useStyle();
+  const classes = useStyles();
 
   const deleteAcceptHandler = () => {
     onDelete(original);
@@ -141,7 +143,7 @@ Actions.propTypes = {
 const GlobalVars = () => {
   const dispatch = useContext(IdeDispatchContext);
   const vars = useContext(IdeVarsContext);
-  const classes = useStyle();
+  const classes = useStyles();
   // console.log('vars', vars);
   const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
   const columns = useMemo(

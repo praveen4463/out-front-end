@@ -9,15 +9,20 @@ import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
+import {FormHelperText} from '@material-ui/core';
 import {ApiStatuses, Browsers} from '../Constants';
 import Browser from '../model';
-import chrome from '../icons/chrome.png';
-import firefox from '../icons/firefox.png';
-import ie from '../icons/ie.png';
+import {
+  getBrowserDisplayName,
+  getBrowserIcon as getBrowserIcon_,
+} from '../common';
 
 const useStyles = makeStyles((theme) => ({
   root: {
     width: '100%',
+  },
+  error: {
+    border: `1px solid ${theme.palette.error.main}`,
   },
   text: {
     fontSize: '0.875rem',
@@ -44,7 +49,7 @@ const useStyles = makeStyles((theme) => ({
 
 // onChange accept a Browser.
 const BrowserSelect = React.memo(
-  ({platform, onChange, selectedBrowser = null}) => {
+  ({platform, onChange, selectedBrowser, error, disabled}) => {
     const [browserWiseVersions, setBrowserWiseVersions] = useState(null);
     const [expanded, setExpanded] = useState(false);
     const classes = useStyles();
@@ -97,6 +102,8 @@ const BrowserSelect = React.memo(
                   '81',
                   '82',
                   '83',
+                  '84',
+                  '85',
                 ],
                 [Browsers.IE.VALUE]: ['11'],
               }
@@ -132,24 +139,6 @@ const BrowserSelect = React.memo(
       return null;
     }, [selectedBrowser, browserWiseVersions]);
 
-    const getBrowserDisplayName = (name) => {
-      let display;
-      switch (name) {
-        case Browsers.CHROME.VALUE:
-          display = Browsers.CHROME.DISPLAY_NAME;
-          break;
-        case Browsers.FIREFOX.VALUE:
-          display = Browsers.FIREFOX.DISPLAY_NAME;
-          break;
-        case Browsers.IE.VALUE:
-          display = Browsers.IE.DISPLAY_NAME;
-          break;
-        default:
-          throw new Error(`Unrecognized browser ${name}`);
-      }
-      return display;
-    };
-
     const getSelectedBrowserDisplayText = () => {
       if (!browserWiseVersions || !Object.keys(browserWiseVersions).length) {
         return 'Loading...';
@@ -162,21 +151,13 @@ const BrowserSelect = React.memo(
     };
 
     const getBrowserIcon = (name) => {
-      let icon;
-      switch (name) {
-        case Browsers.CHROME.VALUE:
-          icon = chrome;
-          break;
-        case Browsers.FIREFOX.VALUE:
-          icon = firefox;
-          break;
-        case Browsers.IE.VALUE:
-          icon = ie;
-          break;
-        default:
-          throw new Error(`Unrecognized browser ${name}`);
-      }
-      return <img src={icon} alt={name} style={{verticalAlign: 'middle'}} />;
+      return (
+        <img
+          src={getBrowserIcon_(name)}
+          alt={name}
+          style={{verticalAlign: 'middle'}}
+        />
+      );
     };
 
     const getSelectedBrowserIcon = () => {
@@ -189,7 +170,11 @@ const BrowserSelect = React.memo(
 
     return (
       <Box className={classes.root}>
-        <Accordion expanded={expanded} onChange={handleAccordionChange}>
+        <Accordion
+          expanded={expanded}
+          disabled={disabled}
+          onChange={handleAccordionChange}
+          className={clsx(Boolean(error) && classes.error)}>
           <AccordionSummary
             expandIcon={<ExpandMoreIcon />}
             aria-controls="browserSelect-content"
@@ -247,6 +232,7 @@ const BrowserSelect = React.memo(
             </Box>
           </AccordionDetails>
         </Accordion>
+        {Boolean(error) && <FormHelperText error>{error}</FormHelperText>}
       </Box>
     );
   }
@@ -256,10 +242,14 @@ BrowserSelect.propTypes = {
   platform: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
   selectedBrowser: PropTypes.instanceOf(Browser),
+  error: PropTypes.string,
+  disabled: PropTypes.bool,
 };
 
 BrowserSelect.defaultProps = {
   selectedBrowser: null,
+  error: null,
+  disabled: false,
 };
 
 export default BrowserSelect;
