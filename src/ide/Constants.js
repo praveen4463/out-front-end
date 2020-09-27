@@ -13,6 +13,8 @@ const BottomNavs = {
 };
 
 // Alternative to null so that props that are required don't get a null.
+// TODO: use defaultProps at those places and remove this, mistake during learning
+// react.
 const None = 'None';
 
 const ExplorerItemType = {

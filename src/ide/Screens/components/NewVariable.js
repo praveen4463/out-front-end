@@ -25,6 +25,10 @@ const useStyle = makeStyles((theme) => ({
   root: {
     color: theme.palette.background.contrastText,
   },
+  buttonAdd: {
+    paddingLeft: theme.spacing(6),
+    paddingRight: theme.spacing(6),
+  },
 }));
 
 let initialVar;
@@ -217,6 +221,17 @@ const NewVariable = ({addHandler, varType}) => {
           ) : null}
         </DialogContent>
         <DialogActions>
+          <Button
+            onClick={handleAdd}
+            variant="contained"
+            color="secondary"
+            className={classes.buttonAdd}
+            tabIndex="0">
+            Add
+          </Button>
+          <Button onClick={handleClose} variant="contained" tabIndex="0">
+            Cancel
+          </Button>
           <Tooltip title="Add multiple">
             <Switch
               checked={switchState.addMultiple}
@@ -225,16 +240,6 @@ const NewVariable = ({addHandler, varType}) => {
               inputProps={{'aria-label': 'secondary checkbox', tabIndex: '0'}}
             />
           </Tooltip>
-          <Button onClick={handleClose} variant="contained" tabIndex="0">
-            Cancel
-          </Button>
-          <Button
-            onClick={handleAdd}
-            variant="contained"
-            color="secondary"
-            tabIndex="0">
-            Add
-          </Button>
         </DialogActions>
       </Dialog>
     </div>

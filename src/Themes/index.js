@@ -2,6 +2,8 @@ import {unstable_createMuiStrictModeTheme as createMuiTheme} from '@material-ui/
 
 const highEmphasisOpacity = 0.87;
 
+const defTheme = createMuiTheme();
+
 const lightTheme = createMuiTheme({
   palette: {
     type: 'light',
@@ -17,6 +19,19 @@ const lightTheme = createMuiTheme({
     highEmphasis: highEmphasisOpacity,
     mediumEmphasis: 0.6,
     disabled: 0.38,
+  },
+  overrides: {
+    MuiInputBase: {
+      input: {
+        color: defTheme.palette.text.primary,
+        fontSize: '0.875rem',
+      },
+    },
+    MuiButton: {
+      root: {
+        textTransform: 'unset',
+      },
+    },
   },
 });
 

@@ -164,7 +164,7 @@ const EditMenu = ({editIconClasses, buildConfigTrigger}) => {
   const getItemComponent = () => {
     switch (state.menuItem) {
       case MenuItems.BUILD_CAPS:
-        return <BuildCapability />;
+        return <BuildCapability optIECleanSessionOnSave />;
       case MenuItems.BUILD_CONFIG:
         return <BuildConfig buildConfigTrigger={buildConfigTrigger} />;
       case MenuItems.DRY_CONFIG:

@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-props-no-spreading */
 /* eslint-disable react/prop-types */
-import React, {useContext, useMemo, useState} from 'react';
+import React, {useContext, useMemo, useState, useCallback} from 'react';
 import {random} from 'lodash-es';
 import TextField from '@material-ui/core/TextField';
 import {makeStyles} from '@material-ui/core/styles';
@@ -97,17 +97,17 @@ EditableCell.propTypes = {
   update: PropTypes.func.isRequired,
 };
 
-const Actions = ({row: {original}, onDelete}) => {
+const Actions = React.memo(({originalRow, onDelete}) => {
   const classes = useStyles();
 
   const deleteAcceptHandler = () => {
-    onDelete(original);
+    onDelete(originalRow);
   };
 
   const [setShowDeleteDialog, deleteDialog] = useConfirmationDialog(
     deleteAcceptHandler,
     'Delete',
-    `Are you sure you want to delete variable ${original.key}?`,
+    `Are you sure you want to delete variable ${originalRow.key}?`,
     'delete-alert-dialog-description'
   );
 
@@ -129,13 +129,11 @@ const Actions = ({row: {original}, onDelete}) => {
       {deleteDialog}
     </>
   );
-};
+});
 
 Actions.propTypes = {
-  row: PropTypes.shape({
-    original: PropTypes.shape({
-      id: PropTypes.number,
-    }),
+  originalRow: PropTypes.shape({
+    id: PropTypes.number,
   }).isRequired,
   onDelete: PropTypes.func.isRequired,
 };
@@ -266,40 +264,43 @@ const GlobalVars = () => {
     return null;
   };
 
-  const del = (originalRow) => {
-    dispatch({
-      type: VAR_DELETE,
-      payload: {
-        type: VarTypes.GLOBAL,
-        id: originalRow.id,
-      },
-    });
-    const onError = (response) => {
-      setSnackbarErrorMsg(`Couldn't delete, ${response.error.reason}`);
-      // revert to original on error
+  const del = useCallback(
+    (originalRow) => {
       dispatch({
-        type: VAR_NEW,
+        type: VAR_DELETE,
         payload: {
           type: VarTypes.GLOBAL,
-          value: originalRow,
+          id: originalRow.id,
         },
       });
-    };
-    setTimeout(() => {
-      /* const response = {
+      const onError = (response) => {
+        setSnackbarErrorMsg(`Couldn't delete, ${response.error.reason}`);
+        // revert to original on error
+        dispatch({
+          type: VAR_NEW,
+          payload: {
+            type: VarTypes.GLOBAL,
+            value: originalRow,
+          },
+        });
+      };
+      setTimeout(() => {
+        /* const response = {
         status: ApiStatuses.FAILURE,
         error: {
           reason: 'Network error',
         },
       }; */
-      const response = {
-        status: ApiStatuses.SUCCESS,
-      };
-      if (response.status === ApiStatuses.FAILURE) {
-        onError(response);
-      }
-    }, 500);
-  };
+        const response = {
+          status: ApiStatuses.SUCCESS,
+        };
+        if (response.status === ApiStatuses.FAILURE) {
+          onError(response);
+        }
+      }, 500);
+    },
+    [dispatch, setSnackbarErrorMsg]
+  );
 
   // Set our editable cell renderer as the default Cell renderer
   const defaultColumn = {
@@ -335,8 +336,13 @@ const GlobalVars = () => {
         {
           id: 'actions',
           Header: '', // don't show a header for action column
-          Cell: ({row}) =>
-            !row.canExpand ? <Actions row={row} onDelete={del} /> : null,
+          Cell: ({row}) => (
+            <Actions
+              originalRow={row.original}
+              onDelete={del}
+              key={row.original.id}
+            />
+          ),
         },
         ...cols,
       ]);

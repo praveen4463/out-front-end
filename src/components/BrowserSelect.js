@@ -10,6 +10,7 @@ import Button from '@material-ui/core/Button';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import {FormHelperText} from '@material-ui/core';
+import useSnackbarTypeError from '../hooks/useSnackbarTypeError';
 import {ApiStatuses, Browsers} from '../Constants';
 import Browser from '../model';
 import {
@@ -49,71 +50,91 @@ const useStyles = makeStyles((theme) => ({
 
 // onChange accept a Browser.
 const BrowserSelect = React.memo(
-  ({platform, onChange, selectedBrowser, error, disabled}) => {
+  ({
+    platform,
+    onChange,
+    selectedBrowser,
+    error,
+    disabled,
+    accordionClasses,
+  }) => {
     const [browserWiseVersions, setBrowserWiseVersions] = useState(null);
     const [expanded, setExpanded] = useState(false);
+    const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
     const classes = useStyles();
 
-    // This effect runs just once, the validation method of swr or react-query
+    // This effect runs just once per platform, the validation method of swr or react-query
     // will update data when user does tab refocus or computer awake etc which
     // should be fine because this list doesn't change rapidly.
     // https://swr.vercel.app/docs/revalidation
     useEffect(() => {
+      // when platform is null don't run it, platform can't become non null -> null,
+      // it can only change from one value to another.
+      // so this is fine.
+      if (!platform) {
+        return;
+      }
+      setBrowserWiseVersions(null); // when platform changes, set null so that previous
+      // platform's browser won't show up while new are loading, doesn't change state
+      // when it's already null.
       const onSuccess = (response) => {
         setBrowserWiseVersions(response.data);
+      };
+      const onError = (response) => {
+        setSnackbarErrorMsg(`Couldn't get browsers, ${response.error.reason}`);
       };
       // send api request for browser versions data based on platform
       setTimeout(() => {
         const response = {
           status: ApiStatuses.SUCCESS,
-          data: platform
-            ? {
-                [Browsers.CHROME.VALUE]: [
-                  '70',
-                  '71',
-                  '72',
-                  '73',
-                  '74',
-                  '75',
-                  '76',
-                  '77',
-                  '78',
-                  '79',
-                  '80',
-                  '81',
-                  '82',
-                  '83',
-                  '84',
-                  '85',
-                  '90',
-                ],
-                [Browsers.FIREFOX.VALUE]: [
-                  '70',
-                  '71',
-                  '72',
-                  '73',
-                  '74',
-                  '75',
-                  '76',
-                  '77',
-                  '78',
-                  '79',
-                  '80',
-                  '81',
-                  '82',
-                  '83',
-                  '84',
-                  '85',
-                ],
-                [Browsers.IE.VALUE]: ['11'],
-              }
-            : {},
+          data: {
+            [Browsers.CHROME.VALUE]: [
+              '70',
+              '71',
+              '72',
+              '73',
+              '74',
+              '75',
+              '76',
+              '77',
+              '78',
+              '79',
+              '80',
+              '81',
+              '82',
+              '83',
+              '84',
+              '85',
+              '90',
+            ],
+            [Browsers.FIREFOX.VALUE]: [
+              '70',
+              '71',
+              '72',
+              '73',
+              '74',
+              '75',
+              '76',
+              '77',
+              '78',
+              '79',
+              '80',
+              '81',
+              '82',
+              '83',
+              '84',
+              '85',
+            ],
+            [Browsers.IE.VALUE]: ['11'],
+          },
         };
         if (response.status === ApiStatuses.SUCCESS) {
           onSuccess(response);
+        } else if (response.status === ApiStatuses.FAILURE) {
+          onError(response);
         }
-      }, 1000);
-    }, [platform]);
+      }, 500);
+    }, [platform, setSnackbarErrorMsg]);
 
     const handleAccordionChange = (event, isExpanded) => {
       setExpanded(isExpanded);
@@ -140,7 +161,10 @@ const BrowserSelect = React.memo(
     }, [selectedBrowser, browserWiseVersions]);
 
     const getSelectedBrowserDisplayText = () => {
-      if (!browserWiseVersions || !Object.keys(browserWiseVersions).length) {
+      if (!platform) {
+        return ''; // when no platform is selected, don't display any text.
+      }
+      if (!browserWiseVersions) {
         return 'Loading...';
       }
       const selected = currentBrowser;
@@ -169,87 +193,99 @@ const BrowserSelect = React.memo(
     };
 
     return (
-      <Box className={classes.root}>
-        <Accordion
-          expanded={expanded}
-          disabled={disabled}
-          onChange={handleAccordionChange}
-          className={clsx(Boolean(error) && classes.error)}>
-          <AccordionSummary
-            expandIcon={<ExpandMoreIcon />}
-            aria-controls="browserSelect-content"
-            id="browserSelect-header">
-            <div>
-              {getSelectedBrowserIcon()}
-              <Typography
-                className={classes.text}
-                style={{
-                  display: 'inline-block',
-                  marginLeft: '4px',
-                }}>
-                {getSelectedBrowserDisplayText()}
-              </Typography>
-            </div>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Box display="flex" flexDirection="column">
-              {browserWiseVersions &&
-                Object.keys(browserWiseVersions).map((k) => (
-                  <Box className={classes.content} key={k}>
-                    <Box width={80}>
-                      {getBrowserIcon(k)}
-                      <Typography
-                        className={classes.text}
-                        style={{
-                          display: 'inline-block',
-                          marginLeft: '4px',
-                          paddingTop: '14px',
-                        }}>
-                        {getBrowserDisplayName(k)}
-                      </Typography>
+      <>
+        <Box className={classes.root}>
+          <Accordion
+            expanded={expanded}
+            disabled={disabled || !browserWiseVersions}
+            onChange={handleAccordionChange}
+            className={clsx(Boolean(error) && classes.error)}
+            classes={{...accordionClasses}}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls="browserSelect-content"
+              id="browserSelect-header">
+              <div>
+                {getSelectedBrowserIcon()}
+                <Typography
+                  className={classes.text}
+                  style={{
+                    display: 'inline-block',
+                    marginLeft: '4px',
+                  }}>
+                  {getSelectedBrowserDisplayText()}
+                </Typography>
+              </div>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box display="flex" flexDirection="column" width="100%">
+                {browserWiseVersions &&
+                  // platform is necessary so that if platform changes, we don't fill any list until new browsers load.
+                  platform &&
+                  Object.keys(browserWiseVersions).map((k) => (
+                    <Box className={classes.content} key={k}>
+                      <Box width={80}>
+                        {getBrowserIcon(k)}
+                        <Typography
+                          className={classes.text}
+                          style={{
+                            display: 'inline-block',
+                            marginLeft: '4px',
+                            paddingTop: '14px',
+                          }}>
+                          {getBrowserDisplayName(k)}
+                        </Typography>
+                      </Box>
+                      <Box flex={1} flexWrap="wrap">
+                        {browserWiseVersions[k].map((v) => (
+                          <Button
+                            className={clsx(
+                              classes.version,
+                              classes.text,
+                              currentBrowser &&
+                                currentBrowser.name === k &&
+                                currentBrowser.version === v
+                                ? classes.selectedVersion
+                                : null
+                            )}
+                            onClick={() =>
+                              handleBrowserChange(new Browser(k, v))
+                            }
+                            title="click to select"
+                            key={`${k}-${v}`}>
+                            {v}
+                          </Button>
+                        ))}
+                      </Box>
                     </Box>
-                    <Box flex={1} flexWrap="wrap">
-                      {browserWiseVersions[k].map((v) => (
-                        <Button
-                          className={clsx(
-                            classes.version,
-                            classes.text,
-                            currentBrowser &&
-                              currentBrowser.name === k &&
-                              currentBrowser.version === v
-                              ? classes.selectedVersion
-                              : null
-                          )}
-                          onClick={() => handleBrowserChange(new Browser(k, v))}
-                          title="click to select"
-                          key={`${k}-${v}`}>
-                          {v}
-                        </Button>
-                      ))}
-                    </Box>
-                  </Box>
-                ))}
-            </Box>
-          </AccordionDetails>
-        </Accordion>
-        {Boolean(error) && <FormHelperText error>{error}</FormHelperText>}
-      </Box>
+                  ))}
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+          {Boolean(error) && <FormHelperText error>{error}</FormHelperText>}
+        </Box>
+        {snackbarTypeError}
+      </>
     );
   }
 );
 
 BrowserSelect.propTypes = {
-  platform: PropTypes.string.isRequired,
+  platform: PropTypes.string,
   onChange: PropTypes.func.isRequired,
   selectedBrowser: PropTypes.instanceOf(Browser),
   error: PropTypes.string,
   disabled: PropTypes.bool,
+  // eslint-disable-next-line react/forbid-prop-types
+  accordionClasses: PropTypes.object,
 };
 
 BrowserSelect.defaultProps = {
+  platform: null,
   selectedBrowser: null,
   error: null,
   disabled: false,
+  accordionClasses: {},
 };
 
 export default BrowserSelect;

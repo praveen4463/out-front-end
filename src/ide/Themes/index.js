@@ -47,6 +47,7 @@ const darkTheme = createMuiTheme({
     },
     background: {
       paper: '#212121',
+      paperContrast: '#262626',
       navigations: '#363636',
       panelClose: '#282828',
       default: '#121212',
@@ -106,6 +107,17 @@ const darkTheme = createMuiTheme({
           // keep it same for all sizes under xl
           marginLeft: '0.25rem', // using rem rather than px for responsiveness
         },
+      },
+    },
+    MuiInputBase: {
+      input: {
+        color: `rgba(255, 255, 255, ${highEmphasisOpacity})`,
+        fontSize: '0.875rem',
+      },
+    },
+    MuiButton: {
+      root: {
+        textTransform: 'unset',
       },
     },
   },

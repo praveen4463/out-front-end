@@ -7,7 +7,6 @@ import AccordionDetails from '@material-ui/core/AccordionDetails';
 import Typography from '@material-ui/core/Typography';
 import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
-import Container from '@material-ui/core/Container';
 import InfoIcon from '@material-ui/icons/Info';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
@@ -17,12 +16,14 @@ import Select from '@material-ui/core/Select';
 import Checkbox from '@material-ui/core/Checkbox';
 import {random} from 'lodash-es';
 import PropTypes from 'prop-types';
+import clsx from 'clsx';
 import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 import TooltipCustom from '../../TooltipCustom';
 import BrowserSelect from '../../components/BrowserSelect';
 import OsSelect from '../../components/OsSelect';
 import {
   ApiStatuses,
+  Browsers,
   BuildCapsLabels,
   BuildCapsFields,
   MaxLengths,
@@ -36,15 +37,21 @@ import {
 } from '../../Constants';
 import Browser, {BuildCapabilities} from '../../model';
 import {getPlatformByOs} from '../../common';
-import normalizeString from '../../utils/index';
 
 const useStyles = makeStyles((theme) => ({
+  root: {
+    width: '100%',
+    color: theme.palette.background.contrastText,
+  },
   capTitle: {
     color: theme.palette.background.contrastText,
   },
   button: {
-    textTransform: 'unset',
     fontWeight: 400,
+    marginLeft: theme.spacing(1),
+  },
+  buttonSave: {
+    padding: `0px ${theme.spacing(6)}px`,
   },
   capsDetail: {
     flexDirection: 'column',
@@ -53,16 +60,20 @@ const useStyles = makeStyles((theme) => ({
     width: '25%',
   },
   filled: {
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: theme.palette.background.paperContrast,
     padding: '15px 12px 14px',
     '&:focus': {
-      backgroundColor: theme.palette.background.paper,
+      backgroundColor: theme.palette.background.paperContrast,
     },
+    boxShadow: theme.shadows[1],
   },
   input: {
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: theme.palette.background.paperContrast,
     fontSize: '0.875rem',
     color: theme.palette.background.contrastText,
+  },
+  accordionElements: {
+    backgroundColor: theme.palette.background.paperContrast,
   },
   list: {
     minHeight: theme.spacing(8),
@@ -71,8 +82,24 @@ const useStyles = makeStyles((theme) => ({
     paddingBottom: theme.spacing(1),
     color: theme.palette.text.secondary,
   },
+  labelLowPad: {
+    paddingBottom: theme.spacing(0.3),
+    color: theme.palette.text.secondary,
+  },
   iconFilled: {
     right: '14px',
+  },
+  infoLabel: {
+    marginLeft: '4px',
+    fontSize: '1rem',
+    color: theme.palette.background.contrastText,
+    cursor: 'pointer',
+  },
+  numberTextField: {
+    width: '20%',
+  },
+  textField: {
+    width: '60%',
   },
 }));
 
@@ -116,7 +143,7 @@ const initialError = {
 };
 
 const NewCaps = React.memo(
-  ({initialCaps, onSave, onCancel, optIECleanSessionOnSave}) => {
+  ({initialCaps, existingNames, onSave, onCancel, optIECleanSessionOnSave}) => {
     const [caps, setCaps] = useState(() =>
       initialCaps === null ? new BuildCapabilities() : initialCaps
     );
@@ -128,18 +155,25 @@ const NewCaps = React.memo(
     const summary = useSummaryStyles();
 
     const handleAccordionChange = (e, isExpanded) => {
-      setExpanded(!isExpanded);
+      setExpanded(isExpanded);
     };
 
     const validateOnSubmit = () => {
       const errors = {};
-      const nameLen = caps[BuildCapsFields.NAME].trim().length;
-      if (nameLen === 0) {
+      const name = caps[BuildCapsFields.NAME]
+        ? caps[BuildCapsFields.NAME].trim()
+        : '';
+      const len = name.length;
+      if (len === 0) {
         errors[ValidatedFields.NAME] = `${BuildCapsLabels.NAME} is required`;
-      } else if (nameLen > MaxLengths.BuildCapsName) {
+      } else if (len > MaxLengths.BUILD_CAPS_NAME) {
         errors[
           ValidatedFields.NAME
         ] = `${BuildCapsLabels.NAME} can't be more than ${MaxLengths.BUILD_CAPS_NAME} characters`;
+      } else if (existingNames.indexOf(name) >= 0) {
+        errors[
+          ValidatedFields.NAME
+        ] = `A capability of the same name already exists`;
       }
       if (!caps[BuildCapsFields.OS]) {
         errors[ValidatedFields.OS] = `${BuildCapsLabels.OS} is required`;
@@ -186,9 +220,6 @@ const NewCaps = React.memo(
         case 'checkbox':
           value = el.checked;
           break;
-        case 'number':
-          value = Number(el.value);
-          break;
         default:
           value = el.value;
           break;
@@ -199,21 +230,33 @@ const NewCaps = React.memo(
       }
     };
 
+    // timeouts in buildCaps are always numeric, but data from textfield even if
+    // number type is string. If user changed def timeout, we get string data,
+    // if we try converting that to Number onChange, empty values become 0, not
+    // allowing user to fully empty the box before typing new, thus Number conversion
+    // is not done from onChange and string value is kept in timeout field. If user
+    // keep fields empty, just send default value, entering anything else than empty
+    // that is not number is not possible. So every time user change fields, we get
+    // a string value.
     const normalizeTimeouts = (value, defaultValue) => {
       let timeout = value;
-      if (typeof timeout !== 'number') {
+      if (typeof timeout === 'string') {
+        if (timeout.length === 0) {
+          return defaultValue;
+        }
         timeout = Number(timeout);
       }
       if (Number.isNaN(timeout) || timeout < 0) {
         return defaultValue;
       }
       if (!Number.isFinite(timeout) || timeout > Number.MAX_SAFE_INTEGER) {
-        return MaxLengths.BuildCapsTimeout;
+        return MaxLengths.BUILD_CAPS_TIMEOUT;
       }
       return timeout;
     };
 
-    const handleSave = () => {
+    const handleSave = (e) => {
+      e.stopPropagation();
       if (!expanded) {
         setExpanded(true);
       }
@@ -227,9 +270,8 @@ const NewCaps = React.memo(
       // TODO: later track for changes and send changed fields only.
       const clone = {...caps}; // don't mutate the state, if an error occurs it will
       // continue to be used. There is not nested object inside caps.
-      clone[BuildCapsFields.NAME] = normalizeString(
-        clone[BuildCapsFields.NAME]
-      );
+      clone[BuildCapsFields.NAME] = clone[BuildCapsFields.NAME].trim(); // no need to escape
+      // backslashes, quotes etc, JSON.stringify will do that.
       clone[BuildCapsFields.ST] = normalizeTimeouts(
         clone[BuildCapsFields.ST],
         BuildCapsTimeouts.ST
@@ -263,8 +305,17 @@ const NewCaps = React.memo(
         const response = {
           status: ApiStatuses.SUCCESS,
         };
+        /* const response = {
+          status: ApiStatuses.FAILURE,
+          error: {
+            reason: 'Internal Error',
+          },
+        }; */
         // if it was an edit, there won't be any data returned from api
-        if (!caps[BuildCapsFields.ID]) {
+        if (
+          response.status === ApiStatuses.SUCCESS &&
+          !caps[BuildCapsFields.ID]
+        ) {
           response.data = {
             id: random(1000, 10000),
           };
@@ -277,25 +328,30 @@ const NewCaps = React.memo(
       }, 1000);
     };
 
-    const handleCancel = () => {
+    const handleCancel = (e) => {
+      e.stopPropagation();
       onCancel();
     };
 
-    const getLabel = (label) => {
+    const getLabel = (label, forId, lowPad = false) => {
       return (
-        <Typography variant="body2" className={classes.label}>
+        <Typography
+          variant="body2"
+          component="label"
+          htmlFor={forId}
+          className={clsx(lowPad ? classes.labelLowPad : classes.label)}>
           {label}
         </Typography>
       );
     };
 
-    const getInfoLabel = (capsKey) => {
+    const getInfoLabel = (capsKey, forId, lowPad = false) => {
       return (
         <Box display="flex">
-          {getLabel(BuildCapsLabels[capsKey])}
+          {getLabel(BuildCapsLabels[capsKey], forId, lowPad)}
           {BuildCapsInfo[capsKey] && (
             <TooltipCustom title={BuildCapsInfo[capsKey]} placement="right">
-              <InfoIcon fontSize="small" />
+              <InfoIcon fontSize="small" className={classes.infoLabel} />
             </TooltipCustom>
           )}
         </Box>
@@ -307,9 +363,9 @@ const NewCaps = React.memo(
       return (
         <FormControl variant="filled" className={classes.formControl}>
           <Select
-            id={`${field}-select`}
+            id={field}
             name={field}
-            value={caps[field] || ''}
+            value={caps[field] ?? ''}
             disabled={saving}
             onChange={handleChange}
             classes={{
@@ -321,7 +377,7 @@ const NewCaps = React.memo(
             IconComponent={ExpandMoreIcon}
             disableUnderline>
             {Object.keys(optionsObj).map((k) => (
-              <MenuItem value={k} key={k}>
+              <MenuItem value={optionsObj[k]} key={k}>
                 {optionsObj[k]}
               </MenuItem>
             ))}
@@ -331,29 +387,36 @@ const NewCaps = React.memo(
     };
 
     const getCheckbox = (field) => {
+      // using a container div so that checkbox don't stretch to fit available
+      // flexbox width, not using checkbox with label because it's easy to have
+      // both of them separate, also gives more control to put something after label.
       return (
-        <Checkbox
-          style={{padding: '0px'}}
-          onChange={handleChange}
-          checked={caps[field]}
-          name={field}
-          disabled={saving}
-        />
+        <div>
+          <Checkbox
+            style={{padding: '0px'}}
+            onChange={handleChange}
+            checked={caps[field]}
+            name={field}
+            id={field}
+            disabled={saving}
+          />
+        </div>
       );
     };
 
-    const getNumericBox = (field, label) => {
+    const getNumericBox = (field) => {
       return (
         <TextField
           type="number"
-          label={label}
-          fullWidth
-          value={caps[field]}
+          size="small"
+          value={caps[field] ?? ''}
           name={field}
+          id={field}
           onChange={handleChange}
-          margin="normal"
+          margin="none"
           disabled={saving}
           inputProps={{tabIndex: '0'}}
+          className={classes.numberTextField}
         />
       );
     };
@@ -367,153 +430,178 @@ const NewCaps = React.memo(
       return null;
     }, [caps]);
 
+    const focusOnMount = useCallback((input) => {
+      if (input !== null) {
+        input.focus();
+      }
+    }, []);
+
     return (
       <>
-        <Accordion expanded={expanded} onChange={handleAccordionChange}>
-          <AccordionSummary
-            aria-controls="edit-save-content"
-            id="edit-save-header"
-            classes={{
-              root: summary.root,
-              expanded: summary.expanded,
-              content: summary.content,
-            }}>
-            <Typography className={classes.capTitle}>
-              {caps[BuildCapsFields.ID]
-                ? `Edit Capability ${caps[BuildCapsFields.NAME]}`
-                : 'Add New Capability'}
-            </Typography>
-            <Box flex={1} display="flex" justifyContent="flex-end">
-              <Button
-                variant="filled"
-                color="secondary"
-                className={classes.button}
-                disabled={saving}
-                onClick={handleSave}>
-                Save
-              </Button>
-              <Button
-                variant="filled"
-                color="secondary"
-                className={classes.button}
-                disabled={saving}
-                onClick={handleCancel}>
-                Cancel
-              </Button>
-            </Box>
-            {saving && (
-              <Box position="absolute" bottom={0} left={0} width="100%">
-                <LinearProgress color="secondary" />
+        <div className={classes.root}>
+          <Accordion expanded={expanded} onChange={handleAccordionChange}>
+            <AccordionSummary
+              aria-controls="edit-save-content"
+              id="edit-save-header"
+              classes={{
+                root: summary.root,
+                expanded: summary.expanded,
+                content: summary.content,
+              }}>
+              <Typography className={classes.capTitle}>
+                {caps[BuildCapsFields.ID]
+                  ? `Edit Capability ${initialCaps[BuildCapsFields.NAME]}`
+                  : 'Add New Capability'}
+              </Typography>
+              <Box flex={1} display="flex" justifyContent="flex-end">
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  className={clsx(classes.button, classes.buttonSave)}
+                  disabled={saving}
+                  onClick={handleSave}>
+                  Save
+                </Button>
+                <Button
+                  variant="contained"
+                  className={classes.button}
+                  disabled={saving}
+                  onClick={handleCancel}>
+                  Cancel
+                </Button>
               </Box>
-            )}
-          </AccordionSummary>
-          <AccordionDetails classes={{root: classes.capsDetail}}>
-            <Container>
-              <Box display="flex" flexDirection="column">
+              {saving && (
+                <Box position="absolute" bottom={0} left={0} width="100%">
+                  <LinearProgress color="secondary" />
+                </Box>
+              )}
+            </AccordionSummary>
+            <AccordionDetails classes={{root: classes.capsDetail}}>
+              <Box display="flex" flexDirection="column" overflow="auto">
                 <ElementRow>
-                  {getLabel(BuildCapsLabels.NAME)}
+                  {getLabel(BuildCapsLabels.NAME, BuildCapsFields.NAME, true)}
                   <TextField
-                    label="Name"
-                    fullWidth
-                    value={caps[BuildCapsFields.NAME]}
+                    value={caps[BuildCapsFields.NAME] ?? ''}
                     name={BuildCapsFields.NAME}
+                    id={BuildCapsFields.NAME}
                     onChange={handleChange}
                     error={Boolean(error[ValidatedFields.NAME])}
                     helperText={error[ValidatedFields.NAME] ?? ''}
-                    margin="normal"
+                    margin="none"
                     disabled={saving}
                     inputProps={{tabIndex: '0'}}
+                    inputRef={focusOnMount}
+                    className={classes.textField}
                   />
                 </ElementRow>
                 <ElementRow>
-                  {getLabel(BuildCapsLabels.OS)}
+                  {getLabel(BuildCapsLabels.OS, 'osSelect-header')}
                   <OsSelect
                     onChange={handleOsChange}
                     selectedOs={caps[BuildCapsFields.OS]}
                     error={error[ValidatedFields.OS]}
+                    disabled={saving}
+                    accordionClasses={{root: classes.accordionElements}}
                   />
                 </ElementRow>
                 <ElementRow>
-                  {getLabel(BuildCapsLabels.BRW)}
+                  {getLabel(BuildCapsLabels.BRW, 'browserSelect-header')}
                   <BrowserSelect
                     platform={caps[BuildCapsFields.PN]}
                     onChange={handleBrowserChange}
                     selectedBrowser={getBrowser()}
                     error={error[ValidatedFields.BRW]}
+                    disabled={saving}
+                    accordionClasses={{root: classes.accordionElements}}
                   />
                 </ElementRow>
                 <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.AIC)}
+                  {getInfoLabel(BuildCapsKeys.AIC, BuildCapsFields.AIC)}
                   {getCheckbox(BuildCapsFields.AIC)}
                 </ElementRow>
+                {caps[BuildCapsFields.BN] === Browsers.CHROME.VALUE && (
+                  <>
+                    <ElementRow>
+                      {getInfoLabel(BuildCapsKeys.CVL, BuildCapsFields.CVL)}
+                      {getCheckbox(BuildCapsFields.CVL)}
+                    </ElementRow>
+                    <ElementRow>
+                      {getInfoLabel(BuildCapsKeys.CSL, BuildCapsFields.CSL)}
+                      {getCheckbox(BuildCapsFields.CSL)}
+                    </ElementRow>
+                    <ElementRow>
+                      {getInfoLabel(BuildCapsKeys.CENL, BuildCapsFields.CENL)}
+                      {getCheckbox(BuildCapsFields.CENL)}
+                    </ElementRow>
+                    <ElementRow>
+                      {getInfoLabel(BuildCapsKeys.CEPL, BuildCapsFields.CEPL)}
+                      {getCheckbox(BuildCapsFields.CEPL)}
+                    </ElementRow>
+                  </>
+                )}
+                {caps[BuildCapsFields.BN] === Browsers.FIREFOX.VALUE && (
+                  <ElementRow>
+                    {getInfoLabel(BuildCapsKeys.FLL, BuildCapsFields.FLL)}
+                    {getSelectNoLabel(BuildCapsFields.FLL, FirefoxLogLevel)}
+                  </ElementRow>
+                )}
+                {caps[BuildCapsFields.BN] === Browsers.IE.VALUE && (
+                  <ElementRow>
+                    {getInfoLabel(BuildCapsKeys.IELL, BuildCapsFields.IELL)}
+                    {getSelectNoLabel(BuildCapsFields.IELL, IELogLevel)}
+                  </ElementRow>
+                )}
                 <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.CVL)}
-                  {getCheckbox(BuildCapsFields.CVL)}
-                </ElementRow>
-                <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.CSL)}
-                  {getCheckbox(BuildCapsFields.CSL)}
-                </ElementRow>
-                <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.CENL)}
-                  {getCheckbox(BuildCapsFields.CENL)}
-                </ElementRow>
-                <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.CEPL)}
-                  {getCheckbox(BuildCapsFields.CEPL)}
-                </ElementRow>
-                <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.FLL)}
-                  {getSelectNoLabel(BuildCapsFields.FLL, FirefoxLogLevel)}
-                </ElementRow>
-                <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.IELL)}
-                  {getSelectNoLabel(BuildCapsFields.IELL, IELogLevel)}
-                </ElementRow>
-                <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.SM)}
+                  {getInfoLabel(BuildCapsKeys.SM, BuildCapsFields.SM)}
                   {getCheckbox(BuildCapsFields.SM)}
                 </ElementRow>
                 <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.ST)}
-                  {getNumericBox(BuildCapsFields.ST, BuildCapsLabels.ST)}
+                  {getInfoLabel(BuildCapsKeys.ST, BuildCapsFields.ST, true)}
+                  {getNumericBox(BuildCapsFields.ST)}
                 </ElementRow>
                 <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.PLT)}
-                  {getNumericBox(BuildCapsFields.PLT, BuildCapsLabels.PLT)}
+                  {getInfoLabel(BuildCapsKeys.PLT, BuildCapsFields.PLT, true)}
+                  {getNumericBox(BuildCapsFields.PLT)}
                 </ElementRow>
                 <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.EAT)}
-                  {getNumericBox(BuildCapsFields.EAT, BuildCapsLabels.EAT)}
+                  {getInfoLabel(BuildCapsKeys.EAT, BuildCapsFields.EAT, true)}
+                  {getNumericBox(BuildCapsFields.EAT)}
                 </ElementRow>
                 <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.SFI)}
+                  {getInfoLabel(BuildCapsKeys.SFI, BuildCapsFields.SFI)}
                   {getCheckbox(BuildCapsFields.SFI)}
                 </ElementRow>
                 <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.UPB)}
+                  {getInfoLabel(BuildCapsKeys.UPB, BuildCapsFields.UPB)}
                   {getSelectNoLabel(BuildCapsFields.UPB, PromptBehavior)}
                 </ElementRow>
-                <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.IEESB)}
-                  {getSelectNoLabel(BuildCapsFields.IEESB, IEScrollBehavior)}
-                </ElementRow>
-                <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.IEEPH)}
-                  {getCheckbox(BuildCapsFields.IEEPH)}
-                </ElementRow>
-                <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.IERWF)}
-                  {getCheckbox(BuildCapsFields.IERWF)}
-                </ElementRow>
-                <ElementRow>
-                  {getInfoLabel(BuildCapsKeys.IEDNE)}
-                  {getCheckbox(BuildCapsFields.IEDNE)}
-                </ElementRow>
+                {caps[BuildCapsFields.BN] === Browsers.IE.VALUE && (
+                  <>
+                    <ElementRow>
+                      {getInfoLabel(BuildCapsKeys.IEESB, BuildCapsFields.IEESB)}
+                      {getSelectNoLabel(
+                        BuildCapsFields.IEESB,
+                        IEScrollBehavior
+                      )}
+                    </ElementRow>
+                    <ElementRow>
+                      {getInfoLabel(BuildCapsKeys.IEEPH, BuildCapsFields.IEEPH)}
+                      {getCheckbox(BuildCapsFields.IEEPH)}
+                    </ElementRow>
+                    <ElementRow>
+                      {getInfoLabel(BuildCapsKeys.IERWF, BuildCapsFields.IERWF)}
+                      {getCheckbox(BuildCapsFields.IERWF)}
+                    </ElementRow>
+                    <ElementRow>
+                      {getInfoLabel(BuildCapsKeys.IEDNE, BuildCapsFields.IEDNE)}
+                      {getCheckbox(BuildCapsFields.IEDNE)}
+                    </ElementRow>
+                  </>
+                )}
               </Box>
-            </Container>
-          </AccordionDetails>
-        </Accordion>
+            </AccordionDetails>
+          </Accordion>
+        </div>
         {snackbarTypeError}
       </>
     );
@@ -526,6 +614,7 @@ NewCaps.propTypes = {
     os: PropTypes.string,
     browserName: PropTypes.string,
   }),
+  existingNames: PropTypes.arrayOf(PropTypes.string).isRequired,
   onSave: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
   optIECleanSessionOnSave: PropTypes.bool,

@@ -32,6 +32,7 @@ const useStyles = makeStyles((theme) => ({
     '&:focus': {
       backgroundColor: theme.palette.background.paper,
     },
+    boxShadow: theme.shadows[1],
   },
   input: {
     backgroundColor: theme.palette.background.paper,

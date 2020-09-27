@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-props-no-spreading */
 /* eslint-disable react/prop-types */
-import React, {useContext, useMemo, useState} from 'react';
+import React, {useContext, useMemo, useState, useCallback} from 'react';
 import {random, truncate} from 'lodash-es';
 import TextField from '@material-ui/core/TextField';
 import {makeStyles} from '@material-ui/core/styles';
@@ -131,21 +131,21 @@ EditableCell.propTypes = {
   update: PropTypes.func.isRequired,
 };
 
-const Actions = ({row: {original}, onDelete}) => {
+const Actions = React.memo(({originalRow, onDelete}) => {
   const vars = useContext(IdeVarsContext);
   const classes = useStyle();
-  const varShotName = truncate(original.value, {
+  const varShotName = truncate(originalRow.value, {
     length: 50,
   });
 
   const deleteAcceptHandler = () => {
-    onDelete(original);
+    onDelete(originalRow);
   };
 
   const [setShowDeleteDialog, deleteDialog] = useConfirmationDialog(
     deleteAcceptHandler,
     'Delete',
-    `Are you sure you want to delete variable ${varShotName} from key group ${original.key}?`,
+    `Are you sure you want to delete variable ${varShotName} from key group ${originalRow.key}?`,
     'delete-alert-dialog-description'
   );
 
@@ -156,9 +156,9 @@ const Actions = ({row: {original}, onDelete}) => {
 
   const isDeleteDisabled = () => {
     return (
-      original.primary &&
+      originalRow.primary &&
       vars.build.result.filter(
-        (b) => vars.build.entities.buildVars[b].key === original.key
+        (b) => vars.build.entities.buildVars[b].key === originalRow.key
       ).length > 1
     );
   };
@@ -177,13 +177,11 @@ const Actions = ({row: {original}, onDelete}) => {
       {deleteDialog}
     </>
   );
-};
+});
 
 Actions.propTypes = {
-  row: PropTypes.shape({
-    original: PropTypes.shape({
-      id: PropTypes.number,
-    }),
+  originalRow: PropTypes.shape({
+    id: PropTypes.number,
   }).isRequired,
   onDelete: PropTypes.func.isRequired,
 };
@@ -344,40 +342,43 @@ const BuildVars = () => {
     return null;
   };
 
-  const del = (originalRow) => {
-    dispatch({
-      type: VAR_DELETE,
-      payload: {
-        type: VarTypes.BUILD,
-        id: originalRow.id,
-      },
-    });
-    const onError = (response) => {
-      setSnackbarErrorMsg(`Couldn't delete, ${response.error.reason}`);
-      // revert to original on error
+  const del = useCallback(
+    (originalRow) => {
       dispatch({
-        type: VAR_NEW,
+        type: VAR_DELETE,
         payload: {
           type: VarTypes.BUILD,
-          value: originalRow,
+          id: originalRow.id,
         },
       });
-    };
-    setTimeout(() => {
-      /* const response = {
+      const onError = (response) => {
+        setSnackbarErrorMsg(`Couldn't delete, ${response.error.reason}`);
+        // revert to original on error
+        dispatch({
+          type: VAR_NEW,
+          payload: {
+            type: VarTypes.BUILD,
+            value: originalRow,
+          },
+        });
+      };
+      setTimeout(() => {
+        /* const response = {
         status: ApiStatuses.FAILURE,
         error: {
           reason: 'Network error',
         },
       }; */
-      const response = {
-        status: ApiStatuses.SUCCESS,
-      };
-      if (response.status === ApiStatuses.FAILURE) {
-        onError(response);
-      }
-    }, 500);
-  };
+        const response = {
+          status: ApiStatuses.SUCCESS,
+        };
+        if (response.status === ApiStatuses.FAILURE) {
+          onError(response);
+        }
+      }, 500);
+    },
+    [dispatch, setSnackbarErrorMsg]
+  );
 
   // This will hide the grouped column by adding it into hidden column list in
   // table's state return by useTable hook.
@@ -434,7 +435,13 @@ const BuildVars = () => {
           id: 'actions',
           Header: '', // don't show a header for action column
           Cell: ({row}) =>
-            !row.canExpand ? <Actions row={row} onDelete={del} /> : null,
+            !row.canExpand ? (
+              <Actions
+                originalRow={row.original}
+                onDelete={del}
+                key={row.original.id}
+              />
+            ) : null,
         },
         ...cols,
       ]);

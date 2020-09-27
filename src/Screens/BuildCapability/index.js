@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback, useMemo} from 'react';
 import {withStyles, makeStyles} from '@material-ui/core/styles';
 import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
@@ -119,33 +119,34 @@ const useSummaryStyles = makeStyles((theme) => ({
   },
 }));
 
-const Actions = React.memo(
-  ({dCap, onDelete, onEdit, editingDisabled, deleteDisabled}) => {
-    const classes = useStyles();
-    const deleteAcceptHandler = () => {
-      onDelete(dCap);
-    };
+const Actions = ({dCap, onDelete, onEdit, editingDisabled, deleteDisabled}) => {
+  const classes = useStyles();
+  const deleteAcceptHandler = () => {
+    onDelete(dCap);
+  };
 
-    const [setShowDeleteDialog, deleteDialog] = useConfirmationDialog(
-      deleteAcceptHandler,
-      'Delete',
-      `Are you sure you want to delete capability ${dCap.name}?`,
-      'delete-alert-dialog-description'
-    );
+  const [setShowDeleteDialog, deleteDialog] = useConfirmationDialog(
+    deleteAcceptHandler,
+    'Delete',
+    `Are you sure you want to delete capability ${dCap.name}?`,
+    'delete-alert-dialog-description'
+  );
 
-    const handleDelete = (e) => {
-      e.stopPropagation();
-      setShowDeleteDialog(true);
-    };
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    setShowDeleteDialog(true);
+  };
 
-    const handleEdit = () => {
-      onEdit(dCap);
-    };
+  const handleEdit = (e) => {
+    e.stopPropagation();
+    onEdit(dCap);
+  };
 
-    return (
-      <>
-        <div>
-          <TooltipCustom title="Edit Capability">
+  return (
+    <>
+      <div>
+        <TooltipCustom title="Edit Capability">
+          <span>
             <IconButton
               aria-label="Edit Capability"
               onClick={handleEdit}
@@ -153,8 +154,10 @@ const Actions = React.memo(
               className={classes.linkButton}>
               <EditIcon fontSize="small" />
             </IconButton>
-          </TooltipCustom>
-          <TooltipCustom title="Delete Capability">
+          </span>
+        </TooltipCustom>
+        <TooltipCustom title="Delete Capability">
+          <span>
             <IconButton
               aria-label="Delete Capability"
               onClick={handleDelete}
@@ -162,13 +165,13 @@ const Actions = React.memo(
               disabled={deleteDisabled}>
               <DeleteIcon fontSize="small" />
             </IconButton>
-          </TooltipCustom>
-        </div>
-        {deleteDialog}
-      </>
-    );
-  }
-);
+          </span>
+        </TooltipCustom>
+      </div>
+      {deleteDialog}
+    </>
+  );
+};
 
 Actions.propTypes = {
   dCap: PropTypes.shape({
@@ -191,10 +194,11 @@ function BuildCapsState(id, name, fullBuildCaps, lastFetchError) {
 const DATA = 'data';
 const SORTED_IDS = 'sortedIds';
 
-const BuildCapability = ({optIECleanSessionOnSave}) => {
+const BuildCapability = React.memo(({optIECleanSessionOnSave}) => {
   // shape of caps is {DATA: {id: BuildCapsState, id: BuildCapsState, ....}, SORTED_IDS: [id2, id4, id1, id3, ....]}
   // !! remember that object keys are always converted to string, beware before using.
   const [caps, setCaps] = useState(null);
+  console.log('caps', caps);
   const dCaps = caps ? caps[DATA] : null;
   const [expanded, setExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -212,7 +216,7 @@ const BuildCapability = ({optIECleanSessionOnSave}) => {
           [dCap.id]: new BuildCapsState(
             dCap.id,
             dCap.name,
-            response.data || null,
+            response.data ?? null, // if data is undefined, make it null
             response.error ? errorMsg : null
           ),
         },
@@ -238,24 +242,38 @@ const BuildCapability = ({optIECleanSessionOnSave}) => {
       throw new Error('Nothing to fetch, full capability already there');
     }
     setTimeout(() => {
+      let browser;
+      if (dCap.name.includes(Browsers.CHROME.VALUE)) {
+        browser = Browsers.CHROME.VALUE;
+      } else if (dCap.name.includes(Browsers.FIREFOX.VALUE)) {
+        browser = Browsers.FIREFOX.VALUE;
+      } else if (dCap.name.includes(Browsers.IE.VALUE)) {
+        browser = Browsers.IE.VALUE;
+      }
       const response = {
         status: ApiStatuses.SUCCESS,
         data: new BuildCapabilities(
           dCap.id,
           dCap.name,
-          random(1, 10) > 5 ? Os.WIN10.VALUE : Os.WIN8_1.VALUE,
-          random(1, 10) > 5 ? Browsers.CHROME.VALUE : Browsers.FIREFOX.VALUE,
-          random(70, 85),
-          Platforms.WINDOWS,
-          false,
+          dCap.name.includes(Os.WIN10.VALUE) ? Os.WIN10.VALUE : Os.WIN8_1.VALUE,
+          browser,
+          `${browser === Browsers.IE.VALUE ? 11 : random(70, 85)}`,
+          Platforms.WINDOWS.VALUE,
+          random(1, 10) > 5,
           random(30000, 60000),
           random(100000, 200000),
           random(30000, 60000)
         ),
       };
+      /* const response = {
+        status: ApiStatuses.FAILURE,
+        error: {
+          reason: 'Network error',
+        },
+      }; */
       if (response.status === ApiStatuses.SUCCESS) {
         onSuccess(response);
-      } else {
+      } else if (response.status === ApiStatuses.FAILURE) {
         onError(response);
       }
     }, 500);
@@ -272,7 +290,7 @@ const BuildCapability = ({optIECleanSessionOnSave}) => {
     }
   };
 
-  const addBuildCaps = (buildCaps) => {
+  const addBuildCaps = useCallback((buildCaps) => {
     const id = buildCaps[BuildCapsFields.ID];
     setCaps((c) => {
       const newData = {
@@ -287,8 +305,11 @@ const BuildCapability = ({optIECleanSessionOnSave}) => {
       let sortedIds = c[SORTED_IDS];
       // we will change sort order only if this cap doesn't yet exist or there is a name change
       // during edit.
-      if (!dCaps[id] || buildCaps[BuildCapsFields.NAME] !== dCaps[id].name) {
-        if (!dCaps[id]) {
+      if (
+        !c[DATA][id] ||
+        buildCaps[BuildCapsFields.NAME] !== c[DATA][id].name
+      ) {
+        if (!c[DATA][id]) {
           sortedIds = [...c[SORTED_IDS], id];
         }
         sortedIds = getSortedNames(sortedIds, newData);
@@ -298,7 +319,7 @@ const BuildCapability = ({optIECleanSessionOnSave}) => {
         [SORTED_IDS]: sortedIds,
       };
     });
-  };
+  }, []);
 
   const handleDelete = (dCap) => {
     setCaps((c) => {
@@ -333,40 +354,43 @@ const BuildCapability = ({optIECleanSessionOnSave}) => {
       });
     };
     setTimeout(() => {
-      /* const response = {
-        status: ApiStatuses.SUCCESS,
-      }; */
       const response = {
+        status: ApiStatuses.SUCCESS,
+      };
+      /* const response = {
         status: ApiStatuses.FAILURE,
         error: {
           reason: 'Network error',
         },
-      };
+      }; */
       if (response.status === ApiStatuses.FAILURE) {
         onError(response);
       }
-    }, 500);
+    }, 1000);
   };
 
-  const resetEditOrNew = () => {
+  const resetEditNew = useCallback(() => {
     if (editing) {
       setEditing(null);
     } else if (createNew) {
       setCreateNew(false);
     }
-  };
+  }, [createNew, editing]);
 
   // TODO: currently i am not checking whether a change was made as part of edit
   // before sending api request, check this and skip api request, better is to
   // not allow submit if there was no change.
-  const onSave = (buildCaps) => {
-    addBuildCaps(buildCaps); // works for both edit or new
-    resetEditOrNew();
-  };
+  const onSave = useCallback(
+    (buildCaps) => {
+      addBuildCaps(buildCaps); // works for both edit or new
+      resetEditNew();
+    },
+    [addBuildCaps, resetEditNew]
+  );
 
-  const onCancel = () => {
-    resetEditOrNew();
-  };
+  const onCancel = useCallback(() => {
+    resetEditNew();
+  }, [resetEditNew]);
 
   const handleChange = (panelId) => (event, isExpanded) => {
     setExpanded(isExpanded ? panelId : false);
@@ -428,7 +452,7 @@ const BuildCapability = ({optIECleanSessionOnSave}) => {
             <Box display="flex" alignItems="center">
               <img
                 src={getBrowserIcon(fullCaps[BuildCapsFields.BN])}
-                alt={fullCaps[BuildCapsFields.BBN]}
+                alt={fullCaps[BuildCapsFields.BN]}
               />
               <Value style={{marginLeft: '4px'}}>
                 {`${getBrowserDisplayName(fullCaps[BuildCapsFields.BN])} ${
@@ -438,41 +462,62 @@ const BuildCapability = ({optIECleanSessionOnSave}) => {
             </Box>
           </ViewRow>
           {getViewRow(BuildCapsLabels.AIC, fullCaps[BuildCapsFields.AIC], true)}
-          {getViewRow(BuildCapsLabels.CVL, fullCaps[BuildCapsFields.CVL], true)}
-          {getViewRow(BuildCapsLabels.CSL, fullCaps[BuildCapsFields.CSL], true)}
-          {getViewRow(
-            BuildCapsLabels.CENL,
-            fullCaps[BuildCapsFields.CENL],
-            true
+          {fullCaps[BuildCapsFields.BN] === Browsers.CHROME.VALUE && (
+            <>
+              {getViewRow(
+                BuildCapsLabels.CVL,
+                fullCaps[BuildCapsFields.CVL],
+                true
+              )}
+              {getViewRow(
+                BuildCapsLabels.CSL,
+                fullCaps[BuildCapsFields.CSL],
+                true
+              )}
+              {getViewRow(
+                BuildCapsLabels.CENL,
+                fullCaps[BuildCapsFields.CENL],
+                true
+              )}
+              {getViewRow(
+                BuildCapsLabels.CEPL,
+                fullCaps[BuildCapsFields.CEPL],
+                true
+              )}
+            </>
           )}
-          {getViewRow(
-            BuildCapsLabels.CEPL,
-            fullCaps[BuildCapsFields.CEPL],
-            true
-          )}
-          {getViewRow(BuildCapsLabels.FLL, fullCaps[BuildCapsFields.FLL])}
-          {getViewRow(BuildCapsLabels.IELL, fullCaps[BuildCapsFields.IELL])}
+          {fullCaps[BuildCapsFields.BN] === Browsers.FIREFOX.VALUE &&
+            getViewRow(BuildCapsLabels.FLL, fullCaps[BuildCapsFields.FLL])}
+          {fullCaps[BuildCapsFields.BN] === Browsers.IE.VALUE &&
+            getViewRow(BuildCapsLabels.IELL, fullCaps[BuildCapsFields.IELL])}
           {getViewRow(BuildCapsLabels.SM, fullCaps[BuildCapsFields.SM], true)}
           {getViewRow(BuildCapsLabels.ST, fullCaps[BuildCapsFields.ST])}
           {getViewRow(BuildCapsLabels.PLT, fullCaps[BuildCapsFields.PLT])}
           {getViewRow(BuildCapsLabels.EAT, fullCaps[BuildCapsFields.EAT])}
           {getViewRow(BuildCapsLabels.SFI, fullCaps[BuildCapsFields.SFI], true)}
           {getViewRow(BuildCapsLabels.UPB, fullCaps[BuildCapsFields.UPB])}
-          {getViewRow(BuildCapsLabels.IEESB, fullCaps[BuildCapsFields.IEESB])}
-          {getViewRow(
-            BuildCapsLabels.IEEPH,
-            fullCaps[BuildCapsFields.IEEPH],
-            true
-          )}
-          {getViewRow(
-            BuildCapsLabels.IERWF,
-            fullCaps[BuildCapsFields.IERWF],
-            true
-          )}
-          {getViewRow(
-            BuildCapsLabels.IEDNE,
-            fullCaps[BuildCapsFields.IEDNE],
-            true
+          {fullCaps[BuildCapsFields.BN] === Browsers.IE.VALUE && (
+            <>
+              {getViewRow(
+                BuildCapsLabels.IEESB,
+                fullCaps[BuildCapsFields.IEESB]
+              )}
+              {getViewRow(
+                BuildCapsLabels.IEEPH,
+                fullCaps[BuildCapsFields.IEEPH],
+                true
+              )}
+              {getViewRow(
+                BuildCapsLabels.IERWF,
+                fullCaps[BuildCapsFields.IERWF],
+                true
+              )}
+              {getViewRow(
+                BuildCapsLabels.IEDNE,
+                fullCaps[BuildCapsFields.IEDNE],
+                true
+              )}
+            </>
           )}
         </Box>
       );
@@ -485,7 +530,7 @@ const BuildCapability = ({optIECleanSessionOnSave}) => {
     return (
       <Box display="flex" flexDirection="column">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((k) => (
-          <Skeleton variant="text" width="40%" height={15} key={k} />
+          <Skeleton variant="text" width="60%" height={15} key={k} />
         ))}
       </Box>
     );
@@ -517,122 +562,133 @@ const BuildCapability = ({optIECleanSessionOnSave}) => {
         status: ApiStatuses.SUCCESS,
         data: [
           {id: 1, name: 'chrome85_win10_debug'},
-          {id: 2, name: 'firefox85_win8.1_debug'},
-          {id: 3, name: 'ie11_win10'},
+          {id: 2, name: 'firefox85_win8_1_debug'},
+          {id: 3, name: 'IE11_win10'},
         ],
       };
+      /* const response = {
+        status: ApiStatuses.FAILURE,
+        error: {
+          reason: 'Network error',
+        },
+      }; */
       if (response.status === ApiStatuses.SUCCESS) {
         onSuccess(response);
-      } else if (response === ApiStatuses.FAILURE) {
+      } else if (response.status === ApiStatuses.FAILURE) {
         onError(response);
       }
     }, 1000);
   }, [setSnackbarErrorMsg]);
 
-  const addButton = (
-    <Box display="flex" justifyContent="flex-end" mb={3}>
-      <Button
-        variant="contained"
-        color="secondary"
-        className={classes.button}
-        onClick={handleNew}
-        disabled={isLoading}>
-        Add New Build Capability
-      </Button>
-    </Box>
-  );
-
-  if (isLoading) {
-    return (
-      <>
-        <Box width="100%" display="flex" flexDirection="column">
-          {addButton}
-          <Box display="flex" flexDirection="column" alignItems="center">
-            {[1, 2, 3, 4].map((k) => (
-              <Skeleton variant="text" width="50%" height={20} key={k} />
-            ))}
-          </Box>
-        </Box>
-        {snackbarTypeError}
-      </>
-    );
-  }
+  const getNames = useMemo(() => {
+    if (!dCaps) {
+      return [];
+    }
+    return Object.values(dCaps).map((v) => v.name);
+  }, [dCaps]);
 
   return (
     <>
-      {addButton}
+      <Box display="flex" justifyContent="flex-end" mb={3}>
+        <Button
+          variant="contained"
+          color="secondary"
+          className={classes.button}
+          onClick={handleNew}
+          disabled={isLoading || createNew || Boolean(editing)}>
+          Add New Build Capability
+        </Button>
+      </Box>
       <Box display="flex" flexDirection="column" overflow="auto">
         {createNew && (
           <NewCaps
             initialCaps={null}
+            existingNames={getNames}
             onSave={onSave}
             onCancel={onCancel}
             optIECleanSessionOnSave={optIECleanSessionOnSave}
           />
         )}
-        {dCaps ? (
-          caps[SORTED_IDS].map((k) =>
-            editing === dCaps[k].id && dCaps[k].fullBuildCaps ? (
-              <NewCaps
-                initialCaps={dCaps[k].fullBuildCaps}
-                onSave={onSave}
-                onCancel={onCancel}
-              />
-            ) : (
-              <Accordion
-                TransitionProps={{unmountOnExit: true}}
-                expanded={expanded === dCaps[k].id} // use object's prop id rather than string key 'k'
-                onChange={handleChange(dCaps[k].id)}
-                key={dCaps[k].id}>
-                <AccordionSummary
-                  aria-controls={`${dCaps[k].id}-content`}
-                  id={`${dCaps[k].id}-header`}
-                  classes={{
-                    root: summary.root,
-                    expanded: summary.expanded,
-                    content: summary.content,
-                  }}>
-                  <Typography
-                    className={classes.buildCapLink}
-                    title="Click to view details">
-                    {dCaps[k].name}
-                  </Typography>
-                  <Box flex={1} display="flex" justifyContent="flex-end">
-                    <Actions
-                      dCap={dCaps[k]}
-                      onDelete={handleDelete}
-                      onEdit={handleEdit}
-                      editingDisabled={editing || createNew}
-                      deleteDisabled={editing === dCaps[k].id}
-                    />
-                  </Box>
-                  {/* When edit is requested but full data is not available, show a loader
+        {dCaps && caps[SORTED_IDS].length
+          ? caps[SORTED_IDS].map((k) =>
+              editing === dCaps[k].id && dCaps[k].fullBuildCaps ? (
+                <NewCaps
+                  initialCaps={dCaps[k].fullBuildCaps}
+                  existingNames={getNames.filter((n) => n !== dCaps[k].name)}
+                  onSave={onSave}
+                  onCancel={onCancel}
+                  key={dCaps[k].id}
+                />
+              ) : (
+                <Accordion
+                  TransitionProps={{unmountOnExit: true}}
+                  expanded={expanded === dCaps[k].id} // use object's prop id rather than string key 'k'
+                  onChange={handleChange(dCaps[k].id)}
+                  key={dCaps[k].id}>
+                  <AccordionSummary
+                    aria-controls={`${dCaps[k].id}-content`}
+                    id={`${dCaps[k].id}-header`}
+                    classes={{
+                      root: summary.root,
+                      expanded: summary.expanded,
+                      content: summary.content,
+                    }}>
+                    <Typography
+                      className={classes.buildCapLink}
+                      title="Click to view details">
+                      {dCaps[k].name}
+                    </Typography>
+                    <Box flex={1} display="flex" justifyContent="flex-end">
+                      <Actions
+                        dCap={dCaps[k]}
+                        onDelete={handleDelete}
+                        onEdit={handleEdit}
+                        editingDisabled={Boolean(editing || createNew)}
+                        deleteDisabled={editing === dCaps[k].id}
+                        key={dCaps[k].id}
+                      />
+                    </Box>
+                    {/* When edit is requested but full data is not available, show a loader
                   until we fetch it, once done, state will change and edit accordion appear
                   replacing this one */}
-                  {editing === dCaps[k].id && !dCaps[k].fullBuildCaps && (
-                    <Box position="absolute" bottom={0} left={0} width="100%">
-                      <LinearProgress color="secondary" />
-                    </Box>
-                  )}
-                </AccordionSummary>
-                <AccordionDetails classes={{root: classes.capsDetail}}>
-                  {expanded === dCaps[k].id && createBuildCapsData()}
-                </AccordionDetails>
-              </Accordion>
+                    {editing === dCaps[k].id && !dCaps[k].fullBuildCaps && (
+                      <Box position="absolute" bottom={0} left={0} width="100%">
+                        <LinearProgress color="secondary" />
+                      </Box>
+                    )}
+                  </AccordionSummary>
+                  <AccordionDetails classes={{root: classes.capsDetail}}>
+                    {expanded &&
+                      expanded === dCaps[k].id &&
+                      createBuildCapsData()}
+                  </AccordionDetails>
+                </Accordion>
+              )
             )
-          )
-        ) : (
+          : null}
+        {isLoading ? (
+          <Box
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            width="100%">
+            {[1, 2, 3, 4].map((k) => (
+              <Skeleton variant="text" width="100%" height={50} key={k} />
+            ))}
+          </Box>
+        ) : null}
+        {!isLoading && !createNew && (!dCaps || !caps[SORTED_IDS].length) ? (
           <Typography
             variant="body1"
             style={{textAlign: 'center', marginTop: '20px'}}>
             Nothing to show yet, add a new capability
           </Typography>
-        )}
+        ) : null}
       </Box>
       {snackbarTypeError}
     </>
   );
-};
+});
 
 BuildCapability.propTypes = {
   optIECleanSessionOnSave: PropTypes.bool,
