@@ -119,8 +119,8 @@ const RightNavigation = (props) => {
                 ? classes.activeTab
                 : classes.linkHover
             )}>
-            API Reference
-            {/* document site's api reference in an iframe */}
+            Documentation
+            {/* document site in an iframe */}
           </Link>
         </Typography>
       </Box>

@@ -1,37 +1,25 @@
 import produce from 'immer';
 import {
   CONFIG_BUILD_ADD_BUILD_VAR,
-  CONFIG_BUILD_UPDATE_OS,
-  CONFIG_BUILD_UPDATE_BROWSER,
+  CONFIG_BUILD_UPDATE_BY_PROP,
   CONFIG_BUILD_UPDATE_SELECTED_VERSIONS,
+  CONFIG_BUILD_ON_VERSIONS_DELETE,
+  CONFIG_BUILD_ON_BUILD_CAPS_DELETE,
+  CONFIG_BUILD_ON_BUILD_VAR_DELETE,
 } from '../actions/actionTypes';
-import Browser from '../model';
 import {ExplorerItemType} from '../ide/Constants';
+import {addBuildVar, onBuildVarDelete} from './common';
 
-const addBuildVar = (draft, payload) => {
-  if (payload.buildVar === undefined) {
-    throw new Error('Insufficient arguments passed to addBuildVar.');
+const updateByProp = (draft, payload) => {
+  if (payload.prop === undefined || payload.value === undefined) {
+    throw new Error('Insufficient arguments passed to updateByProp.');
   }
-  const {buildVar} = payload;
-  const {selectedBuildVarIdPerKey} = draft.config.build;
-  selectedBuildVarIdPerKey[buildVar.key] = buildVar.id;
-};
-
-const updateBrowser = (draft, payload) => {
-  if (payload.browser === undefined) {
-    throw new Error('Insufficient arguments passed to updateBrowser.');
+  const {prop, value} = payload;
+  const {build} = draft.config;
+  if (build[prop] === undefined) {
+    throw new Error(`Build config doesn't have given own prop ${prop}`);
   }
-  if (payload.browser.constructor !== Browser) {
-    throw new TypeError(`Argument is not of type ${Browser.constructor.name}`);
-  }
-  draft.config.build.browser = payload.browser;
-};
-
-const updateOs = (draft, payload) => {
-  if (payload.os === undefined) {
-    throw new Error('Insufficient arguments passed to updateOs.');
-  }
-  draft.config.build.os = payload.os;
+  build[prop] = value;
 };
 
 const updateSelectedVersions = (draft, payload) => {
@@ -97,20 +85,47 @@ const updateSelectedVersions = (draft, payload) => {
   }
 };
 
+const onVersionsDelete = (draft, payload) => {
+  if (payload.versionIds === undefined) {
+    throw new Error('Insufficient arguments passed to onVersionsDelete.');
+  }
+  const {selectedVersions} = draft.config.build;
+  if (!selectedVersions.size) {
+    return;
+  }
+  payload.versionIds.forEach((v) => selectedVersions.delete(v));
+};
+
+const onBuildCapsDelete = (draft, payload) => {
+  if (payload.buildCapabilityId === undefined) {
+    throw new Error('Insufficient arguments passed to onBuildCapsDelete.');
+  }
+  const {build} = draft.config;
+  if (build.buildCapabilityId === payload.buildCapabilityId) {
+    build.buildCapabilityId = null;
+  }
+};
+
 const buildConfigReducer = produce((draft, action) => {
   const {payload} = action;
   switch (action.type) {
     case CONFIG_BUILD_ADD_BUILD_VAR:
-      addBuildVar(draft, payload);
+      addBuildVar(draft.config.build, payload);
       break;
-    case CONFIG_BUILD_UPDATE_OS:
-      updateOs(draft, payload);
+    case CONFIG_BUILD_ON_BUILD_VAR_DELETE:
+      onBuildVarDelete(draft.config.build, payload);
       break;
-    case CONFIG_BUILD_UPDATE_BROWSER:
-      updateBrowser(draft, payload);
+    case CONFIG_BUILD_UPDATE_BY_PROP:
+      updateByProp(draft, payload);
       break;
     case CONFIG_BUILD_UPDATE_SELECTED_VERSIONS:
       updateSelectedVersions(draft, payload);
+      break;
+    case CONFIG_BUILD_ON_VERSIONS_DELETE:
+      onVersionsDelete(draft, payload);
+      break;
+    case CONFIG_BUILD_ON_BUILD_CAPS_DELETE:
+      onBuildCapsDelete(draft, payload);
       break;
     default:
       break;

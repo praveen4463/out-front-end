@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import {Os, Browsers, Platforms} from './Constants';
 import chrome from './icons/chrome.png';
 import firefox from './icons/firefox.png';
@@ -81,4 +82,10 @@ export const getOsIcon = (os) => {
     default:
       throw new Error(`Unrecognized os ${os}`);
   }
+};
+
+export const getContextObjShape = () => {
+  return {
+    $$typeof: PropTypes.symbol,
+  };
 };

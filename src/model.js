@@ -1,5 +1,5 @@
 import {immerable} from 'immer';
-import {BuildCapsTimeouts} from './Constants';
+import {BuildCapsTimeouts, Defaults} from './Constants';
 
 // doesn't have to be immer draftable as we set the whole object.
 export default function Browser(name, version) {
@@ -7,23 +7,19 @@ export default function Browser(name, version) {
   this.version = version;
 }
 
-function RunState(
-  newBuildRequested = false,
-  onBuildRunCallback = () => null,
-  onBuildCancelCallback = () => null
-) {
-  this.newBuildRequested = newBuildRequested;
-  this.onBuildRunCallback = onBuildRunCallback;
-  this.onBuildCancelCallback = onBuildCancelCallback;
-}
-
 function BuildConfig(
   buildCapabilityId = null,
   selectedVersions = new Set(),
-  selectedVersionsImplicit = [],
+  selectedVersionsImplicit = null,
+  displayResolution = Defaults.DESKTOP_RES,
+  timezone = Defaults.TIMEZONE,
   selectedBuildVarIdPerKey = {},
-  openLessOften = false,
-  runState = new RunState()
+  abortOnFailure = false,
+  aetKeepSingleWindow = true,
+  aetUpdateUrlBlank = true,
+  aetResetTimeouts = true,
+  aetDeleteAllCookies = true,
+  openLessOften = false
 ) {
   this.buildCapabilityId = buildCapabilityId;
   /*
@@ -43,9 +39,15 @@ function BuildConfig(
   This should be reset after each build is run because config checks this and decides
   whether to show version select component. This will always be ordered. */
   this.selectedVersionsImplicit = selectedVersionsImplicit;
+  this.displayResolution = displayResolution;
+  this.timezone = timezone;
   this.selectedBuildVarIdPerKey = selectedBuildVarIdPerKey;
+  this.abortOnFailure = abortOnFailure;
+  this.aetKeepSingleWindow = aetKeepSingleWindow;
+  this.aetUpdateUrlBlank = aetUpdateUrlBlank;
+  this.aetResetTimeouts = aetResetTimeouts;
+  this.aetDeleteAllCookies = aetDeleteAllCookies;
   this.openLessOften = openLessOften;
-  this.runState = runState;
 
   this[immerable] = true;
 }

@@ -13,11 +13,18 @@ import Typography from '@material-ui/core/Typography';
 import {makeStyles} from '@material-ui/core/styles';
 import Slide from '@material-ui/core/Slide';
 import Tooltip from '../TooltipCustom';
-import BuildConfig from './Screens/BuildConfig';
+import BuildConfig from '../Screens/BuildConfig';
 import DryConfig from './Screens/DryConfig';
 import GlobalVars from './Screens/GlobalVars';
 import BuildVars from './Screens/BuildVars';
 import BuildCapability from '../Screens/BuildCapability';
+import {
+  IdeDispatchContext,
+  IdeBuildContext,
+  IdeBuildConfigContext,
+  IdeFilesContext,
+  IdeVarsContext,
+} from './Contexts';
 
 const DEFAULT_WIDTH_DIALOG = 'lg';
 
@@ -67,7 +74,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="down" ref={ref} {...props} />;
 });
 
-const EditMenu = ({editIconClasses, buildConfigTrigger}) => {
+const EditMenu = ({editIconClasses, openBuildConfig}) => {
   const [state, setState] = useState(new EditMenuState());
   const classes = useStyles();
 
@@ -164,9 +171,23 @@ const EditMenu = ({editIconClasses, buildConfigTrigger}) => {
   const getItemComponent = () => {
     switch (state.menuItem) {
       case MenuItems.BUILD_CAPS:
-        return <BuildCapability optIECleanSessionOnSave />;
+        return (
+          <BuildCapability
+            optIECleanSessionOnSave
+            dispatchContext={IdeDispatchContext}
+          />
+        );
       case MenuItems.BUILD_CONFIG:
-        return <BuildConfig buildConfigTrigger={buildConfigTrigger} />;
+        return (
+          <BuildConfig
+            closeDialog={closeDialog}
+            dispatchContext={IdeDispatchContext}
+            filesContext={IdeFilesContext}
+            buildContext={IdeBuildContext}
+            buildConfigContext={IdeBuildConfigContext}
+            varsContext={IdeVarsContext}
+          />
+        );
       case MenuItems.DRY_CONFIG:
         return <DryConfig />;
       case MenuItems.GLOBAL_VAR:
@@ -179,10 +200,10 @@ const EditMenu = ({editIconClasses, buildConfigTrigger}) => {
   };
 
   useEffect(() => {
-    if (buildConfigTrigger && buildConfigTrigger.open) {
+    if (openBuildConfig) {
       handleClickBuildConfig();
     }
-  }, [buildConfigTrigger]);
+  }, [openBuildConfig, state.menuItem]);
 
   return (
     <>
@@ -251,13 +272,7 @@ EditMenu.propTypes = {
   editIconClasses: PropTypes.shape({
     fontSizeSmall: PropTypes.string,
   }).isRequired,
-  buildConfigTrigger: PropTypes.shape({
-    open: PropTypes.bool,
-  }),
-};
-
-EditMenu.defaultProps = {
-  buildConfigTrigger: null,
+  openBuildConfig: PropTypes.bool.isRequired,
 };
 
 export default EditMenu;

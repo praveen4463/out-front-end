@@ -74,8 +74,8 @@ const darkTheme = createMuiTheme({
     MuiMenuItem: {
       root: {
         fontWeight: 400,
-        fontSize: '0.8125rem',
-        lineHeight: 1,
+        fontSize: '0.875rem',
+        lineHeight: 1.5,
         minHeight: '0px',
         opacity: highEmphasisOpacity,
       },

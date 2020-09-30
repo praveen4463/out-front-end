@@ -7,6 +7,7 @@ import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import BuildIcon from '@material-ui/icons/Build';
 import Box from '@material-ui/core/Box';
 import {makeStyles} from '@material-ui/core/styles';
+import PropTypes from 'prop-types';
 import MainMenu from './MainMenu';
 import EditMenu from './EditMenu';
 import HelpMenu from './HelpMenu';
@@ -33,7 +34,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const TopNavigation = () => {
+const TopNavigation = ({openBuildConfig}) => {
   const classes = useStyles();
   return (
     <AppBar classes={{root: classes.appBarRoot}}>
@@ -88,7 +89,10 @@ const TopNavigation = () => {
             />
           </IconButton>
         </Tooltip>
-        <EditMenu editIconClasses={{fontSizeSmall: classes.fontSizeEditIcon}} />
+        <EditMenu
+          editIconClasses={{fontSizeSmall: classes.fontSizeEditIcon}}
+          openBuildConfig={openBuildConfig}
+        />
         <Box
           display="flex"
           flex={1}
@@ -104,6 +108,10 @@ const TopNavigation = () => {
       </ToolBar>
     </AppBar>
   );
+};
+
+TopNavigation.propTypes = {
+  openBuildConfig: PropTypes.bool.isRequired,
 };
 
 export default TopNavigation;

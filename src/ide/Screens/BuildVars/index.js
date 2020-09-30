@@ -30,9 +30,16 @@ import {IdeDispatchContext, IdeVarsContext} from '../../Contexts';
 import useSnackbarTypeError from '../../../hooks/useSnackbarTypeError';
 import useConfirmationDialog from '../../../hooks/useConfirmationDialog';
 import {ApiStatuses, VarTypes, ErrorType} from '../../../Constants';
-import {VAR_NEW, VAR_EDIT, VAR_DELETE} from '../../actionTypes';
+import {
+  VAR_NEW,
+  VAR_EDIT,
+  VAR_DELETE,
+  CONFIG_DRY_ON_BUILD_VAR_DELETE,
+} from '../../actionTypes';
+import {CONFIG_BUILD_ON_BUILD_VAR_DELETE} from '../../../actions/actionTypes';
 import {BuildVars as BuildVariables} from '../../../variables/model';
 import {getCurrentPrimaryBuildVar} from '../../reducers/var';
+import batchActions from '../../actionCreators';
 import normalizeString from '../../../utils';
 
 const DEF_GROUPED_COLUMN = 'key';
@@ -351,6 +358,17 @@ const BuildVars = () => {
           id: originalRow.id,
         },
       });
+      const onSuccess = () => {
+        const payload = {
+          buildVar: originalRow,
+        };
+        dispatch(
+          batchActions([
+            {type: CONFIG_BUILD_ON_BUILD_VAR_DELETE, payload},
+            {type: CONFIG_DRY_ON_BUILD_VAR_DELETE, payload},
+          ])
+        );
+      };
       const onError = (response) => {
         setSnackbarErrorMsg(`Couldn't delete, ${response.error.reason}`);
         // revert to original on error
@@ -372,7 +390,9 @@ const BuildVars = () => {
         const response = {
           status: ApiStatuses.SUCCESS,
         };
-        if (response.status === ApiStatuses.FAILURE) {
+        if (response.status === ApiStatuses.SUCCESS) {
+          onSuccess();
+        } else if (response.status === ApiStatuses.FAILURE) {
           onError(response);
         }
       }, 500);

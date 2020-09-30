@@ -86,6 +86,21 @@ export const BuildCapsKeys = {
   IEDECS: 'IEDECS',
 };
 
+export const BuildConfigKeys = {
+  BCAP: 'BCAP',
+  SV: 'SV',
+  SVI: 'SVI',
+  DR: 'DR',
+  TZ: 'TZ',
+  SBVIPK: 'SBVIPK',
+  AOF: 'AOF',
+  AKSW: 'AKSW',
+  AUUB: 'AUUB',
+  ART: 'ART',
+  ADAC: 'ADAC',
+  OLO: 'OLO',
+};
+
 export const BuildCapsFields = {
   ID: 'id',
   NAME: 'name',
@@ -113,6 +128,21 @@ export const BuildCapsFields = {
   IEDECS: 'ieDestructivelyEnsureCleanSession',
 };
 
+export const BuildConfigFields = {
+  BCAP: 'buildCapabilityId',
+  SV: 'selectedVersions',
+  SVI: 'selectedVersionsImplicit',
+  DR: 'displayResolution',
+  TZ: 'timezone',
+  SBVIPK: 'selectedBuildVarIdPerKey',
+  AOF: 'abortOnFailure',
+  AKSW: 'aetKeepSingleWindow',
+  AUUB: 'aetUpdateUrlBlank',
+  ART: 'aetResetTimeouts',
+  ADAC: 'aetDeleteAllCookies',
+  OLO: 'openLessOften',
+};
+
 export const BuildCapsLabels = {
   NAME: 'Name',
   OS: 'OS',
@@ -134,6 +164,20 @@ export const BuildCapsLabels = {
   IEEPH: 'IE Enable Persistent Hovering',
   IERWF: 'IE Require Window Focus',
   IEDNE: 'IE Disable Native Events',
+};
+
+export const BuildConfigLabels = {
+  BCAP: 'Build Capability',
+  SV: 'Tests',
+  DR: 'Display Resolution',
+  TZ: 'Timezone',
+  SBVIPK: 'Build Variables',
+  AOF: 'Abort On Failure',
+  AKSW: 'Keep Single Window After Each Test',
+  AUUB: 'Update Url Blank After Each Test',
+  ART: 'Reset Timeouts After Each Test',
+  ADAC: 'Delete All Cookies After Each Test',
+  OLO: 'Open Build Config Less Often',
 };
 
 export const BuildCapsInfo = {
@@ -194,6 +238,37 @@ export const BuildCapsInfo = {
     ' is by default enabled as native events closely mimics real user actions.',
 };
 
+export const BuildConfigInfo = {
+  SV:
+    'Select tests that need to run as a suite in builds. Tests can' +
+    ' be from across files and can include any versions. Giving a' +
+    ' test run order is not supported and discouraged, every test ' +
+    " should be able to run on it's own and there shouldn't be a state" +
+    ' sharing among them.',
+  DR:
+    'Select a display resolution for tests, the allocated machine' +
+    ' for tests will be set to this resolution.',
+  TZ: 'Select a timezone for the allocated machine.',
+  SBVIPK:
+    'Build variables having more than one values can resolve to a' +
+    ' desired value per build/dry-run. The list inside below element' +
+    ' shows build variables and the value they currently resolve to.' +
+    ' To change the resolved value, expand a variable group and' +
+    ' select desired value.',
+  AOF:
+    'Indicates whether runner abort all remaining tests once a test is failed.',
+  AKSW:
+    'Indicates whether runner deletes opened browser windows and keep just one' +
+    '  after each test, if the last test had opened more than one windows.',
+  AUUB: 'Indicates whether runner update url to about:blank after each test.',
+  ART: 'Indicates whether runner resets webdriver timeouts after each test.',
+  ADAC: 'Indicates whether runner delete all cookies after each test.',
+  OLO:
+    "Subsequent build runs won't open build config if it" +
+    ' has required fields selected, allowing you to run builds' +
+    ' faster without additional interruption.',
+};
+
 export const MaxLengths = {
   BUILD_CAPS_NAME: 200,
   BUILD_CAPS_TIMEOUT: 3600000,
@@ -235,4 +310,9 @@ export const FirefoxLogLevel = {
   CONFIG: 'config',
   DEBUG: 'debug',
   TRACE: 'trace',
+};
+
+export const Defaults = {
+  TIMEZONE: 'UTC',
+  DESKTOP_RES: '1366x768',
 };

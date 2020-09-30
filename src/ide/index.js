@@ -28,8 +28,8 @@ import {
   IdeVarsContext,
   IdeBuildRunningContext,
   IdeDryRunConfigContext,
-  IdeBuildRunBuildVarContext,
-  IdeBuildRunSelectedVersionsContext,
+  IdeBuildContext,
+  IdeBuildConfigContext,
 } from './Contexts';
 import explorerReducer from './reducers/explorer';
 import editorReducer from './reducers/editor';
@@ -37,7 +37,7 @@ import varReducer from './reducers/var';
 import ideReducer from './reducers/ide';
 import dryConfigReducer from './reducers/dryConfig';
 import buildConfigReducer from '../reducers/buildConfig';
-import buildRunReducer from './reducers/buildRun';
+import buildReducer from '../reducers/build';
 import RootErrorFallback, {rootErrorHandler} from '../ErrorBoundary';
 import {VarTypes, Browsers, Platforms} from '../Constants';
 import Browser, {BuildConfig} from '../model';
@@ -56,14 +56,17 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 // This is the root state of IDE
+// on accept from buildConfig and if no config, from ide, runOngoing=true, createNew=false,
+// openBuildConfig=false, runningBuildId=<uuid>
+// on cancel, createNew=false, openBuildConfig=false,
 const initialState = {
   projectId: new URLSearchParams(document.location.search).get('project'),
   files: null,
   build: {
-    start: null,
-    stop: null,
-    items: [],
     runOngoing: false,
+    createNew: true,
+    openBuildConfig: false,
+    runningBuildId: null,
   },
   // selectedBuildVarIdPerKey is an object containing pairs of buildVar.key and buildVar.id
   // just id is kept rather than whole object so that any update/rename in object will not have
@@ -111,8 +114,8 @@ function ideRootReducer(state, action) {
       if (type.startsWith('VAR_')) {
         return varReducer(state, action);
       }
-      if (type.startsWith('RUN_BUILD_')) {
-        return buildRunReducer(state, action);
+      if (type.startsWith('BUILD_')) {
+        return buildReducer(state, action);
       }
       if (type.startsWith('CONFIG_BUILD_')) {
         return buildConfigReducer(state, action);
@@ -252,10 +255,9 @@ const Ide = () => {
                   <IdeBuildRunningContext.Provider
                     value={state.build.runOngoing}>
                     <IdeDryRunConfigContext.Provider value={state.config.dry}>
-                      <IdeBuildRunBuildVarContext.Provider
-                        value={state.config.build.selectedBuildVarIdPerKey}>
-                        <IdeBuildRunSelectedVersionsContext.Provider
-                          value={state.config.build.selectedVersions}>
+                      <IdeBuildContext.Provider value={state.build}>
+                        <IdeBuildConfigContext.Provider
+                          value={state.config.build}>
                           <div
                             style={{
                               display: 'flex',
@@ -274,13 +276,15 @@ const Ide = () => {
                                   top: 0,
                                   bottom: 0,
                                 }}>
-                                <TopNavigation />
+                                <TopNavigation
+                                  openBuildConfig={state.build.openBuildConfig}
+                                />
                                 <Content />
                               </div>
                             </div>
                           </div>
-                        </IdeBuildRunSelectedVersionsContext.Provider>
-                      </IdeBuildRunBuildVarContext.Provider>
+                        </IdeBuildConfigContext.Provider>
+                      </IdeBuildContext.Provider>
                     </IdeDryRunConfigContext.Provider>
                   </IdeBuildRunningContext.Provider>
                 </IdeVarsContext.Provider>

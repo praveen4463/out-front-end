@@ -21,10 +21,6 @@ const useStyles = makeStyles((theme) => ({
     fontSize: '0.875rem',
     color: theme.palette.background.contrastText,
   },
-  description: {
-    paddingBottom: theme.spacing(2),
-    color: theme.palette.text.secondary,
-  },
   heading: {
     flexBasis: '33.33%',
     flexShrink: 0,
@@ -106,22 +102,15 @@ const SelectBuildVars = React.memo(
         <Accordion>
           <AccordionSummary
             expandIcon={<ExpandMoreIcon />}
-            aria-controls="top-panel-content"
-            id="top-panel-header">
+            aria-controls="selectBuildVars-content"
+            id="selectBuildVars-header">
             <Typography className={classes.text}>
-              Customize Build Variables resolution
+              Customize Build Variables Resolution
             </Typography>
           </AccordionSummary>
           <AccordionDetails className={classes.detailsRoot}>
             {groupedData ? (
               <>
-                <Typography className={clsx(classes.text, classes.description)}>
-                  Build variables having more than one values can resolve to a
-                  desired value per build/dry-run. Following list shows build
-                  variables and the value they currently resolve to. To change
-                  the resolved value, expand a variable group and select desired
-                  value.
-                </Typography>
                 <Box display="flex" flexDirection="column" overflow="auto">
                   {Object.keys(groupedData).map((key) => {
                     const keyResolveTo = selectedBuildVarIdPerKey[key]

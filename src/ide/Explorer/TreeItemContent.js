@@ -26,8 +26,8 @@ import {
   EXP_DELETE_REVERT,
   EDR_EXP_VERSIONS_DELETED,
   EDR_EXP_VERSION_DBL_CLICK,
-  RUN_BUILD,
 } from '../actionTypes';
+import {CONFIG_BUILD_ON_VERSIONS_DELETE} from '../../actions/actionTypes';
 import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 import useConfirmationDialog from '../../hooks/useConfirmationDialog';
 import './contextMenu.css';
@@ -193,7 +193,7 @@ const TreeItemContent = React.memo(
 
     const runBuildHandler = (e) => {
       e.stopPropagation();
-      dispatch({type: RUN_BUILD, payload: {itemType, itemId}});
+      // TODO: implement it
     };
 
     const onEdit = (e) => {
@@ -343,17 +343,32 @@ const TreeItemContent = React.memo(
       // send a dispatch now
       dispatch(batchActions(actions));
 
-      // eslint-disable-next-line no-unused-vars
-      const onError = (error) => {
-        // Show some precise error and revert.
+      const onSuccess = () => {
+        dispatch({
+          type: CONFIG_BUILD_ON_VERSIONS_DELETE,
+          payload: {versionIds: versionsDeleting},
+        });
+      };
+      const onError = (response) => {
+        setSnackbarErrorMsg(`Couldn't delete, ${response.error.reason}`);
         dispatch({type: EXP_DELETE_REVERT, payload: {revertFunc: revert}});
       };
       /*
       Send api request, send itemType, itemId.
       if request fails, invoke onError, if passes do nothing.
       For now simulate the error situation using a setTimeout, hide once test
-      done. setTimeout(onError, 500);
+      done.
       */
+      setTimeout(() => {
+        const response = {
+          status: ApiStatuses.SUCCESS,
+        };
+        if (response.status === ApiStatuses.SUCCESS) {
+          onSuccess();
+        } else if (response.status === ApiStatuses.FAILURE) {
+          onError(response);
+        }
+      }, 500);
     };
 
     const [setShowDeleteDialog, deleteDialog] = useConfirmationDialog(
@@ -480,7 +495,7 @@ const TreeItemContent = React.memo(
               className={classes.textContentRoot}>
               <ColoredItemIcon itemType={itemType} />
               <Typography
-                variant="caption"
+                variant="body2"
                 className={clsx(showAsErrorInExplorer && classes.errorText)}
                 data-testid={`${itemType}-treeItemName`}>
                 {itemName}

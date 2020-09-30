@@ -8,6 +8,9 @@ import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
 import {makeStyles} from '@material-ui/core/styles';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import InfoIcon from '@material-ui/icons/Info';
+import clsx from 'clsx';
+import TooltipCustom from '../../../TooltipCustom';
 import {
   IdeDispatchContext,
   IdeDryRunConfigContext,
@@ -20,7 +23,11 @@ import {
 } from '../../actionTypes';
 import SelectBuildVars from '../../../components/SelectBuildVars';
 import BrowserSelect from '../../../components/BrowserSelect';
-import {Platforms} from '../../../Constants';
+import {
+  Platforms,
+  BuildConfigLabels,
+  BuildConfigInfo,
+} from '../../../Constants';
 
 const useStyles = makeStyles((theme) => ({
   formControl: {
@@ -42,12 +49,20 @@ const useStyles = makeStyles((theme) => ({
   list: {
     minHeight: theme.spacing(8),
   },
-  label: {
-    paddingBottom: theme.spacing(1),
-    color: theme.palette.text.secondary,
-  },
   iconFilled: {
     right: '14px',
+  },
+  label: {
+    color: theme.palette.text.secondary,
+  },
+  labelPadding: {
+    paddingBottom: theme.spacing(1),
+  },
+  infoLabel: {
+    marginLeft: '4px',
+    fontSize: '1rem',
+    color: theme.palette.background.contrastText,
+    cursor: 'pointer',
   },
 }));
 
@@ -78,25 +93,57 @@ const DryConfig = () => {
     });
   };
 
+  const getLabel = (label, forId, noPadding = false) => {
+    return (
+      <Typography
+        variant="body2"
+        component="label"
+        htmlFor={forId}
+        className={clsx(classes.label, !noPadding && classes.labelPadding)}>
+        {label}
+      </Typography>
+    );
+  };
+
+  const getInfoLabel = (label, info, forId) => {
+    return (
+      <Box display="flex" alignItems="center" className={classes.labelPadding}>
+        {getLabel(label, forId, true)}
+        <TooltipCustom title={info} placement="right">
+          <InfoIcon fontSize="small" className={classes.infoLabel} />
+        </TooltipCustom>
+      </Box>
+    );
+  };
+
   return (
     <Container>
       <Box display="flex" flexDirection="column">
-        <Box pb={2}>
+        <Box display="flex" pb={2} alignItems="center">
           <Typography variant="subtitle1">
             Configure dry run properties you want to use in all future dry runs
           </Typography>
+          <TooltipCustom
+            title={
+              "Dry runs don't run in a browser and lack the ability to resolve" +
+              ' variables like browser and platform. To let dry runs work when code' +
+              ' uses such variables, we assign them a default value that' +
+              ' can be customized per the program flow. Additionally build variables' +
+              ' can also be customized.'
+            }
+            placement="right">
+            <InfoIcon fontSize="small" className={classes.infoLabel} />
+          </TooltipCustom>
         </Box>
         <Box display="flex" flexDirection="column" pb={2}>
-          <Typography variant="body2" className={classes.label}>
-            Platform
-          </Typography>
+          {getLabel('Platform', 'platform')}
           <FormControl variant="filled" className={classes.formControl}>
-            <InputLabel id="platformSelectLabel">
+            <InputLabel id="platformLabel">
               {dryConfig.platform ? '' : 'Select a platform'}
             </InputLabel>
             <Select
-              labelId="platformSelectLabel"
-              id="platformSelect"
+              labelId="platformLabel"
+              id="platform"
               value={dryConfig.platform ?? ''}
               onChange={handlePlatformChange}
               classes={{
@@ -116,9 +163,7 @@ const DryConfig = () => {
           </FormControl>
         </Box>
         <Box display="flex" flexDirection="column" pb={2}>
-          <Typography variant="body2" className={classes.label}>
-            Browser
-          </Typography>
+          {getLabel('Browser', 'browserSelect-header')}
           <BrowserSelect
             platform={dryConfig.platform}
             onChange={handleBrowserChange}
@@ -126,9 +171,11 @@ const DryConfig = () => {
           />
         </Box>
         <Box display="flex" flexDirection="column" pb={2}>
-          <Typography variant="body2" className={classes.label}>
-            Build Variables
-          </Typography>
+          {getInfoLabel(
+            BuildConfigLabels.SBVIPK,
+            BuildConfigInfo.SBVIPK,
+            'selectBuildVars-header'
+          )}
           <SelectBuildVars
             varBuild={build}
             selectedBuildVarIdPerKey={dryConfig.selectedBuildVarIdPerKey}

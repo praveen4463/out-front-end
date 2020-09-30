@@ -1,19 +1,12 @@
 import produce from 'immer';
 import {
   CONFIG_DRY_ADD_BUILD_VAR,
+  CONFIG_DRY_ON_BUILD_VAR_DELETE,
   CONFIG_DRY_UPDATE_BROWSER,
   CONFIG_DRY_UPDATE_PLATFORM,
 } from '../actionTypes';
 import Browser from '../../model';
-
-const addBuildVar = (draft, payload) => {
-  if (payload.buildVar === undefined) {
-    throw new Error('Insufficient arguments passed to addBuildVar.');
-  }
-  const {buildVar} = payload;
-  const {selectedBuildVarIdPerKey} = draft.config.dry;
-  selectedBuildVarIdPerKey[buildVar.key] = buildVar.id;
-};
+import {addBuildVar, onBuildVarDelete} from '../../reducers/common';
 
 const updateBrowser = (draft, payload) => {
   if (payload.browser === undefined) {
@@ -36,7 +29,10 @@ const dryConfigReducer = produce((draft, action) => {
   const {payload} = action;
   switch (action.type) {
     case CONFIG_DRY_ADD_BUILD_VAR:
-      addBuildVar(draft, payload);
+      addBuildVar(draft.config.dry, payload);
+      break;
+    case CONFIG_DRY_ON_BUILD_VAR_DELETE:
+      onBuildVarDelete(draft.config.dry, payload);
       break;
     case CONFIG_DRY_UPDATE_BROWSER:
       updateBrowser(draft, payload);

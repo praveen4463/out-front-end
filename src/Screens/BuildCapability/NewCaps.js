@@ -79,12 +79,10 @@ const useStyles = makeStyles((theme) => ({
     minHeight: theme.spacing(8),
   },
   label: {
-    paddingBottom: theme.spacing(1),
     color: theme.palette.text.secondary,
   },
-  labelLowPad: {
-    paddingBottom: theme.spacing(0.3),
-    color: theme.palette.text.secondary,
+  labelPadding: {
+    paddingBottom: theme.spacing(1),
   },
   iconFilled: {
     right: '14px',
@@ -333,22 +331,25 @@ const NewCaps = React.memo(
       onCancel();
     };
 
-    const getLabel = (label, forId, lowPad = false) => {
+    const getLabel = (label, forId, noPadding = false) => {
       return (
         <Typography
           variant="body2"
           component="label"
           htmlFor={forId}
-          className={clsx(lowPad ? classes.labelLowPad : classes.label)}>
+          className={clsx(classes.label, !noPadding && classes.labelPadding)}>
           {label}
         </Typography>
       );
     };
 
-    const getInfoLabel = (capsKey, forId, lowPad = false) => {
+    const getInfoLabel = (capsKey, forId, noPadding = false) => {
       return (
-        <Box display="flex">
-          {getLabel(BuildCapsLabels[capsKey], forId, lowPad)}
+        <Box
+          display="flex"
+          alignItems="center"
+          className={clsx(!noPadding && classes.labelPadding)}>
+          {getLabel(BuildCapsLabels[capsKey], forId, true)}
           {BuildCapsInfo[capsKey] && (
             <TooltipCustom title={BuildCapsInfo[capsKey]} placement="right">
               <InfoIcon fontSize="small" className={classes.infoLabel} />
@@ -479,6 +480,7 @@ const NewCaps = React.memo(
             <AccordionDetails classes={{root: classes.capsDetail}}>
               <Box display="flex" flexDirection="column" overflow="auto">
                 <ElementRow>
+                  {/* text fields have their own padding, so no extra */}
                   {getLabel(BuildCapsLabels.NAME, BuildCapsFields.NAME, true)}
                   <TextField
                     value={caps[BuildCapsFields.NAME] ?? ''}

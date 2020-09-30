@@ -153,8 +153,6 @@ ItemSelector.propTypes = {
 
 const useStyles = makeStyles((theme) => ({
   root: {
-    height: 264,
-    flexGrow: 1,
     width: '100%',
   },
   checked: {
@@ -221,7 +219,8 @@ const TestSelect = React.memo(
         onNodeToggle={handleToggle}
         defaultCollapseIcon={<MinusSquare />}
         defaultExpandIcon={<PlusSquare />}
-        defaultEndIcon={<CloseSquare />}>
+        defaultEndIcon={<CloseSquare />}
+        id="testSelect">
         {files.result
           .filter(
             (fid) =>
