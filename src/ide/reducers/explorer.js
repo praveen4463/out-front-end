@@ -73,6 +73,8 @@ const unloadFile = (draft, payload) => {
   }
   const et = draft.files.entities;
   const fid = payload.itemId;
+  // !! several components like TestSelect depends on this logic of removing
+  // all tests from a file that's going to be unloaded.
   if (Array.isArray(et.files[fid].tests)) {
     et.files[fid].tests.forEach((tid) => {
       if (Array.isArray(et.tests[tid].versions)) {

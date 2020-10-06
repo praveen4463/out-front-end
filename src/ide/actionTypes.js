@@ -32,3 +32,9 @@ export const VAR_SET = 'VAR_SET';
 export const VAR_DELETE = 'VAR_DELETE';
 export const VAR_NEW = 'VAR_NEW';
 export const VAR_EDIT = 'VAR_EDIT';
+
+// Build Run actions
+export const RUN_BUILD_ON_NEW_RUN = 'RUN_BUILD_ON_NEW_RUN';
+export const RUN_BUILD_UPDATE_BY_PROP = 'RUN_BUILD_UPDATE_BY_PROP';
+export const RUN_BUILD_UPDATE_VERSION_BY_PROP =
+  'RUN_BUILD_UPDATE_VERSION_BY_PROP';

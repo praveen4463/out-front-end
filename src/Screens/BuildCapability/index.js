@@ -105,7 +105,11 @@ LabelBox.propTypes = {
 
 const ViewRow = ({children}) => {
   const classes = useStyles();
-  return <Box className={classes.viewRow}>{children}</Box>;
+  return (
+    <Box className={classes.viewRow} data-testid="viewRow">
+      {children}
+    </Box>
+  );
 };
 
 ViewRow.propTypes = {
@@ -658,6 +662,7 @@ const BuildCapability = React.memo(
                     TransitionProps={{unmountOnExit: true}}
                     expanded={expanded === dCaps[k].id} // use object's prop id rather than string key 'k'
                     onChange={handleChange(dCaps[k].id)}
+                    data-testid="capContainer"
                     key={dCaps[k].id}>
                     <AccordionSummary
                       aria-controls={`${dCaps[k].id}-content`}
@@ -666,7 +671,8 @@ const BuildCapability = React.memo(
                         root: summary.root,
                         expanded: summary.expanded,
                         content: summary.content,
-                      }}>
+                      }}
+                      data-testid="capSummary">
                       <Typography
                         className={classes.buildCapLink}
                         title="Click to view details">
@@ -695,7 +701,9 @@ const BuildCapability = React.memo(
                         </Box>
                       )}
                     </AccordionSummary>
-                    <AccordionDetails classes={{root: classes.capsDetail}}>
+                    <AccordionDetails
+                      classes={{root: classes.capsDetail}}
+                      data-testid="capDetails">
                       {expanded &&
                         expanded === dCaps[k].id &&
                         createBuildCapsData()}

@@ -23,7 +23,7 @@ function LastRun(runType, output, showSuccessMsgInStatus, error) {
   this.showSuccessMsgInStatus = showSuccessMsgInStatus;
   this.error = error; // error is an instance of LastRunError, in future this may be an
   // array of LastRunError to contain multiple errors occurred, for example during
-  // parsing. Must be null when there is no error occurred, could be null.
+  // parsing. Must be null when there is no error occurred.
   this[immerable] = true;
 }
 

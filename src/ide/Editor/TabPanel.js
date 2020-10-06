@@ -44,7 +44,7 @@ import {BATCH_ACTIONS, EDR_VERSION_CODE_UPDATED} from '../actionTypes';
 import {
   IdeDispatchContext,
   IdeVarsContext,
-  IdeBuildRunningContext,
+  IdeBuildRunOngoingContext,
 } from '../Contexts';
 import Tooltip from '../../TooltipCustom';
 import {LastRun, LastRunError} from '../Explorer/model';
@@ -100,7 +100,7 @@ const useStyle = makeStyles((theme) => ({
     margin: `${theme.spacing(1)}px 0px`,
   },
   outputError: {
-    color: theme.palette.error.main,
+    color: theme.palette.error.light,
     marginTop: 0,
   },
   link: {
@@ -259,7 +259,9 @@ const TabPanel = React.memo(
     // console.log('re rendering..');
     const dispatchGlobal = useContext(IdeDispatchContext);
     const vars = useContext(IdeVarsContext);
-    const globalRunOngoing = useContext(IdeBuildRunningContext);
+    // TODO: similarly get dry/parse run context and do the same thing if any
+    // of them is true.
+    const buildRunOngoing = useContext(IdeBuildRunOngoingContext);
     const unmounted = useRef(false);
 
     function reducer(state, action) {
@@ -809,8 +811,8 @@ const TabPanel = React.memo(
     };
 
     useEffect(() => {
-      toggleRunOngoing(globalRunOngoing);
-    }, [globalRunOngoing]);
+      toggleRunOngoing(buildRunOngoing);
+    }, [buildRunOngoing]);
 
     const toggleOutputPanel = (isExpanded) => {
       dispatchControlled({
@@ -880,6 +882,16 @@ const TabPanel = React.memo(
         return;
       }
       afterChangeDebounceRef.current.flush();
+      // validate whether there is a parse error in this version, if so build run
+      // won't do anything.
+      if (
+        version.lastRun &&
+        version.lastRun.error &&
+        version.lastRun.runType === RunType.PARSE_RUN
+      ) {
+        return;
+      }
+      console.log(); // TODO: remove it, added for 'return' statement above.
       // TODO: trigger a build run the normal way, i.e open the build config
       // and select this version only, then all should work normally. This works
       // as just a shortcut. While build is running, continuous output appears
@@ -974,18 +986,7 @@ const TabPanel = React.memo(
 
     // TODO: write this as notes in docs for dry run:
     // When dry run is initiated from within editor, it doesn't open up dry run
-    // config. Users have
-    // to setup dry run config beforehand if their tests use any of following
-    // variables:
-    // build, browser, platform (from ZwlDryRunProperties.java)
-    // browser and platform is usually determined when a build is run using
-    // selected browser/platform but we don't know them while dry running that's why
-    // we need users to select them in config. build variables needs to be assigned
-    // so that user's desired build time value is taken.
-    // if no browser/version/platform is mentioned, chrome/70/windows are taken
-    // as default.
-    // all available build variable's primary entry is taken by default and if
-    // some build var is mentioned, that entry is taken rather than it's primary.
+    // config. Users have to setup dry run config beforehand.
     const handleDryRun = (event) => {
       // when panel is closed, and any action buttons are clicked, we want it to
       // open so that when the output arrives, we don't have to explicitly open
@@ -1000,6 +1001,15 @@ const TabPanel = React.memo(
         return;
       }
       afterChangeDebounceRef.current.flush();
+      // validate whether there is a parse error in this version, if so dry run
+      // won't do anything.
+      if (
+        version.lastRun &&
+        version.lastRun.error &&
+        version.lastRun.runType === RunType.PARSE_RUN
+      ) {
+        return;
+      }
       const onSuccess = (response) => {
         const lastRunAction = getLastRunAction(
           version.id,

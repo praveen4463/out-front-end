@@ -120,15 +120,17 @@ const SelectBuildVars = React.memo(
                       <Accordion
                         expanded={expanded === key}
                         onChange={handleChange(key)}
-                        key={keyResolveTo.id}>
+                        key={keyResolveTo.id}
+                        data-testid="keyGroup">
                         <AccordionSummary
                           expandIcon={<ExpandMoreIcon />}
-                          aria-controls={`${key}bh-content`}
-                          id={`${key}bh-header`}
+                          aria-controls={`${keyResolveTo.id}-content`}
+                          id={`${keyResolveTo.id}-header`}
                           classes={{
                             root: keyGroupSummary.root,
                             expanded: keyGroupSummary.expanded,
-                          }}>
+                          }}
+                          data-testid="keyGroupSummary">
                           <Typography
                             className={clsx(classes.heading, classes.text)}>
                             {key}
@@ -146,7 +148,9 @@ const SelectBuildVars = React.memo(
                             ) : null}
                           </Typography>
                         </AccordionSummary>
-                        <AccordionDetails classes={{root: classes.groupDetail}}>
+                        <AccordionDetails
+                          classes={{root: classes.groupDetail}}
+                          data-testid="keyGroupDetails">
                           {groupedData[key]
                             .filter(
                               (buildVar) => buildVar.id !== keyResolveTo.id
@@ -157,7 +161,8 @@ const SelectBuildVars = React.memo(
                                 flexDirection="row"
                                 alignItems="center"
                                 key={buildVar.id}
-                                className={classes.groupVars}>
+                                className={classes.groupVars}
+                                data-testid="keyGroupVars">
                                 <Box pl={3}>
                                   <Button
                                     variant="contained"
@@ -170,7 +175,8 @@ const SelectBuildVars = React.memo(
                                 <Box
                                   flex={1}
                                   flexWrap="wrap"
-                                  textAlign="center">
+                                  textAlign="center"
+                                  data-testid="varText">
                                   <Typography
                                     className={clsx(
                                       classes.text,

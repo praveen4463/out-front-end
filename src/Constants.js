@@ -41,6 +41,14 @@ export const ApiStatuses = {
   STOPPING: 'STOPPING',
 };
 
+export const TestStatus = {
+  RUNNING: 'RUNNING',
+  ERROR: 'ERROR',
+  STOPPED: 'STOPPED',
+  ABORTED: 'ABORTED',
+  SUCCESS: 'SUCCESS',
+};
+
 export const RunType = {
   BUILD_RUN: 'BUILD_RUN',
   DRY_RUN: 'DRY_RUN',

@@ -10,7 +10,6 @@ export default function Browser(name, version) {
 function BuildConfig(
   buildCapabilityId = null,
   selectedVersions = new Set(),
-  selectedVersionsImplicit = null,
   displayResolution = Defaults.DESKTOP_RES,
   timezone = Defaults.TIMEZONE,
   selectedBuildVarIdPerKey = {},
@@ -33,12 +32,6 @@ function BuildConfig(
   ready to run a build. This also avoids any stale version in selected list.
   */
   this.selectedVersions = selectedVersions;
-  /* versions that are implicitly selected with a single user action such as using
-  context menu in explorer, editor panel's run button, re-run and run-failed, kept
-  separately because we don't clear selectionVersions when implicit selection occurs.
-  This should be reset after each build is run because config checks this and decides
-  whether to show version select component. This will always be ordered. */
-  this.selectedVersionsImplicit = selectedVersionsImplicit;
   this.displayResolution = displayResolution;
   this.timezone = timezone;
   this.selectedBuildVarIdPerKey = selectedBuildVarIdPerKey;

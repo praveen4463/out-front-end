@@ -11,6 +11,7 @@ import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
 import Checkbox from '@material-ui/core/Checkbox';
 import Chip from '@material-ui/core/Chip';
+import clsx from 'clsx';
 import {useSpring, animated} from 'react-spring/web.cjs'; // web.cjs is required for IE 11 support
 import ColoredItemIcon from './ColoredItemIcon';
 import {ExplorerItemType} from '../ide/Constants';
@@ -167,6 +168,9 @@ const useStyles = makeStyles((theme) => ({
     height: theme.spacing(1.8),
     cursor: 'pointer',
   },
+  errorText: {
+    color: theme.palette.error.main,
+  },
 }));
 
 // When loaded from IDE, files will be the files loaded into explorer, when from
@@ -239,7 +243,12 @@ const TestSelect = React.memo(
                     isSelected={isSelected(FILE, fid)}
                   />
                   <ColoredItemIcon itemType={FILE} />
-                  <Typography variant="body2" style={{marginLeft: '4px'}}>
+                  <Typography
+                    variant="body2"
+                    style={{marginLeft: '4px'}}
+                    className={clsx(
+                      etFiles[fid].showAsErrorInExplorer && classes.errorText
+                    )}>
                     {etFiles[fid].name}
                   </Typography>
                 </Box>
@@ -257,7 +266,13 @@ const TestSelect = React.memo(
                         isSelected={isSelected(TEST, tid)}
                       />
                       <ColoredItemIcon itemType={TEST} />
-                      <Typography variant="body2" style={{marginLeft: '4px'}}>
+                      <Typography
+                        variant="body2"
+                        style={{marginLeft: '4px'}}
+                        className={clsx(
+                          files.entities.tests[tid].showAsErrorInExplorer &&
+                            classes.errorText
+                        )}>
                         {files.entities.tests[tid].name}
                       </Typography>
                     </Box>
@@ -277,7 +292,11 @@ const TestSelect = React.memo(
                           <ColoredItemIcon itemType={VERSION} />
                           <Typography
                             variant="body2"
-                            style={{marginLeft: '4px'}}>
+                            style={{marginLeft: '4px'}}
+                            className={clsx(
+                              files.entities.versions[vid]
+                                .showAsErrorInExplorer && classes.errorText
+                            )}>
                             {files.entities.versions[vid].name}
                           </Typography>
                           {files.entities.versions[vid].isCurrent && (

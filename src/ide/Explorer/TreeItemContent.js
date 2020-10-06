@@ -395,10 +395,16 @@ const TreeItemContent = React.memo(
           et.tests[t].versions.forEach((v) => versionIds.push(v))
         );
       if (versionIds.length > 0) {
-        actions.push({
-          type: EDR_EXP_VERSIONS_DELETED,
-          payload: {versionIds},
-        });
+        actions.push(
+          {
+            type: EDR_EXP_VERSIONS_DELETED,
+            payload: {versionIds},
+          },
+          {
+            type: CONFIG_BUILD_ON_VERSIONS_DELETE,
+            payload: {versionIds},
+          }
+        );
       }
       dispatch(batchActions(actions));
     };

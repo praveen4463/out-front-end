@@ -1,10 +1,11 @@
-import React from 'react';
+import React, {useContext} from 'react';
 import AppBar from '@material-ui/core/AppBar';
 import ToolBar from '@material-ui/core/Toolbar';
 import IconButton from '@material-ui/core/IconButton';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import BuildIcon from '@material-ui/icons/Build';
+import StopIcon from '@material-ui/icons/Stop';
 import Box from '@material-ui/core/Box';
 import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
@@ -14,6 +15,7 @@ import HelpMenu from './HelpMenu';
 import UserAvatar from './UserAvatar';
 import Tooltip from '../TooltipCustom';
 import ProjectSelector from './ProjectSelector';
+import {IdeBuildRunOngoingContext} from './Contexts';
 
 const useStyles = makeStyles((theme) => ({
   fontSizeSmall: {
@@ -34,7 +36,8 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const TopNavigation = ({openBuildConfig}) => {
+const TopNavigation = ({openBuildConfig, sessionId}) => {
+  const buildRunOngoing = useContext(IdeBuildRunOngoingContext);
   const classes = useStyles();
   return (
     <AppBar classes={{root: classes.appBarRoot}}>
@@ -62,15 +65,10 @@ const TopNavigation = ({openBuildConfig}) => {
           <MainMenu />
         </div>
         <Tooltip title="Run Build R">
-          <IconButton aria-label="Run Build">
+          <IconButton aria-label="Run Build" disabled={buildRunOngoing}>
             <PlayArrowIcon color="primary" fontSize="small" />
           </IconButton>
         </Tooltip>
-        {/* <Tooltip title="Stop Build ^C">
-          <IconButton aria-label="Stop Build">
-            <StopIcon color="disabled" fontSize="small" />
-          </IconButton>
-        </Tooltip> */}
         <Tooltip title="Parse All P">
           <IconButton aria-label="Parse">
             <BuildIcon
@@ -89,6 +87,15 @@ const TopNavigation = ({openBuildConfig}) => {
             />
           </IconButton>
         </Tooltip>
+        {/* based on other run ongoings, we will render this button differently
+        so that it works for all */}
+        {buildRunOngoing && sessionId ? (
+          <Tooltip title="Stop Build ^C">
+            <IconButton aria-label="Stop Build">
+              <StopIcon color="error" fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        ) : null}
         <EditMenu
           editIconClasses={{fontSizeSmall: classes.fontSizeEditIcon}}
           openBuildConfig={openBuildConfig}
@@ -112,6 +119,11 @@ const TopNavigation = ({openBuildConfig}) => {
 
 TopNavigation.propTypes = {
   openBuildConfig: PropTypes.bool.isRequired,
+  sessionId: PropTypes.string,
+};
+
+TopNavigation.defaultProps = {
+  sessionId: null,
 };
 
 export default TopNavigation;

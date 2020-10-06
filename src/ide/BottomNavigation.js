@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React from 'react';
+import React, {useEffect, useContext} from 'react';
 import clsx from 'clsx';
 import {makeStyles} from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
@@ -8,6 +8,14 @@ import Link from '@material-ui/core/Link';
 import Typography from '@material-ui/core/Typography';
 import PropTypes from 'prop-types';
 import {BottomNavs} from './Constants';
+import {
+  IdeBuildRunOngoingContext,
+  IdeBuildRunContext,
+  IdeDryRunOngoingContext,
+  IdeDryRunContext,
+  IdeParseRunOngoingContext,
+  IdeParseRunContext,
+} from './Contexts';
 
 const useStyles = makeStyles((theme) => ({
   nav: {
@@ -61,7 +69,31 @@ const useStyles = makeStyles((theme) => ({
 // TODO: receive from props clickHandler from line
 const BottomNavigation = (props) => {
   const {clickHandler, active, lineColContainerRef} = props;
+  const buildRunOngoing = useContext(IdeBuildRunOngoingContext);
+  const buildRun = useContext(IdeBuildRunContext);
+  const dryRunOngoing = useContext(IdeDryRunOngoingContext);
+  const dryRun = useContext(IdeDryRunContext);
+  const parseRunOngoing = useContext(IdeParseRunOngoingContext);
+  const parseRun = useContext(IdeParseRunContext);
   const classes = useStyles();
+
+  useEffect(() => {
+    if (buildRunOngoing && active !== BottomNavs.BUILD_RUN) {
+      clickHandler(BottomNavs.BUILD_RUN);
+    }
+  }, [active, clickHandler, buildRunOngoing]);
+
+  useEffect(() => {
+    if (dryRunOngoing && active !== BottomNavs.DRY_RUN) {
+      clickHandler(BottomNavs.DRY_RUN);
+    }
+  }, [active, clickHandler, dryRunOngoing]);
+
+  useEffect(() => {
+    if (parseRunOngoing && active !== BottomNavs.PARSE) {
+      clickHandler(BottomNavs.PARSE);
+    }
+  }, [active, clickHandler, parseRunOngoing]);
 
   return (
     <Paper
@@ -70,25 +102,63 @@ const BottomNavigation = (props) => {
       elevation={4}
       aria-label="Bottom Navigation"
       className={classes.nav}>
-      <Box display="flex" className={classes.wrapper}>
-        <Typography
-          variant="caption"
-          style={{marginLeft: 48}}
-          className={classes.typography}>
-          <Link
-            color="inherit"
-            onClick={() => clickHandler(BottomNavs.BUILD_OUTPUT_STATUS)}
-            className={clsx(
-              classes.link,
-              classes.linkTab,
-              active === BottomNavs.BUILD_OUTPUT_STATUS
-                ? classes.activeTab
-                : classes.linkHover
-            )}>
-            Run Status and Output
-          </Link>
-        </Typography>
-      </Box>
+      {buildRun || buildRunOngoing ? (
+        <Box display="flex" className={classes.wrapper}>
+          <Typography
+            variant="caption"
+            style={{marginLeft: 48}}
+            className={classes.typography}>
+            <Link
+              color="inherit"
+              onClick={() => clickHandler(BottomNavs.BUILD_RUN)}
+              className={clsx(
+                classes.link,
+                classes.linkTab,
+                active === BottomNavs.BUILD_RUN
+                  ? classes.activeTab
+                  : classes.linkHover
+              )}>
+              Build Run
+            </Link>
+          </Typography>
+        </Box>
+      ) : null}
+      {dryRun || dryRunOngoing ? (
+        <Box display="flex" className={classes.wrapper}>
+          <Typography variant="caption" className={classes.typography}>
+            <Link
+              color="inherit"
+              onClick={() => clickHandler(BottomNavs.DRY_RUN)}
+              className={clsx(
+                classes.link,
+                classes.linkTab,
+                active === BottomNavs.DRY_RUN
+                  ? classes.activeTab
+                  : classes.linkHover
+              )}>
+              Dry Run
+            </Link>
+          </Typography>
+        </Box>
+      ) : null}
+      {parseRun || parseRunOngoing ? (
+        <Box display="flex" className={classes.wrapper}>
+          <Typography variant="caption" className={classes.typography}>
+            <Link
+              color="inherit"
+              onClick={() => clickHandler(BottomNavs.PARSE)}
+              className={clsx(
+                classes.link,
+                classes.linkTab,
+                active === BottomNavs.PARSE
+                  ? classes.activeTab
+                  : classes.linkHover
+              )}>
+              Parse
+            </Link>
+          </Typography>
+        </Box>
+      ) : null}
       <Box flex={1} className={classes.wrapper} />
       <Box
         display="flex"

@@ -1,8 +1,9 @@
-import React, {useState, useEffect, useReducer} from 'react';
+import React, {useState, useEffect, useReducer, useRef} from 'react';
 import {ThemeProvider, makeStyles} from '@material-ui/core/styles';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import {normalize} from 'normalizr';
 import {ErrorBoundary} from 'react-error-boundary';
+import {random} from 'lodash-es';
 import TopNavigation from './TopNavigation';
 import Content from './Content';
 import darkTheme from './Themes';
@@ -18,7 +19,14 @@ import {
   SET_FILES,
   VAR_SET,
   RESET_STATE_ON_ERROR,
+  RUN_BUILD_UPDATE_BY_PROP,
 } from './actionTypes';
+import {
+  BUILD_UPDATE_BY_PROP,
+  BUILD_START_RUN,
+  BUILD_NEW_SESSION_SUCCESS,
+  BUILD_NEW_SESSION_ERROR,
+} from '../actions/actionTypes';
 import batchActions from './actionCreators';
 import {
   IdeDispatchContext,
@@ -26,10 +34,11 @@ import {
   IdeFilesContext,
   IdeEditorContext,
   IdeVarsContext,
-  IdeBuildRunningContext,
+  IdeBuildRunOngoingContext,
   IdeDryRunConfigContext,
   IdeBuildContext,
   IdeBuildConfigContext,
+  IdeBuildRunContext,
 } from './Contexts';
 import explorerReducer from './reducers/explorer';
 import editorReducer from './reducers/editor';
@@ -38,8 +47,15 @@ import ideReducer from './reducers/ide';
 import dryConfigReducer from './reducers/dryConfig';
 import buildConfigReducer from '../reducers/buildConfig';
 import buildReducer from '../reducers/build';
+import buildRunReducer from './reducers/buildRun';
 import RootErrorFallback, {rootErrorHandler} from '../ErrorBoundary';
-import {VarTypes, Browsers, Platforms} from '../Constants';
+import {
+  VarTypes,
+  Browsers,
+  Platforms,
+  ApiStatuses,
+  RunType,
+} from '../Constants';
 import Browser, {BuildConfig} from '../model';
 import './index.css';
 
@@ -56,25 +72,49 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 // This is the root state of IDE
-// on accept from buildConfig and if no config, from ide, runOngoing=true, createNew=false,
-// openBuildConfig=false, runningBuildId=<uuid>
-// on cancel, createNew=false, openBuildConfig=false,
 const initialState = {
   projectId: new URLSearchParams(document.location.search).get('project'),
   files: null,
+  // build represents a new build request initiated upon user action
   build: {
     runOngoing: false,
-    createNew: true,
+    createNew: false,
     openBuildConfig: false,
-    runningBuildId: null,
+    sessionRequestTime: null,
+    buildId: null,
+    buildKey: null,
+    sessionId: null,
+    sessionError: null,
+    /* Either explicit or implicit versionIds selected for build. When user initiates
+    new build by telling what need tested beforehand (for instance using context
+    menu in explorer, editor panel's run button, re-run and run-failed), this
+    will be assigned from that action and called implicit. When user doesn't tell
+    implicitly and choose test selector in build config, those selected tests will
+    be assigned here after sorting and filtering from original files.
+    This should be reset after each build is run because config checks this and
+    decides whether to show version select component. */
+    versionIds: null, // sorted versionIds being tested
+    runId: null,
   },
-  // selectedBuildVarIdPerKey is an object containing pairs of buildVar.key and buildVar.id
-  // just id is kept rather than whole object so that any update/rename in object will not have
-  // to be made here.
+  // buildRun represents a running build
+  buildRun: null, // instance of BuildRun created upon build.runOngoing
+  // becomes true using build.versionIds
+  completedBuilds: null,
+  dry: {
+    runOngoing: false,
+  },
+  dryRun: null,
+  parse: {
+    runOngoing: false,
+  },
+  parseRun: null,
   config: {
     dry: {
       browser: new Browser(Browsers.CHROME.VALUE, '90'),
       platform: Platforms.WINDOWS.VALUE,
+      // selectedBuildVarIdPerKey is an object containing pairs of buildVar.key and buildVar.id
+      // just id is kept rather than whole object so that any update/rename in object will not have
+      // to be made here.
       selectedBuildVarIdPerKey: {},
     },
     build: new BuildConfig(),
@@ -117,6 +157,9 @@ function ideRootReducer(state, action) {
       if (type.startsWith('BUILD_')) {
         return buildReducer(state, action);
       }
+      if (type.startsWith('RUN_BUILD')) {
+        return buildRunReducer(state, action);
+      }
       if (type.startsWith('CONFIG_BUILD_')) {
         return buildConfigReducer(state, action);
       }
@@ -135,8 +178,10 @@ const Ide = () => {
   // !! after reducer has run for the first time, direct state updates won't
   // happen as state object will be locked.
   const [state, dispatch] = useReducer(ideRootReducer, initialState);
-  const classes = useStyles();
   const [allSet, setAllSet] = useState(false);
+  const pendingTestProgressApiResponse = useRef(false);
+  const etVersions = state.files ? state.files.entities.versions : null;
+  const classes = useStyles();
 
   useEffect(() => {
     /*
@@ -214,6 +259,125 @@ const Ide = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!state.build.createNew) {
+      return;
+    }
+    if (
+      !state.config.build.openLessOften ||
+      !(
+        state.config.build.buildCapabilityId &&
+        ((state.build.versionIds && state.build.versionIds.length) ||
+          (state.config.build.selectedVersions &&
+            state.config.build.selectedVersions.size))
+      )
+    ) {
+      dispatch({
+        type: BUILD_UPDATE_BY_PROP,
+        payload: {prop: 'openBuildConfig', value: true},
+      });
+      return;
+    }
+    dispatch({
+      type: BUILD_START_RUN,
+    });
+  }, [
+    state.build.createNew,
+    state.build.versionIds,
+    state.config.build.buildCapabilityId,
+    state.config.build.openLessOften,
+    state.config.build.selectedVersions,
+  ]);
+
+  useEffect(() => {
+    if (!(state.build.runOngoing && !state.build.sessionId)) {
+      return;
+    }
+    // first validate all versions parse status and trigger new session error if
+    // there are parse errors in any of selected test. Don't just skip those tests
+    // but skip entire build.
+    if (
+      state.build.versionIds.some((v) => {
+        const version = etVersions[v];
+        return (
+          version.lastRun &&
+          version.lastRun.error &&
+          version.lastRun.runType === RunType.PARSE_RUN
+        );
+      })
+    ) {
+      dispatch({
+        type: BUILD_NEW_SESSION_ERROR,
+        payload: {
+          error:
+            "Can't start build, there are parse errors in some of selected test(s)",
+        },
+      });
+    }
+    // call api for new session
+    dispatch({
+      type: BUILD_UPDATE_BY_PROP,
+      payload: {prop: 'sessionRequestTime', value: Date.now()},
+    });
+    const onSuccess = (response) => {
+      const {buildId, buildKey, sessionId} = response.data;
+      // setup test progress interval
+      // invoke function every one second but send api request only after last
+      // request is completed.
+      const intervalId = setInterval(() => {
+        // state.buildRun.buildRunVersions will always be there as it gets created
+        // upon new build request accepted.
+        if (pendingTestProgressApiResponse.current) {
+          return;
+        }
+        pendingTestProgressApiResponse.current = true;
+        setTimeout(() => {
+          pendingTestProgressApiResponse.current = false;
+        }, 800);
+      }, 1000);
+      dispatch(
+        batchActions([
+          {
+            type: BUILD_NEW_SESSION_SUCCESS,
+            payload: {buildId, buildKey, sessionId},
+          },
+          {
+            type: RUN_BUILD_UPDATE_BY_PROP,
+            payload: {prop: 'testProgressIntervalId', value: intervalId},
+          },
+        ])
+      );
+    };
+    const onError = (response) => {
+      dispatch({
+        type: BUILD_NEW_SESSION_ERROR,
+        payload: {
+          error: `Couldn't start build, ${response.error.reason}`,
+        },
+      });
+    };
+    setTimeout(() => {
+      const response = {
+        status: ApiStatuses.SUCCESS,
+        data: {
+          buildId: random(1000, 10000),
+          buildKey: random(1000, 10000),
+          sessionId: random(1000, 10000),
+        },
+      };
+      if (response.status === ApiStatuses.SUCCESS) {
+        onSuccess(response);
+      } else if (response.status === ApiStatuses.SUCCESS) {
+        onError(response);
+      }
+    }, 10000);
+  }, [
+    state.build.runOngoing,
+    state.build.sessionId,
+    state.build.versionIds,
+    etVersions,
+  ]);
+
   if (!allSet) {
     return (
       <ThemeProvider theme={darkTheme}>
@@ -252,41 +416,46 @@ const Ide = () => {
             <IdeFilesContext.Provider value={state.files}>
               <IdeEditorContext.Provider value={state.editor}>
                 <IdeVarsContext.Provider value={state.vars}>
-                  <IdeBuildRunningContext.Provider
+                  <IdeBuildRunOngoingContext.Provider
                     value={state.build.runOngoing}>
                     <IdeDryRunConfigContext.Provider value={state.config.dry}>
                       <IdeBuildContext.Provider value={state.build}>
                         <IdeBuildConfigContext.Provider
                           value={state.config.build}>
-                          <div
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              height: '100%',
-                              margin: 0,
-                            }}>
-                            <div style={{display: 'flex', flex: '1 1 auto'}}>
-                              <div
-                                style={{
-                                  width: '100%',
-                                  height: '100%',
-                                  position: 'fixed',
-                                  left: 0,
-                                  right: 0,
-                                  top: 0,
-                                  bottom: 0,
-                                }}>
-                                <TopNavigation
-                                  openBuildConfig={state.build.openBuildConfig}
-                                />
-                                <Content />
+                          <IdeBuildRunContext.Provider value={state.buildRun}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                height: '100%',
+                                margin: 0,
+                              }}>
+                              <div style={{display: 'flex', flex: '1 1 auto'}}>
+                                <div
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    position: 'fixed',
+                                    left: 0,
+                                    right: 0,
+                                    top: 0,
+                                    bottom: 0,
+                                  }}>
+                                  <TopNavigation
+                                    openBuildConfig={
+                                      state.build.openBuildConfig
+                                    }
+                                    sessionId={state.build.sessionId}
+                                  />
+                                  <Content />
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          </IdeBuildRunContext.Provider>
                         </IdeBuildConfigContext.Provider>
                       </IdeBuildContext.Provider>
                     </IdeDryRunConfigContext.Provider>
-                  </IdeBuildRunningContext.Provider>
+                  </IdeBuildRunOngoingContext.Provider>
                 </IdeVarsContext.Provider>
               </IdeEditorContext.Provider>
             </IdeFilesContext.Provider>

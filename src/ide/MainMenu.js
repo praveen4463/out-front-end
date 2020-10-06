@@ -56,7 +56,9 @@ const MainMenu = () => {
         <MenuItem onClick={handleClose}>New File</MenuItem>
         <MenuItem onClick={handleClose}>Open File(s)</MenuItem>
         <Divider variant="middle" component="li" />
-        <MenuItem onClick={handleClose}>Preferences</MenuItem>
+        <MenuItem onClick={handleClose}>
+          Upload File Input Test File(s)
+        </MenuItem>
         <Divider variant="middle" component="li" />
         <MenuItem onClick={handleClose}>Exit IDE</MenuItem>
       </Menu>

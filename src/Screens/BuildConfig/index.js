@@ -35,6 +35,7 @@ import {
   BuildConfigFields,
   BuildConfigInfo,
   BuildConfigKeys,
+  RunType,
 } from '../../Constants';
 import resolutions from '../../config/desktopResolution.json';
 import timezones from '../../config/timezones.json';
@@ -285,6 +286,23 @@ const BuildConfig = ({
     ) {
       errors[ValidatedFields.TESTS] = 'Some test(s) must be selected';
     }
+    // validate all versions parse status, I've chosen not to disabled item
+    // selector in TestSelect as I may have to disabled whole files when error
+    // is in just a version even if that's not latest.
+    const versionIds = Array.from(buildConfig[BuildConfigFields.SV]);
+    if (
+      versionIds.some((v) => {
+        const version = files.entities.versions[v];
+        return (
+          version.lastRun &&
+          version.lastRun.error &&
+          version.lastRun.runType === RunType.PARSE_RUN
+        );
+      })
+    ) {
+      errors[ValidatedFields.TESTS] =
+        "Can't start build, there are parse errors in some of selected test(s)";
+    }
     return errors;
   };
 
@@ -479,7 +497,7 @@ const BuildConfig = ({
                     ))}
               </StyledSelect>
             </ElementRow>
-            {!(build.createNew && buildConfig.selectedVersionsImplicit) && (
+            {!(build.createNew && build.versionIds) && (
               <ElementRow>
                 {getInfoLabel(BuildConfigKeys.SV, 'testSelect')}
                 <Box

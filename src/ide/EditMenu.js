@@ -178,6 +178,10 @@ const EditMenu = ({editIconClasses, openBuildConfig}) => {
           />
         );
       case MenuItems.BUILD_CONFIG:
+        // Build config when in IDE context should show only files loaded into
+        // tree in TestSelect component. We're giving it context which will give
+        // all files, but since TestSelect will filter files having tests, it
+        // won't display files not loaded into tree (as they don't have any tests)
         return (
           <BuildConfig
             closeDialog={closeDialog}

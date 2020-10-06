@@ -9,7 +9,9 @@ const RightNavs = {
 };
 
 const BottomNavs = {
-  BUILD_OUTPUT_STATUS: 'BUILD_OUTPUT_STATUS',
+  BUILD_RUN: 'BUILD_RUN',
+  DRY_RUN: 'DRY_RUN',
+  PARSE: 'PARSE',
 };
 
 // Alternative to null so that props that are required don't get a null.
@@ -28,6 +30,8 @@ const MaxLengths = {
   [ExplorerItemType.TEST]: 200,
   [ExplorerItemType.VERSION]: 50,
   VAR_KEY: 100,
+  IDE_TEST_HOST_ACQUIRE_TIME_STAGE1: 10000,
+  IDE_TEST_HOST_ACQUIRE_TIME_STAGE2: 20000,
 };
 
 const ExplorerEditOperationType = {
