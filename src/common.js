@@ -89,3 +89,14 @@ export const getContextObjShape = () => {
     $$typeof: PropTypes.symbol,
   };
 };
+
+export const getNoOfLines = (text) => {
+  if (typeof text !== 'string' || !text.length) {
+    return 0;
+  }
+  const lines = text.match(/\n/g);
+  if (!lines) {
+    return 1;
+  }
+  return lines.length + 1; // the last line doesn't have a new line char so adding that
+};

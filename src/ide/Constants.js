@@ -44,6 +44,11 @@ const ZwlLexer = {
   IDENTIFIER_WITH_START_END: /^[a-zA-Z_]\w*$/,
 };
 
+const TestProgress = {
+  POLL_TIME: 1000,
+  API_ERRORS_BEFORE_BAIL_OUT: 6,
+};
+
 export {
   LeftNavs,
   RightNavs,
@@ -53,4 +58,5 @@ export {
   MaxLengths,
   ExplorerEditOperationType,
   ZwlLexer,
+  TestProgress,
 };

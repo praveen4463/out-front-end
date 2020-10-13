@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React, {useEffect, useContext} from 'react';
+import React, {useEffect, useContext, useRef} from 'react';
 import clsx from 'clsx';
 import {makeStyles} from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
@@ -75,23 +75,59 @@ const BottomNavigation = (props) => {
   const dryRun = useContext(IdeDryRunContext);
   const parseRunOngoing = useContext(IdeParseRunOngoingContext);
   const parseRun = useContext(IdeParseRunContext);
+  const openedBuildOutputOncePerBuild = useRef(false);
+  const openedDryOutputOncePerDry = useRef(false);
+  const openedParseOutputOncePerParse = useRef(false);
   const classes = useStyles();
 
   useEffect(() => {
-    if (buildRunOngoing && active !== BottomNavs.BUILD_RUN) {
+    if (!buildRunOngoing && openedBuildOutputOncePerBuild.current) {
+      openedBuildOutputOncePerBuild.current = false;
+    }
+  }, [buildRunOngoing]);
+
+  useEffect(() => {
+    if (!dryRunOngoing && openedDryOutputOncePerDry.current) {
+      openedDryOutputOncePerDry.current = false;
+    }
+  }, [dryRunOngoing]);
+
+  useEffect(() => {
+    if (!parseRunOngoing && openedParseOutputOncePerParse.current) {
+      openedParseOutputOncePerParse.current = false;
+    }
+  }, [parseRunOngoing]);
+
+  useEffect(() => {
+    if (
+      buildRunOngoing &&
+      active !== BottomNavs.BUILD_RUN &&
+      !openedBuildOutputOncePerBuild.current
+    ) {
       clickHandler(BottomNavs.BUILD_RUN);
+      openedBuildOutputOncePerBuild.current = true;
     }
   }, [active, clickHandler, buildRunOngoing]);
 
   useEffect(() => {
-    if (dryRunOngoing && active !== BottomNavs.DRY_RUN) {
+    if (
+      dryRunOngoing &&
+      active !== BottomNavs.DRY_RUN &&
+      !openedDryOutputOncePerDry.current
+    ) {
       clickHandler(BottomNavs.DRY_RUN);
+      openedDryOutputOncePerDry.current = true;
     }
   }, [active, clickHandler, dryRunOngoing]);
 
   useEffect(() => {
-    if (parseRunOngoing && active !== BottomNavs.PARSE) {
+    if (
+      parseRunOngoing &&
+      active !== BottomNavs.PARSE &&
+      !openedParseOutputOncePerParse.current
+    ) {
       clickHandler(BottomNavs.PARSE);
+      openedParseOutputOncePerParse.current = true;
     }
   }, [active, clickHandler, parseRunOngoing]);
 

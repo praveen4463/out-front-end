@@ -1,5 +1,10 @@
 import produce from 'immer';
-import {SET_FILES, SET_PROJECT, SET_VERSION_LAST_RUN} from '../actionTypes';
+import {
+  SET_FILES,
+  SET_PROJECT,
+  SET_VERSION_LAST_RUN,
+  PUSH_COMPLETED_BUILDS,
+} from '../actionTypes';
 import getDeepClonedFiles from './common';
 import {LastRunError, LastRun} from '../Explorer/model';
 import {RunType} from '../../Constants';
@@ -55,6 +60,13 @@ const setVersionLastRun = (draft, payload) => {
   }
 };
 
+const pushCompletedBuilds = (draft, payload) => {
+  if (payload.buildId === undefined) {
+    throw new Error('Insufficient arguments passed to pushCompletedBuilds.');
+  }
+  draft.completedBuilds.push(payload.buildId);
+};
+
 const ideReducer = produce((draft, action) => {
   const {payload} = action;
   switch (action.type) {
@@ -66,6 +78,9 @@ const ideReducer = produce((draft, action) => {
       break;
     case SET_VERSION_LAST_RUN:
       setVersionLastRun(draft, payload);
+      break;
+    case PUSH_COMPLETED_BUILDS:
+      pushCompletedBuilds(draft, payload);
       break;
     default:
       break;

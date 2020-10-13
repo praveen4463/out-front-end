@@ -47,6 +47,9 @@ const newRun = (draft, payload) => {
     );
   }
   build.createNew = true;
+  if (payload.noBuildConfigIfValid) {
+    build.noBuildConfigIfValid = payload.noBuildConfigIfValid;
+  }
 };
 
 const startRun = (draft) => {
@@ -54,8 +57,9 @@ const startRun = (draft) => {
   build.runOngoing = true;
   build.createNew = false;
   build.openBuildConfig = false;
+  build.noBuildConfigIfValid = false;
   build.sessionError = null;
-  if (!build.versionIds) {
+  if (!build.versionIds || !build.versionIds.length) {
     // no implicit versionIds assigned, get from build config and find intersection
     // from all versions fetched from files.
     // TODO: later try to memoize this somehow
@@ -71,6 +75,7 @@ const cancelRun = (draft) => {
   const {build} = draft;
   build.createNew = false;
   build.openBuildConfig = false;
+  build.noBuildConfigIfValid = false;
   build.versionIds = null; // if it was set implicitly
 };
 
@@ -87,6 +92,7 @@ const completeRun = (draft) => {
   build.buildId = null;
   build.buildKey = null;
   build.sessionId = null;
+  build.stopping = false;
   resetCommon(draft);
 };
 

@@ -98,7 +98,12 @@ const versionsTestId11 = [
     11,
     'v1',
     7,
-    `progress = findElements("*[role='progressbar']", true)`,
+    `progress = findElements("*[role='progressbar']", true)
+    # some comment
+    # some comment
+    # some comment
+    # some comment
+    # some comment`,
     true
   ),
 ];
@@ -151,7 +156,8 @@ const fileToLoad = [
         `typeActive("apple.com", keys.enter)
       # this selector gives all results but findElement will return the first
       firstResult = findElement("div.r > a > h3")
-      assertTrue(getElementText(firstResult) == "Apple")`,
+      assertTrue(getElementText(firstResult) == "Apple")
+      # some comment`,
         false
       ),
     ]),

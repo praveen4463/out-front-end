@@ -281,6 +281,7 @@ const BuildConfig = ({
       errors[ValidatedFields.BCAPS] = 'Build Capability is required';
     }
     if (
+      !(build.versionIds && build.versionIds.length) &&
       !buildConfig[BuildConfigFields.SVI] &&
       !buildConfig[BuildConfigFields.SV].size
     ) {
@@ -480,7 +481,7 @@ const BuildConfig = ({
               <StyledSelect
                 id={BuildConfigFields.BCAP}
                 selected={
-                  buildConfig[BuildConfigFields.BCAP]
+                  buildCaps && buildConfig[BuildConfigFields.BCAP]
                     ? `${buildConfig[BuildConfigFields.BCAP]}`
                     : ''
                 }
@@ -497,7 +498,11 @@ const BuildConfig = ({
                     ))}
               </StyledSelect>
             </ElementRow>
-            {!(build.createNew && build.versionIds) && (
+            {!(
+              build.createNew &&
+              build.versionIds &&
+              build.versionIds.length
+            ) && (
               <ElementRow>
                 {getInfoLabel(BuildConfigKeys.SV, 'testSelect')}
                 <Box

@@ -27,7 +27,10 @@ import {
   EDR_EXP_VERSIONS_DELETED,
   EDR_EXP_VERSION_DBL_CLICK,
 } from '../actionTypes';
-import {CONFIG_BUILD_ON_VERSIONS_DELETE} from '../../actions/actionTypes';
+import {
+  CONFIG_BUILD_ON_VERSIONS_DELETE,
+  BUILD_NEW_RUN,
+} from '../../actions/actionTypes';
 import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 import useConfirmationDialog from '../../hooks/useConfirmationDialog';
 import './contextMenu.css';
@@ -91,7 +94,12 @@ const useStyle = makeStyles((theme) => ({
     userSelect: 'none',
     cursor: 'pointer',
   },
+  itemFont: {
+    fontSize: '0.825rem',
+  },
 }));
+
+const {FILE, TEST, VERSION} = ExplorerItemType;
 
 // !!! Make sure there is no prop/context here that causes unnecessary re render
 const TreeItemContent = React.memo(
@@ -117,10 +125,10 @@ const TreeItemContent = React.memo(
     const newItemHandler = (e) => {
       e.stopPropagation();
       let newItemType;
-      if (itemType === ExplorerItemType.FILE) {
-        newItemType = ExplorerItemType.TEST;
-      } else if (itemType === ExplorerItemType.TEST) {
-        newItemType = ExplorerItemType.VERSION;
+      if (itemType === FILE) {
+        newItemType = TEST;
+      } else if (itemType === TEST) {
+        newItemType = VERSION;
       } else {
         throw new Error("Can't add items under a version");
       }
@@ -193,7 +201,31 @@ const TreeItemContent = React.memo(
 
     const runBuildHandler = (e) => {
       e.stopPropagation();
-      // TODO: implement it
+      let versionIds;
+      const etFiles = files.entities.files;
+      const etTests = files.entities.tests;
+      const etVersions = files.entities.versions;
+      switch (itemType) {
+        case FILE:
+          versionIds = etFiles[itemId].tests.map((tid) =>
+            etTests[tid].versions.find((vid) => etVersions[vid].isCurrent)
+          );
+          break;
+        case TEST:
+          versionIds = etTests[itemId].versions.find(
+            (vid) => etVersions[vid].isCurrent
+          );
+          break;
+        case VERSION:
+          versionIds = [itemId];
+          break;
+        default:
+          throw new Error(`Can't recognize ${itemType}`);
+      }
+      dispatch({
+        type: BUILD_NEW_RUN,
+        payload: {versionIds},
+      });
     };
 
     const onEdit = (e) => {
@@ -211,7 +243,7 @@ const TreeItemContent = React.memo(
 
     const handleDoubleClick = (e) => {
       e.stopPropagation();
-      if (itemType !== ExplorerItemType.VERSION) {
+      if (itemType !== VERSION) {
         return;
       }
       dispatch({
@@ -242,7 +274,7 @@ const TreeItemContent = React.memo(
         idsAdjustment: () => null,
       };
       switch (itemType) {
-        case ExplorerItemType.FILE: {
+        case FILE: {
           const fid = itemId;
           if (Array.isArray(et.files[fid].tests)) {
             et.files[fid].tests.forEach((tid) => {
@@ -270,7 +302,7 @@ const TreeItemContent = React.memo(
           };
           break;
         }
-        case ExplorerItemType.TEST: {
+        case TEST: {
           const tid = itemId;
           const fid = itemParentId;
           if (Array.isArray(et.tests[tid].versions)) {
@@ -295,7 +327,7 @@ const TreeItemContent = React.memo(
           };
           break;
         }
-        case ExplorerItemType.VERSION: {
+        case VERSION: {
           const vid = itemId;
           const tid = itemParentId;
           revertOnError.versions.push({[vid]: et.versions[vid]});
@@ -441,13 +473,13 @@ const TreeItemContent = React.memo(
       }`;
       let text;
       switch (itemType) {
-        case ExplorerItemType.FILE:
+        case FILE:
           text = `${initialText} All Tests (Latest Version Only)`;
           break;
-        case ExplorerItemType.TEST:
+        case TEST:
           text = `${initialText} This Test (Latest Version Only)`;
           break;
-        case ExplorerItemType.VERSION:
+        case VERSION:
           text = `${initialText} This Version Only`;
           break;
         default:
@@ -502,11 +534,14 @@ const TreeItemContent = React.memo(
               <ColoredItemIcon itemType={itemType} />
               <Typography
                 variant="body2"
-                className={clsx(showAsErrorInExplorer && classes.errorText)}
+                className={clsx(
+                  classes.itemFont,
+                  showAsErrorInExplorer && classes.errorText
+                )}
                 data-testid={`${itemType}-treeItemName`}>
                 {itemName}
               </Typography>
-              {itemType === ExplorerItemType.VERSION && isCurrentVersion && (
+              {itemType === VERSION && isCurrentVersion && (
                 <Chip
                   size="small"
                   label="Latest"
@@ -517,7 +552,7 @@ const TreeItemContent = React.memo(
             </Box>
             {hovering && (
               <Box>
-                {itemType === ExplorerItemType.FILE && (
+                {itemType === FILE && (
                   <>
                     <Tooltip title="Unload File From Workspace">
                       <IconButton
@@ -544,7 +579,7 @@ const TreeItemContent = React.memo(
                     </Tooltip>
                   </>
                 )}
-                {itemType === ExplorerItemType.TEST && (
+                {itemType === TEST && (
                   <Tooltip title="Create New Version">
                     <IconButton
                       aria-label="Create New Version"
@@ -608,7 +643,7 @@ const TreeItemContent = React.memo(
               className={classes.contextMenuItem}>
               {getBuildRunTextPerExplorerItem(RunType.PARSE_RUN)}
             </MenuItem>
-            {itemType === ExplorerItemType.FILE && (
+            {itemType === FILE && (
               <>
                 <MenuItem
                   onClick={unloadHandler}
@@ -622,7 +657,7 @@ const TreeItemContent = React.memo(
                 </MenuItem>
               </>
             )}
-            {itemType === ExplorerItemType.TEST && (
+            {itemType === TEST && (
               <MenuItem
                 onClick={newItemHandler}
                 className={classes.contextMenuItem}>

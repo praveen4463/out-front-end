@@ -1,4 +1,11 @@
-import React, {useState, useEffect, useReducer, useRef} from 'react';
+import React, {
+  useState,
+  useEffect,
+  useReducer,
+  useRef,
+  useCallback,
+  useMemo,
+} from 'react';
 import {ThemeProvider, makeStyles} from '@material-ui/core/styles';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import {normalize} from 'normalizr';
@@ -12,7 +19,7 @@ import {
   globalVars as sampleGlobalVars,
   buildVars as sampleBuildVars,
 } from '../variables/sample';
-import {filesSchema} from './Explorer/model';
+import {filesSchema, LastRunError} from './Explorer/model';
 import {globalVarsSchema, buildVarsSchema} from '../variables/model';
 import {
   BATCH_ACTIONS,
@@ -20,14 +27,21 @@ import {
   VAR_SET,
   RESET_STATE_ON_ERROR,
   RUN_BUILD_UPDATE_BY_PROP,
+  RUN_BUILD_ON_COMPLETED,
+  RUN_BUILD_UPDATE_VERSION,
+  RUN_BUILD_COMPLETE_ON_ERROR,
+  PUSH_COMPLETED_BUILDS,
 } from './actionTypes';
 import {
   BUILD_UPDATE_BY_PROP,
   BUILD_START_RUN,
+  BUILD_COMPLETE_RUN,
   BUILD_NEW_SESSION_SUCCESS,
   BUILD_NEW_SESSION_ERROR,
 } from '../actions/actionTypes';
-import batchActions from './actionCreators';
+import batchActions, {getLastRunAction} from './actionCreators';
+import {getBuildStoppingAction} from '../actions/actionCreators';
+import stopBuildRunning from '../api/stopBuildRunning';
 import {
   IdeDispatchContext,
   IdeStateContext,
@@ -55,8 +69,11 @@ import {
   Platforms,
   ApiStatuses,
   RunType,
+  TestStatus,
 } from '../Constants';
+import {TestProgress} from './Constants';
 import Browser, {BuildConfig} from '../model';
+import useSnackbarTypeError from '../hooks/useSnackbarTypeError';
 import './index.css';
 
 const useStyles = makeStyles((theme) => ({
@@ -78,7 +95,9 @@ const initialState = {
   // build represents a new build request initiated upon user action
   build: {
     runOngoing: false,
+    stopping: false,
     createNew: false,
+    noBuildConfigIfValid: false, // explicit one off setting for skipping config, such as during reruns
     openBuildConfig: false,
     sessionRequestTime: null,
     buildId: null,
@@ -99,7 +118,7 @@ const initialState = {
   // buildRun represents a running build
   buildRun: null, // instance of BuildRun created upon build.runOngoing
   // becomes true using build.versionIds
-  completedBuilds: null,
+  completedBuilds: [],
   dry: {
     runOngoing: false,
   },
@@ -179,8 +198,18 @@ const Ide = () => {
   // happen as state object will be locked.
   const [state, dispatch] = useReducer(ideRootReducer, initialState);
   const [allSet, setAllSet] = useState(false);
-  const pendingTestProgressApiResponse = useRef(false);
+  const pendingNewSessionRequest = useRef(false);
+  const brvsRef = useRef(null);
+  const buildIdRef = useRef(null);
+  const buildStoppingRef = useRef(null);
+  const testProgressIntervalIdRef = useRef(null);
+  const unmounted = useRef(false);
+  buildIdRef.current = state.build.buildId;
+  buildStoppingRef.current = state.build.stopping;
+  testProgressIntervalIdRef.current =
+    state.buildRun === null ? null : state.buildRun.testProgressIntervalId;
   const etVersions = state.files ? state.files.entities.versions : null;
+  const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
   const classes = useStyles();
 
   useEffect(() => {
@@ -257,14 +286,26 @@ const Ide = () => {
       // such as asking user to reload through a modal dialog,
       // sending to an error page, showing snackbar etc.
     };
+    // !! set unmounted here in this effect as this has no dependencies and run
+    // just once on mount and unmount.
+    return () => {
+      unmounted.current = true;
+    };
   }, []);
+
+  brvsRef.current = useMemo(
+    () =>
+      state.buildRun ? Object.values(state.buildRun.buildRunVersions) : null,
+    [state.buildRun]
+  );
 
   useEffect(() => {
     if (!state.build.createNew) {
       return;
     }
     if (
-      !state.config.build.openLessOften ||
+      (!state.config.build.openLessOften &&
+        !state.build.noBuildConfigIfValid) ||
       !(
         state.config.build.buildCapabilityId &&
         ((state.build.versionIds && state.build.versionIds.length) ||
@@ -286,16 +327,238 @@ const Ide = () => {
     state.build.versionIds,
     state.config.build.buildCapabilityId,
     state.config.build.openLessOften,
+    state.build.noBuildConfigIfValid,
     state.config.build.selectedVersions,
   ]);
 
+  const checkTestProgress = useCallback(() => {
+    // reset variables
+    let pendingTestProgressApiResponse = false;
+    let testProgressApiErrorCount = 0;
+    // invoke function every one second but send api request only after last
+    // request is completed.
+    return setInterval(() => {
+      if (unmounted.current) {
+        clearInterval(testProgressIntervalIdRef.current);
+        return;
+      }
+      // brvsRef.current will always be there as it gets created
+      // upon new build request accepted, and this function is started when
+      // session is received.
+      if (pendingTestProgressApiResponse) {
+        return;
+      }
+      // we've put brv into a ref otherwise updates to it won't be seen inside
+      // this interval as it will capture the brv from beginning and won't see
+      // updated one.
+      const buildRunVersion = brvsRef.current.find(
+        (v) => !v.status || v.status === TestStatus.RUNNING
+      );
+      if (!buildRunVersion) {
+        // all versions updated, mark it done and cancel this interval.
+        dispatch(
+          batchActions([
+            {type: BUILD_COMPLETE_RUN},
+            {type: RUN_BUILD_ON_COMPLETED},
+            {
+              type: PUSH_COMPLETED_BUILDS,
+              payload: {buildId: buildIdRef.current},
+            },
+          ])
+        );
+        return;
+      }
+      const onSuccess = (response) => {
+        const {data} = response;
+        const actions = [
+          {
+            type: RUN_BUILD_UPDATE_VERSION,
+            payload: {versionId: buildRunVersion.versionId, data},
+          },
+        ];
+        if (testProgressApiErrorCount > 0) {
+          actions.push({
+            type: RUN_BUILD_UPDATE_BY_PROP,
+            payload: {
+              prop: 'error',
+              value: null,
+            },
+          });
+          testProgressApiErrorCount = 0; // reset api error count on success
+        }
+        // update lastRun state of version when it completed execution (not when it aborted or stopped)
+        if (
+          data.status === TestStatus.SUCCESS ||
+          data.status === TestStatus.ERROR
+        ) {
+          let lastRunError = null;
+          if (data.status === TestStatus.ERROR) {
+            const {error} = data;
+            lastRunError = new LastRunError(error.msg, error.from, error.to);
+          }
+          actions.push(
+            getLastRunAction(
+              buildRunVersion.versionId,
+              RunType.BUILD_RUN,
+              data.output,
+              lastRunError
+            )
+          );
+        }
+        dispatch(batchActions(actions));
+      };
+      const onError = (response) => {
+        // TODO: check the reasons and try not to reattempt on certain errors from
+        // which we can't recover.
+        testProgressApiErrorCount += 1;
+        if (
+          testProgressApiErrorCount === TestProgress.API_ERRORS_BEFORE_BAIL_OUT
+        ) {
+          // we've got api error several times in a row, let's bail out.
+          dispatch(
+            batchActions([
+              {type: BUILD_COMPLETE_RUN},
+              {
+                type: RUN_BUILD_COMPLETE_ON_ERROR,
+                payload: {
+                  error: `Couldn't fetch test status, ${response.error.reason}. Try rerunning in sometime.`,
+                },
+              },
+            ])
+          );
+          return;
+        }
+        dispatch({
+          type: RUN_BUILD_UPDATE_BY_PROP,
+          payload: {
+            prop: 'error',
+            value: `${response.error.reason}. Retry attempt ${testProgressApiErrorCount}...`,
+          },
+        });
+      };
+      setTimeout(() => {
+        // send build.buildId, buildRunVersion.versionId, and
+        // buildRunVersion.nextOutputToken (if not null)
+        // to api for build status and output
+        let whichResponse = random(1, 9);
+        // enable following for checking api error situation.
+        // let whichResponse = random(1, 10);
+        // When this is replaced with api calls, remove stopping ref.
+        if (buildStoppingRef.current) {
+          whichResponse = 8;
+        }
+        let response;
+        const shouldOutput = random(1, 10) <= 5;
+        if (whichResponse <= 5) {
+          response = {
+            status: ApiStatuses.SUCCESS,
+            data: {
+              status: TestStatus.RUNNING,
+              currentLine: random(1, 5),
+              output: shouldOutput
+                ? null
+                : `This is an output from api with id ${random(1, 10)}`,
+              // when there is no new output, api sends a null
+              nextOutputToken: shouldOutput
+                ? null
+                : `Some token ${random(1, 10)}`, // when api doesn't have new
+              // output it sends back the same token it received
+            },
+          };
+        } else if (whichResponse === 6) {
+          response = {
+            status: ApiStatuses.SUCCESS,
+            data: {
+              status: TestStatus.SUCCESS,
+              currentLine: 200,
+              timeTaken: random(1000, 10000), // timeTaken will be in millis
+              output: 'This output came in the end on success',
+            },
+          };
+        } else if (whichResponse === 7) {
+          response = {
+            status: ApiStatuses.SUCCESS,
+            data: {
+              status: TestStatus.ERROR,
+              currentLine: 150,
+              timeTaken: random(1000, 10000),
+              output: 'This output came in the end on error',
+              error: {
+                msg:
+                  'ElementClickNotIntercepted Exception occurred while clicking on element line 3:12',
+                from: {line: 3, ch: 12},
+                // !!Note: api should always send the 'to' column that is after the 'to' char
+                to: {line: 3, ch: 13},
+              },
+            },
+          };
+        } else if (whichResponse === 8) {
+          response = {
+            status: ApiStatuses.SUCCESS,
+            data: {
+              status: TestStatus.STOPPED,
+              currentLine: 110,
+              timeTaken: random(1000, 10000),
+              output: 'This output came in the end on stop',
+            },
+          };
+        } else if (whichResponse === 9) {
+          response = {
+            status: ApiStatuses.SUCCESS,
+            data: {
+              status: TestStatus.ABORTED,
+              currentLine: 101,
+              timeTaken: random(1000, 10000),
+              output: 'This output came in the end on aborted',
+            },
+          };
+        } else if (whichResponse === 10) {
+          response = {
+            status: ApiStatuses.ERROR,
+            error: {
+              reason: 'Network error',
+            },
+          };
+        }
+        // as response is received, check if componen is unmounted, if so, return
+        if (unmounted.current) {
+          clearInterval(testProgressIntervalIdRef.current);
+          return;
+        }
+        if (response.status === ApiStatuses.SUCCESS) {
+          onSuccess(response);
+        } else if (response.status === ApiStatuses.ERROR) {
+          onError(response);
+        }
+        pendingTestProgressApiResponse = false;
+      }, 2000);
+      pendingTestProgressApiResponse = true;
+    }, TestProgress.POLL_TIME);
+  }, []);
+
+  // !! Don't start new session request until we've created buildRun from outside.
+  // This is done so that before api is invoked, we've captured updated state
+  // and thus the interval that checks on test progress gets the buildRun object,
+  // if this is not done, and buildRun updates after api request starts, it won't
+  // updated state value because state is replaced by new object and the closure
+  // created in async call captures that value,
+  // https://github.com/facebook/react/issues/14010
   useEffect(() => {
-    if (!(state.build.runOngoing && !state.build.sessionId)) {
+    if (
+      !(
+        state.build.runOngoing &&
+        state.buildRun &&
+        !state.build.sessionId &&
+        !pendingNewSessionRequest.current
+      )
+    ) {
       return;
     }
-    // first validate all versions parse status and trigger new session error if
-    // there are parse errors in any of selected test. Don't just skip those tests
-    // but skip entire build.
+    // first validate all versions parse status and don't request new session if
+    // there are parse errors in any of selected test. Build will be marked
+    // completed from output panel in this situation and not from here so that
+    // it gets a chance to show the error without running into situations where
+    // this code resets build first before output panel can render even the files.
     if (
       state.build.versionIds.some((v) => {
         const version = etVersions[v];
@@ -306,13 +569,7 @@ const Ide = () => {
         );
       })
     ) {
-      dispatch({
-        type: BUILD_NEW_SESSION_ERROR,
-        payload: {
-          error:
-            "Can't start build, there are parse errors in some of selected test(s)",
-        },
-      });
+      return;
     }
     // call api for new session
     dispatch({
@@ -320,21 +577,9 @@ const Ide = () => {
       payload: {prop: 'sessionRequestTime', value: Date.now()},
     });
     const onSuccess = (response) => {
-      const {buildId, buildKey, sessionId} = response.data;
       // setup test progress interval
-      // invoke function every one second but send api request only after last
-      // request is completed.
-      const intervalId = setInterval(() => {
-        // state.buildRun.buildRunVersions will always be there as it gets created
-        // upon new build request accepted.
-        if (pendingTestProgressApiResponse.current) {
-          return;
-        }
-        pendingTestProgressApiResponse.current = true;
-        setTimeout(() => {
-          pendingTestProgressApiResponse.current = false;
-        }, 800);
-      }, 1000);
+      const intervalId = checkTestProgress();
+      const {buildId, buildKey, sessionId} = response.data;
       dispatch(
         batchActions([
           {
@@ -349,34 +594,67 @@ const Ide = () => {
       );
     };
     const onError = (response) => {
-      dispatch({
-        type: BUILD_NEW_SESSION_ERROR,
-        payload: {
-          error: `Couldn't start build, ${response.error.reason}`,
-        },
-      });
+      const payload = {
+        error: `Couldn't start build, ${response.error.reason}`,
+      };
+      dispatch(
+        batchActions([
+          {
+            type: BUILD_NEW_SESSION_ERROR,
+            payload,
+          },
+          {
+            type: RUN_BUILD_COMPLETE_ON_ERROR,
+            payload,
+          },
+        ])
+      );
     };
     setTimeout(() => {
       const response = {
         status: ApiStatuses.SUCCESS,
         data: {
           buildId: random(1000, 10000),
-          buildKey: random(1000, 10000),
-          sessionId: random(1000, 10000),
+          buildKey: `${random(1000, 10000)}`,
+          sessionId: `${random(1000, 10000)}`,
         },
       };
+      /* const response = {
+        status: ApiStatuses.FAILURE,
+        error: {
+          reason: 'internal error occurred while starting build machine',
+        },
+      }; */
       if (response.status === ApiStatuses.SUCCESS) {
         onSuccess(response);
-      } else if (response.status === ApiStatuses.SUCCESS) {
+      } else if (response.status === ApiStatuses.FAILURE) {
         onError(response);
       }
-    }, 10000);
+      pendingNewSessionRequest.current = false;
+    }, 2000);
+    pendingNewSessionRequest.current = true;
   }, [
     state.build.runOngoing,
+    state.buildRun,
     state.build.sessionId,
     state.build.versionIds,
     etVersions,
+    checkTestProgress,
   ]);
+
+  // check stopping and send api request
+  useEffect(() => {
+    if (!state.build.stopping) {
+      return;
+    }
+    const onError = (response) => {
+      setSnackbarErrorMsg(`Couldn't stop build, ${response.error.reason}`);
+      dispatch(getBuildStoppingAction(false));
+    };
+    stopBuildRunning(state.build.buildId, () => null, onError);
+    // after stop is sent to api, it will attempt to stop any pending tests and
+    // the progress interval will get stopped states for those tests.
+  }, [state.build.stopping, state.build.buildId, setSnackbarErrorMsg]);
 
   if (!allSet) {
     return (
@@ -462,6 +740,7 @@ const Ide = () => {
           </IdeStateContext.Provider>
         </IdeDispatchContext.Provider>
       </ErrorBoundary>
+      {snackbarTypeError}
     </ThemeProvider>
   );
 };

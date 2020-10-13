@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useContext} from 'react';
 import IconButton from '@material-ui/core/IconButton';
 import EditIcon from '@material-ui/icons/Edit';
 import Menu from '@material-ui/core/Menu';
@@ -25,6 +25,7 @@ import {
   IdeFilesContext,
   IdeVarsContext,
 } from './Contexts';
+import {BUILD_CANCEL_RUN} from '../actions/actionTypes';
 
 const DEFAULT_WIDTH_DIALOG = 'lg';
 
@@ -75,6 +76,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 });
 
 const EditMenu = ({editIconClasses, openBuildConfig}) => {
+  const dispatch = useContext(IdeDispatchContext);
   const [state, setState] = useState(new EditMenuState());
   const classes = useStyles();
 
@@ -168,6 +170,13 @@ const EditMenu = ({editIconClasses, openBuildConfig}) => {
     setState(new EditMenuState());
   };
 
+  const closeDlgCancelRunBuildConfig = () => {
+    dispatch({
+      type: BUILD_CANCEL_RUN,
+    });
+    closeDialog();
+  };
+
   const getItemComponent = () => {
     switch (state.menuItem) {
       case MenuItems.BUILD_CAPS:
@@ -249,20 +258,32 @@ const EditMenu = ({editIconClasses, openBuildConfig}) => {
       </Menu>
       <Dialog
         TransitionComponent={Transition}
-        onClose={closeDialog}
+        onClose={
+          state.menuItem === MenuItems.BUILD_CONFIG
+            ? closeDlgCancelRunBuildConfig
+            : closeDialog
+        }
         fullWidth
         maxWidth={state.dlgMaxWidth}
         open={state.dlgOpen}
         classes={{paper: classes.root}}>
         <DialogTitle
-          onClose={closeDialog}
+          onClose={
+            state.menuItem === MenuItems.BUILD_CONFIG
+              ? closeDlgCancelRunBuildConfig
+              : closeDialog
+          }
           disableTypography
           className={classes.dlgTitle}>
           <Typography variant="h6">{state.dlgTitle}</Typography>
           <IconButton
             aria-label="close"
             className={classes.closeButton}
-            onClick={closeDialog}>
+            onClick={
+              state.menuItem === MenuItems.BUILD_CONFIG
+                ? closeDlgCancelRunBuildConfig
+                : closeDialog
+            }>
             <CloseIcon titleAccess="Close" />
           </IconButton>
         </DialogTitle>
