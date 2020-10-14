@@ -74,6 +74,10 @@ import {
 import {TestProgress} from './Constants';
 import Browser, {BuildConfig} from '../model';
 import useSnackbarTypeError from '../hooks/useSnackbarTypeError';
+import {
+  versionsHaveParseErrorWhenStatusAvailable,
+  versionsHaveLastParseStatus,
+} from './common';
 import './index.css';
 
 const useStyles = makeStyles((theme) => ({
@@ -549,7 +553,8 @@ const Ide = () => {
         state.build.runOngoing &&
         state.buildRun &&
         !state.build.sessionId &&
-        !pendingNewSessionRequest.current
+        !pendingNewSessionRequest.current &&
+        versionsHaveLastParseStatus(etVersions, state.build.versionIds)
       )
     ) {
       return;
@@ -560,14 +565,10 @@ const Ide = () => {
     // it gets a chance to show the error without running into situations where
     // this code resets build first before output panel can render even the files.
     if (
-      state.build.versionIds.some((v) => {
-        const version = etVersions[v];
-        return (
-          version.lastRun &&
-          version.lastRun.error &&
-          version.lastRun.runType === RunType.PARSE_RUN
-        );
-      })
+      versionsHaveParseErrorWhenStatusAvailable(
+        etVersions,
+        state.build.versionIds
+      )
     ) {
       return;
     }

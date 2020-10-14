@@ -40,10 +40,15 @@ import {
 } from './Contexts';
 import {RUN_BUILD_ON_NEW_RUN, RUN_BUILD_COMPLETE_ON_ERROR} from './actionTypes';
 import {BUILD_NEW_RUN, BUILD_COMPLETE_RUN} from '../actions/actionTypes';
-import {MaxLengths, ExplorerItemType} from './Constants';
-import {TestStatus, RunType} from '../Constants';
-import batchActions from './actionCreators';
+import {MaxLengths, ExplorerItemType, PARSE_SUCCESS_MSG} from './Constants';
+import {TestStatus, RunType, ApiStatuses} from '../Constants';
+import batchActions, {getLastRunAction} from './actionCreators';
 import {getBuildStoppingAction} from '../actions/actionCreators';
+import {
+  versionsHaveParseErrorWhenStatusAvailable,
+  versionsHaveLastParseStatus,
+} from './common';
+import {LastRunError} from './Explorer/model';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -191,6 +196,7 @@ const BuildRun = ({closeHandler}) => {
   const [statusMsg, setStatusMsg] = useState(null);
   const [expanded, setExpanded] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [versionsParseSucceeded, setVersionsParseSucceeded] = useState(false);
   const allBuildRunVersions = useMemo(
     () => (buildRun === null ? null : Object.values(buildRun.buildRunVersions)),
     [buildRun]
@@ -209,6 +215,7 @@ const BuildRun = ({closeHandler}) => {
   const didUserSelectNodeRef = useRef(false);
   const expandNodesBeginningRef = useRef(false);
   const sessionRequestTimeRef = useRef(null);
+  const versionsParseOngoingRef = useRef(false);
   sessionRequestTimeRef.current = build.sessionRequestTime;
   const completed = buildRun === null ? false : buildRun.completed;
   const buildRunError = buildRun === null ? null : buildRun.error;
@@ -292,10 +299,161 @@ const BuildRun = ({closeHandler}) => {
     didUserSelectNodeRef.current = false;
     expandNodesBeginningRef.current = false;
     sessionRequestTimeRef.current = null;
+    setVersionsParseSucceeded(false);
+    versionsParseOngoingRef.current = false;
     dispatch({
       type: RUN_BUILD_ON_NEW_RUN,
     });
   }, [build.runId, buildRun, buildRunOngoing, dispatch]);
+
+  const completeOnError = useCallback(
+    (error) => {
+      dispatch(
+        batchActions([
+          {
+            type: BUILD_COMPLETE_RUN,
+          },
+          {
+            type: RUN_BUILD_COMPLETE_ON_ERROR,
+            payload: {
+              error,
+            },
+          },
+        ])
+      );
+    },
+    [dispatch]
+  );
+
+  // check if all versions have parse status, else send api request.
+  useEffect(() => {
+    if (
+      !(
+        versionIds &&
+        !buildRunInterval &&
+        !completed &&
+        !versionsHaveLastParseStatus(etVersions, versionIds) &&
+        !versionsParseOngoingRef.current
+      )
+    ) {
+      return;
+    }
+    // console.log('parsing all versions');
+    versionsParseOngoingRef.current = true; // don't reset from here, it is used once per build
+    // and reset on build start.
+    const onSuccess = (response) => {
+      const actions = [];
+      const parseErrorVersionIds = [];
+      if (response.data) {
+        // we've parse errors in some versions
+        response.data.forEach((d) => {
+          const {versionId} = d;
+          parseErrorVersionIds.push(versionId);
+          const lastRunAction = getLastRunAction(
+            versionId,
+            RunType.PARSE_RUN,
+            null,
+            new LastRunError(d.error.msg, d.error.from, d.error.to)
+          );
+          actions.push(lastRunAction);
+        });
+      }
+      // versions that have no parse errors should also have lastRun
+      versionIds
+        .filter((vid) => parseErrorVersionIds.indexOf(vid) < 0)
+        .forEach((vid) => {
+          const lastRunAction = getLastRunAction(
+            vid,
+            RunType.PARSE_RUN,
+            PARSE_SUCCESS_MSG,
+            null,
+            false
+          );
+          actions.push(lastRunAction);
+        });
+      dispatch(batchActions(actions));
+      setStatusMsg(
+        getInfoTypeStatusMsg(
+          `Parsing ${parseErrorVersionIds.length ? 'failed' : 'succeeded'}.`
+        )
+      );
+    };
+    const onError = (response) => {
+      completeOnError(`Can't start build, ${response.error.reason}`);
+    };
+    // send versionIds for parsing to api and expect only the failed ones with error.
+    // when all succeeded, there will be no data. When api couldn't parse for any
+    // reason, status will be failure with reason of error.
+    setTimeout(() => {
+      /* const response = {
+        status: ApiStatuses.SUCCESS,
+        data: [
+          {
+            versionId: versionIds[0],
+            error: {
+              msg: "no viable alternative at input 'a+' line 2:2",
+              from: {line: 2, ch: 1},
+              to: {line: 2, ch: 2},
+            },
+          },
+        ],
+      }; */
+      const response = {
+        status: ApiStatuses.SUCCESS,
+      };
+      /* const response = {
+        status: ApiStatuses.FAILURE,
+        error: {
+          reason: 'Internal exception occurred while parsing',
+        },
+      }; */
+      if (response.status === ApiStatuses.SUCCESS) {
+        onSuccess(response);
+      } else if (response.status === ApiStatuses.FAILURE) {
+        onError(response);
+      }
+    }, 2000);
+    setStatusMsg(getInfoTypeStatusMsg('Parsing...'));
+  }, [
+    buildRunInterval,
+    completeOnError,
+    completed,
+    dispatch,
+    etVersions,
+    getInfoTypeStatusMsg,
+    versionIds,
+  ]);
+
+  // we should parse before any request to start session is gone. First check
+  // whether all versions have a lastParseRun, if no, first send a parse
+  // request for all versions and expect to get back only failed versions and status
+  // success. Set lastParseRun and lastRun of versions according to parse status (those received as failed
+  // and those not received as passed). If there was a lastParseRun with all versions,
+  // just verify there is no error.
+  // Check whether any test has parse errors, if so we should halt entire build
+  // and also reset build state together with buildRun.
+  useEffect(() => {
+    if (
+      !(
+        versionIds &&
+        !buildRunInterval &&
+        !completed &&
+        versionsHaveLastParseStatus(etVersions, versionIds)
+      )
+    ) {
+      return;
+    }
+    // console.log('check parse errors');
+    // !! This is checked in IDE's effect too when proceeding to create new
+    // session, session request doesn't begin if this is true.
+    if (versionsHaveParseErrorWhenStatusAvailable(etVersions, versionIds)) {
+      completeOnError(
+        "Can't start build, there are parse errors in some of selected test(s)"
+      );
+      return;
+    }
+    setVersionsParseSucceeded(true);
+  }, [buildRunInterval, completeOnError, completed, etVersions, versionIds]);
 
   const expandAllNodes = useCallback(() => {
     setExpanded(
@@ -324,42 +482,6 @@ const BuildRun = ({closeHandler}) => {
     }
   }, [completed, expandAllNodes]);
 
-  // check whether any test has parse errors, if so we should halt entire build
-  // and also reset build state together with buildRun
-  useEffect(() => {
-    if (!(versionIds && !buildRunInterval && !completed)) {
-      return;
-    }
-    // console.log('check parse errors: inside');
-    if (
-      // !! This is checked in IDE's effect too when proceeding to create new
-      // session, session request doesn't begin if this is true.
-      versionIds.some((v) => {
-        const version = etVersions[v];
-        return (
-          version.lastRun &&
-          version.lastRun.error &&
-          version.lastRun.runType === RunType.PARSE_RUN
-        );
-      })
-    ) {
-      dispatch(
-        batchActions([
-          {
-            type: BUILD_COMPLETE_RUN,
-          },
-          {
-            type: RUN_BUILD_COMPLETE_ON_ERROR,
-            payload: {
-              error:
-                "Can't start build, there are parse errors in some of selected test(s)",
-            },
-          },
-        ])
-      );
-    }
-  }, [buildRunInterval, completed, dispatch, etVersions, versionIds]);
-
   // assign to selected node state when a version's turn comes
   useEffect(() => {
     if (executingVersionId && !didUserSelectNodeRef.current) {
@@ -379,7 +501,12 @@ const BuildRun = ({closeHandler}) => {
   // create session check interval when session is not yet received, interval
   // shows a progress of connecting with machine
   useEffect(() => {
-    if (buildRunOngoing && !build.sessionId && !sessionCheckIntervalId) {
+    if (
+      buildRunOngoing &&
+      !build.sessionId &&
+      !sessionCheckIntervalId &&
+      versionsParseSucceeded
+    ) {
       // console.log('session interval creating');
       const intervalId = setInterval(() => {
         // console.log('session interval running');
@@ -422,6 +549,7 @@ const BuildRun = ({closeHandler}) => {
     buildRunOngoing,
     getInfoTypeStatusMsg,
     sessionCheckIntervalId,
+    versionsParseSucceeded,
   ]);
 
   // check whether new session received, clear session interval if so.

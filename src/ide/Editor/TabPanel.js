@@ -49,7 +49,7 @@ import {
 import Tooltip from '../../TooltipCustom';
 import {LastRun, LastRunError} from '../Explorer/model';
 import {ApiStatuses, RunType} from '../../Constants';
-import {ZwlLexer} from '../Constants';
+import {ZwlLexer, PARSE_SUCCESS_MSG} from '../Constants';
 
 import batchActions, {getLastRunAction} from '../actionCreators';
 import './material-darker.css';
@@ -404,7 +404,7 @@ const TabPanel = React.memo(
               RunType.PARSE_RUN,
               parseRes.status === ApiStatuses.FAILURE
                 ? null
-                : 'Parsing completed, no problems found',
+                : PARSE_SUCCESS_MSG,
               parseRes.status === ApiStatuses.FAILURE
                 ? new LastRunError(
                     parseRes.error.msg,
@@ -699,7 +699,7 @@ const TabPanel = React.memo(
     of parsing. This is intentional to keep tab's output panel focused on the most
     recent run and it's output.
     When you run using controls at header panel, the run information is kept at
-    bottom panel until any other run is requested.
+    bottom panel separately for all type of runs.
     */
     useEffect(() => {
       const getRunTypeShort = (runType) => {

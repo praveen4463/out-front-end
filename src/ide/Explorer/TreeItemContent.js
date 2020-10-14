@@ -474,10 +474,14 @@ const TreeItemContent = React.memo(
       let text;
       switch (itemType) {
         case FILE:
-          text = `${initialText} All Tests (Latest Version Only)`;
+          text = `${initialText} All Tests ${
+            runType !== RunType.PARSE_RUN ? '(Latest Version Only)' : ''
+          }`;
           break;
         case TEST:
-          text = `${initialText} This Test (Latest Version Only)`;
+          text = `${initialText} This Test ${
+            runType !== RunType.PARSE_RUN ? '(Latest Version Only)' : ''
+          }`;
           break;
         case VERSION:
           text = `${initialText} This Version Only`;

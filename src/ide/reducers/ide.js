@@ -42,21 +42,31 @@ const setVersionLastRun = (draft, payload) => {
   if (payload.error && !(payload.error instanceof LastRunError)) {
     throw new Error('Expected error to be instance of Error');
   }
+  const {runType} = payload;
   const et = draft.files.entities;
   const version = et.versions[payload.versionId];
-  version.lastRun = new LastRun(
-    payload.runType,
+  const lastRun = new LastRun(
+    runType,
     payload.output,
     payload.showSuccessMsgInStatus,
     payload.error
   );
+  version.lastRun = lastRun;
+  // also set into lastParseRun if it's a parse request.
   // show version/test/file in error only when it's a parse request.
-  if (payload.runType === RunType.PARSE_RUN) {
+  if (runType === RunType.PARSE_RUN) {
+    // we can use the same object of lastRun as it never has to be modified.
+    version.lastParseRun = lastRun;
     const showAsError = Boolean(payload.error);
     version.showAsErrorInExplorer = showAsError;
     const test = et.tests[version.testId];
-    test.showAsErrorInExplorer = showAsError;
-    et.files[test.fileId].showAsErrorInExplorer = showAsError;
+    test.showAsErrorInExplorer = test.versions.some(
+      (vid) => et.versions[vid].showAsErrorInExplorer
+    );
+    const files = et.files[test.fileId];
+    files.showAsErrorInExplorer = files.tests.some(
+      (tid) => et.tests[tid].showAsErrorInExplorer
+    );
   }
 };
 

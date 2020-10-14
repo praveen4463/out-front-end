@@ -34,6 +34,15 @@ function Version(
   code,
   isCurrent,
   lastRun,
+  lastParseRun, // Additionally keeps lastRun object for parse request, so that
+  // parse status of a version is never overwritten by other runs. This is used
+  // when running build or dry runs to know parse status of a version so that an
+  // api request for parsing is avoided every time a new run is initiated. Note that
+  // when a version is parsed, both lastRun and lastParseRun will hold parse status.
+  // When a build is run, we would parse and set results to versions, once build runs,
+  // we would set it's result to version, loosing parse status. By keeping it separately,
+  // we will always know that versions were parsed. If they are changed, they will be
+  // automatically parsed, so just one parsing will be enough for the lifetime of IDE.
   showAsErrorInExplorer
 ) {
   this.id = id;

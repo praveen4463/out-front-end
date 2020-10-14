@@ -49,6 +49,8 @@ const TestProgress = {
   API_ERRORS_BEFORE_BAIL_OUT: 6,
 };
 
+const PARSE_SUCCESS_MSG = 'Parsing completed, no problems found';
+
 export {
   LeftNavs,
   RightNavs,
@@ -59,4 +61,5 @@ export {
   ExplorerEditOperationType,
   ZwlLexer,
   TestProgress,
+  PARSE_SUCCESS_MSG,
 };
