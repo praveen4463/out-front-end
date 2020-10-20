@@ -53,6 +53,12 @@ import {
   IdeBuildContext,
   IdeBuildConfigContext,
   IdeBuildRunContext,
+  IdeDryContext,
+  IdeParseContext,
+  IdeDryRunOngoingContext,
+  IdeParseRunOngoingContext,
+  IdeCompletedBuildsContext,
+  IdeLPContext,
 } from './Contexts';
 import explorerReducer from './reducers/explorer';
 import editorReducer from './reducers/editor';
@@ -62,6 +68,7 @@ import dryConfigReducer from './reducers/dryConfig';
 import buildConfigReducer from '../reducers/buildConfig';
 import buildReducer from '../reducers/build';
 import buildRunReducer from './reducers/buildRun';
+import livePreviewReducer from './reducers/livePreview';
 import RootErrorFallback, {rootErrorHandler} from '../ErrorBoundary';
 import {
   VarTypes,
@@ -122,13 +129,22 @@ const initialState = {
   // buildRun represents a running build
   buildRun: null, // instance of BuildRun created upon build.runOngoing
   // becomes true using build.versionIds
+  livePreview: {
+    runId: null,
+    completed: false,
+    buildId: null,
+    buildKey: null,
+    sessionId: null,
+  },
   completedBuilds: [],
   dry: {
     runOngoing: false,
+    stopping: false,
   },
   dryRun: null,
   parse: {
     runOngoing: false,
+    stopping: false,
   },
   parseRun: null,
   config: {
@@ -188,6 +204,9 @@ function ideRootReducer(state, action) {
       }
       if (type.startsWith('CONFIG_DRY_')) {
         return dryConfigReducer(state, action);
+      }
+      if (type.startsWith('LP_')) {
+        return livePreviewReducer(state, action);
       }
       return ideReducer(state, action);
     }
@@ -414,6 +433,10 @@ const Ide = () => {
       const onError = (response) => {
         // TODO: check the reasons and try not to reattempt on certain errors from
         // which we can't recover.
+        // TODO: wait exponentially, setInterval interval can't be set so use
+        // setTimeout, invoke repeatedly after each process. Will have to track
+        // state using a ref so that timeout can't be cancelled as a new timeout
+        // is created every time and it's id not updated to state.
         testProgressApiErrorCount += 1;
         if (
           testProgressApiErrorCount === TestProgress.API_ERRORS_BEFORE_BAIL_OUT
@@ -657,6 +680,8 @@ const Ide = () => {
     // the progress interval will get stopped states for those tests.
   }, [state.build.stopping, state.build.buildId, setSnackbarErrorMsg]);
 
+  // TODO: handle stopping of parse and dry by breaking the interval
+
   if (!allSet) {
     return (
       <ThemeProvider theme={darkTheme}>
@@ -702,34 +727,49 @@ const Ide = () => {
                         <IdeBuildConfigContext.Provider
                           value={state.config.build}>
                           <IdeBuildRunContext.Provider value={state.buildRun}>
-                            <div
-                              style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                height: '100%',
-                                margin: 0,
-                              }}>
-                              <div style={{display: 'flex', flex: '1 1 auto'}}>
-                                <div
-                                  style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    position: 'fixed',
-                                    left: 0,
-                                    right: 0,
-                                    top: 0,
-                                    bottom: 0,
-                                  }}>
-                                  <TopNavigation
-                                    openBuildConfig={
-                                      state.build.openBuildConfig
-                                    }
-                                    sessionId={state.build.sessionId}
-                                  />
-                                  <Content />
-                                </div>
-                              </div>
-                            </div>
+                            <IdeDryContext.Provider value={state.dry}>
+                              <IdeDryRunOngoingContext.Provider
+                                value={state.dry.runOngoing}>
+                                <IdeParseRunOngoingContext.Provider
+                                  value={state.parse.runOngoing}>
+                                  <IdeParseContext.Provider value={state.parse}>
+                                    <IdeCompletedBuildsContext.Provider
+                                      value={state.completedBuilds}>
+                                      <IdeLPContext.Provider
+                                        value={state.livePreview}>
+                                        <div
+                                          style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            height: '100%',
+                                            margin: 0,
+                                          }}>
+                                          <div
+                                            style={{
+                                              display: 'flex',
+                                              flex: '1 1 auto',
+                                            }}>
+                                            <div
+                                              style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                position: 'fixed',
+                                                left: 0,
+                                                right: 0,
+                                                top: 0,
+                                                bottom: 0,
+                                              }}>
+                                              <TopNavigation />
+                                              <Content />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </IdeLPContext.Provider>
+                                    </IdeCompletedBuildsContext.Provider>
+                                  </IdeParseContext.Provider>
+                                </IdeParseRunOngoingContext.Provider>
+                              </IdeDryRunOngoingContext.Provider>
+                            </IdeDryContext.Provider>
                           </IdeBuildRunContext.Provider>
                         </IdeBuildConfigContext.Provider>
                       </IdeBuildContext.Provider>

@@ -45,7 +45,6 @@ const useStyles = makeStyles((theme) => ({
   root: {
     width: '100%',
     color: theme.palette.background.contrastText,
-    position: 'relative',
     height: '100%',
   },
   formControl: {

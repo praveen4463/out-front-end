@@ -8,14 +8,22 @@ import BuildIcon from '@material-ui/icons/Build';
 import StopIcon from '@material-ui/icons/Stop';
 import Box from '@material-ui/core/Box';
 import {makeStyles} from '@material-ui/core/styles';
-import PropTypes from 'prop-types';
 import MainMenu from './MainMenu';
 import EditMenu from './EditMenu';
 import HelpMenu from './HelpMenu';
 import UserAvatar from './UserAvatar';
 import Tooltip from '../TooltipCustom';
 import ProjectSelector from './ProjectSelector';
-import {IdeBuildRunOngoingContext} from './Contexts';
+import {
+  IdeBuildContext,
+  IdeDryContext,
+  IdeParseContext,
+  IdeDispatchContext,
+} from './Contexts';
+import {getBuildStoppingAction} from '../actions/actionCreators';
+import {getDryStoppingAction, getParseStoppingAction} from './actionCreators';
+import {BUILD_NEW_RUN} from '../actions/actionTypes';
+import {DRY_START_RUN, PARSE_START_RUN} from './actionTypes';
 
 const useStyles = makeStyles((theme) => ({
   fontSizeSmall: {
@@ -36,9 +44,49 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const TopNavigation = ({openBuildConfig, sessionId}) => {
-  const buildRunOngoing = useContext(IdeBuildRunOngoingContext);
+const TopNavigation = () => {
+  const dispatch = useContext(IdeDispatchContext);
+  const build = useContext(IdeBuildContext);
+  const dry = useContext(IdeDryContext);
+  const parse = useContext(IdeParseContext);
   const classes = useStyles();
+
+  const handleBuild = () => {
+    dispatch({
+      type: BUILD_NEW_RUN,
+    });
+  };
+
+  const handleDry = () => {
+    dispatch({
+      type: DRY_START_RUN,
+    });
+  };
+
+  const handleParse = () => {
+    dispatch({
+      type: PARSE_START_RUN,
+    });
+  };
+
+  const handleStop = () => {
+    if (build.runOngoing) {
+      dispatch(getBuildStoppingAction(true));
+    } else if (dry.runOngoing) {
+      dispatch(getDryStoppingAction(true));
+    } else if (parse.runOngoing) {
+      dispatch(getParseStoppingAction(true));
+    }
+  };
+
+  const runButtonsDisabled = () => {
+    return build.runOngoing || dry.runOngoing || parse.runOngoing;
+  };
+
+  const stopDisabled = () => {
+    return build.stopping || dry.stopping || parse.stopping;
+  };
+
   return (
     <AppBar classes={{root: classes.appBarRoot}}>
       {/* ToolBar is a flexbox and default alignItems=center. When it's center,
@@ -65,40 +113,56 @@ const TopNavigation = ({openBuildConfig, sessionId}) => {
           <MainMenu />
         </div>
         <Tooltip title="Run Build R">
-          <IconButton aria-label="Run Build" disabled={buildRunOngoing}>
-            <PlayArrowIcon color="primary" fontSize="small" />
+          <IconButton
+            aria-label="Run Build"
+            disabled={runButtonsDisabled()}
+            color="primary"
+            onClick={handleBuild}>
+            <PlayArrowIcon fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title="Parse All P">
-          <IconButton aria-label="Parse">
+          <IconButton
+            aria-label="Parse"
+            disabled={runButtonsDisabled()}
+            color="primary"
+            onClick={handleParse}>
             <BuildIcon
-              color="primary"
               fontSize="small"
               classes={{fontSizeSmall: classes.fontSizeSmall}}
             />
           </IconButton>
         </Tooltip>
         <Tooltip title="Dry Run All ⇧D">
-          <IconButton aria-label="Dry Run">
+          <IconButton
+            aria-label="Dry Run"
+            disabled={runButtonsDisabled()}
+            color="primary"
+            onClick={handleDry}>
             <CheckCircleIcon
-              color="primary"
               fontSize="small"
               classes={{fontSizeSmall: classes.fontSizeSmall}}
             />
           </IconButton>
         </Tooltip>
-        {/* based on other run ongoings, we will render this button differently
-        so that it works for all */}
-        {buildRunOngoing && sessionId ? (
-          <Tooltip title="Stop Build ^C">
-            <IconButton aria-label="Stop Build">
-              <StopIcon color="error" fontSize="small" />
+        {(build.runOngoing && build.sessionId) ||
+        dry.runOngoing ||
+        parse.runOngoing ? (
+          <Tooltip title="Stop ^C">
+            <IconButton
+              aria-label="Stop"
+              disabled={stopDisabled()}
+              onClick={handleStop}>
+              <StopIcon
+                color={stopDisabled() ? 'disabled' : 'error'}
+                fontSize="small"
+              />
             </IconButton>
           </Tooltip>
         ) : null}
         <EditMenu
           editIconClasses={{fontSizeSmall: classes.fontSizeEditIcon}}
-          openBuildConfig={openBuildConfig}
+          openBuildConfig={build.openBuildConfig}
         />
         <Box
           display="flex"
@@ -115,15 +179,6 @@ const TopNavigation = ({openBuildConfig, sessionId}) => {
       </ToolBar>
     </AppBar>
   );
-};
-
-TopNavigation.propTypes = {
-  openBuildConfig: PropTypes.bool.isRequired,
-  sessionId: PropTypes.string,
-};
-
-TopNavigation.defaultProps = {
-  sessionId: null,
 };
 
 export default TopNavigation;

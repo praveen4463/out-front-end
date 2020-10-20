@@ -25,9 +25,9 @@ const updateByProp = (draft, payload) => {
 // TODO: later try to memoize this somehow
 const getOrderedVersionsFromFiles = (draft) => {
   const versions = [];
-  const et = draft.entities;
+  const et = draft.files.entities;
   const {files, tests} = et;
-  draft.result.forEach(
+  draft.files.result.forEach(
     (fid) =>
       files[fid].tests &&
       files[fid].tests.forEach((tid) =>
@@ -40,13 +40,16 @@ const getOrderedVersionsFromFiles = (draft) => {
 
 const newRun = (draft, payload) => {
   const {build} = draft;
+  build.createNew = true;
+  if (!payload) {
+    return;
+  }
   if (payload.versionIds) {
     // filter out deleted versions if any (user ran, deleted some version, reran)
     build.versionIds = payload.versionIds.filter(
       (v) => draft.files.entities.versions[v]
     );
   }
-  build.createNew = true;
   if (payload.noBuildConfigIfValid) {
     build.noBuildConfigIfValid = payload.noBuildConfigIfValid;
   }

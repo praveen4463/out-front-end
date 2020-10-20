@@ -1,4 +1,9 @@
-import {BATCH_ACTIONS, SET_VERSION_LAST_RUN} from './actionTypes';
+import {
+  BATCH_ACTIONS,
+  SET_VERSION_LAST_RUN,
+  DRY_UPDATE_BY_PROP,
+  PARSE_UPDATE_BY_PROP,
+} from './actionTypes';
 import {LastRunError} from './Explorer/model';
 
 const batchActions = (actions) => {
@@ -27,6 +32,20 @@ export const getLastRunAction = (
       error,
       showSuccessMsgInStatus,
     },
+  };
+};
+
+export const getDryStoppingAction = (isStopping) => {
+  return {
+    type: DRY_UPDATE_BY_PROP,
+    payload: {prop: 'stopping', value: isStopping},
+  };
+};
+
+export const getParseStoppingAction = (isStopping) => {
+  return {
+    type: PARSE_UPDATE_BY_PROP,
+    payload: {prop: 'stopping', value: isStopping},
   };
 };
 

@@ -40,3 +40,15 @@ export const RUN_BUILD_UPDATE_BY_PROP = 'RUN_BUILD_UPDATE_BY_PROP';
 export const RUN_BUILD_ON_COMPLETED = 'RUN_BUILD_ON_COMPLETED';
 export const RUN_BUILD_COMPLETE_ON_ERROR = 'RUN_BUILD_COMPLETE_ON_ERROR';
 export const RUN_BUILD_UPDATE_VERSION = 'RUN_BUILD_UPDATE_VERSION';
+
+// Dry actions
+export const DRY_UPDATE_BY_PROP = 'DRY_UPDATE_BY_PROP';
+export const DRY_START_RUN = 'DRY_START_RUN';
+
+// Parse actions
+export const PARSE_UPDATE_BY_PROP = 'PARSE_UPDATE_BY_PROP';
+export const PARSE_START_RUN = 'PARSE_START_RUN';
+
+// live preview actions
+export const LP_START = 'LP_START';
+export const LP_END = 'LP_END';

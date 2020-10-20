@@ -7,7 +7,7 @@ import MidContent from './MidContent';
 import RightPane from './RightPane';
 import BottomPane from './BottomPane';
 import LeftPane from './LeftPane';
-import {LeftNavs, None} from './Constants';
+import {LeftNavs, None, RightNavs} from './Constants';
 import '../react-split-pane.css';
 
 // Note: function like these causes the component to re render each time even
@@ -49,6 +49,26 @@ const Content = () => {
   const closeBottomNav = useCallback(() => {
     setBottomNavActiveIcon(None);
   }, []);
+
+  const getRightPaneDefaultCssWidth = () => {
+    if (rightNavActiveIcon === RightNavs.LIVE_PREVIEW) {
+      return '100%';
+    }
+    return '40%';
+  };
+
+  const getRightPaneMinCssWidth = () => {
+    if (rightNavActiveIcon === None) {
+      return 0;
+    }
+    if (rightNavActiveIcon === RightNavs.LIVE_PREVIEW) {
+      return '50%';
+    }
+    if (rightNavActiveIcon === RightNavs.COMPLETED_BUILDS) {
+      return '40%';
+    }
+    return '25%';
+  };
 
   return (
     <div
@@ -138,7 +158,7 @@ const Content = () => {
                 <SplitPane
                   split="vertical"
                   primary="second"
-                  defaultSize="30%"
+                  defaultSize={getRightPaneDefaultCssWidth()}
                   minSize={0}
                   onChange={(size) => {
                     if (size === 0 && rightNavActiveIcon !== None) {
@@ -155,7 +175,7 @@ const Content = () => {
                     visibility:
                       rightNavActiveIcon === None ? 'hidden' : 'visible',
                     maxWidth: rightNavActiveIcon === None ? 0 : '100%',
-                    minWidth: rightNavActiveIcon === None ? 0 : '25%',
+                    minWidth: getRightPaneMinCssWidth(),
                   }}>
                   <MidContent lineColContainerRef={lineColContainerRef} />
                   {rightNavActiveIcon === None ? (

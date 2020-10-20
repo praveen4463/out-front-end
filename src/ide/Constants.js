@@ -5,7 +5,7 @@ const LeftNavs = {
 const RightNavs = {
   COMPLETED_BUILDS: 'COMPLETED_BUILDS',
   LIVE_PREVIEW: 'LIVE_PREVIEW',
-  API_REF: 'API_REF',
+  DOCUMENTATION: 'DOCUMENTATION',
 };
 
 const BottomNavs = {
@@ -14,9 +14,6 @@ const BottomNavs = {
   PARSE: 'PARSE',
 };
 
-// Alternative to null so that props that are required don't get a null.
-// TODO: use defaultProps at those places and remove this, mistake during learning
-// react.
 const None = 'None';
 
 const ExplorerItemType = {
@@ -49,6 +46,15 @@ const TestProgress = {
   API_ERRORS_BEFORE_BAIL_OUT: 6,
 };
 
+const LivePreviewConstants = {
+  POLL_TIME_WHEN_NOT_FOUND: 1000,
+  MAX_POLL_AFTER_NOT_FOUND: 5,
+  OFFLINE_RECOVERY_TIME: 30000,
+  ERROR_SHOT_FOUND_TEXT:
+    "There was an error generating live preview. We've been notified and will be fixing it on topmost priority.",
+  COMPLETION_TEXT: 'Live preview has been ended.',
+};
+
 const PARSE_SUCCESS_MSG = 'Parsing completed, no problems found';
 
 export {
@@ -62,4 +68,5 @@ export {
   ZwlLexer,
   TestProgress,
   PARSE_SUCCESS_MSG,
+  LivePreviewConstants,
 };

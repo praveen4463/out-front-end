@@ -324,3 +324,8 @@ export const Defaults = {
   TIMEZONE: 'UTC',
   DESKTOP_RES: '1366x768',
 };
+
+export const ShotIdentifiers = {
+  EOS: 'EOS',
+  ERROR: 'ERROR',
+};

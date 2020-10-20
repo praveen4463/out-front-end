@@ -9,7 +9,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const ApiRef = () => {
+const Documentation = () => {
   const classes = useStyles();
 
   return (
@@ -19,4 +19,4 @@ const ApiRef = () => {
   );
 };
 
-export default ApiRef;
+export default Documentation;

@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React from 'react';
+import React, {useContext, useRef, useEffect} from 'react';
 import clsx from 'clsx';
 import {makeStyles} from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
@@ -8,6 +8,7 @@ import Link from '@material-ui/core/Link';
 import Typography from '@material-ui/core/Typography';
 import PropTypes from 'prop-types';
 import {RightNavs} from './Constants';
+import {IdeBuildContext, IdeCompletedBuildsContext} from './Contexts';
 
 const useStyles = makeStyles((theme) => ({
   nav: {
@@ -59,7 +60,28 @@ const useStyles = makeStyles((theme) => ({
 
 const RightNavigation = (props) => {
   const {clickHandler, active} = props;
+  const build = useContext(IdeBuildContext);
+  const completedBuilds = useContext(IdeCompletedBuildsContext);
+  const openedLivePreviewOncePerBuild = useRef(false);
   const classes = useStyles();
+
+  useEffect(() => {
+    if (!build.runOngoing && openedLivePreviewOncePerBuild.current) {
+      openedLivePreviewOncePerBuild.current = false;
+    }
+  }, [build.runOngoing]);
+
+  useEffect(() => {
+    if (
+      build.runOngoing &&
+      build.sessionId &&
+      active !== RightNavs.LIVE_PREVIEW &&
+      !openedLivePreviewOncePerBuild.current
+    ) {
+      clickHandler(RightNavs.LIVE_PREVIEW);
+      openedLivePreviewOncePerBuild.current = true;
+    }
+  }, [active, clickHandler, build.runOngoing, build.sessionId]);
 
   return (
     <Paper
@@ -68,23 +90,25 @@ const RightNavigation = (props) => {
       elevation={4}
       aria-label="Right Navigation"
       className={classes.nav}>
-      <Box display="flex" className={classes.wrapper} style={{paddingTop: 8}}>
-        <Typography variant="caption" className={classes.typography}>
-          <Link
-            color="inherit"
-            onClick={() => clickHandler(RightNavs.COMPLETED_BUILDS)}
-            classes={{root: classes.link}}
-            className={clsx(
-              classes.link,
-              classes.linkTab,
-              active === RightNavs.COMPLETED_BUILDS
-                ? classes.activeTab
-                : classes.linkHover
-            )}>
-            Completed Builds
-          </Link>
-        </Typography>
-      </Box>
+      {completedBuilds && completedBuilds.length ? (
+        <Box display="flex" className={classes.wrapper} style={{paddingTop: 8}}>
+          <Typography variant="caption" className={classes.typography}>
+            <Link
+              color="inherit"
+              onClick={() => clickHandler(RightNavs.COMPLETED_BUILDS)}
+              classes={{root: classes.link}}
+              className={clsx(
+                classes.link,
+                classes.linkTab,
+                active === RightNavs.COMPLETED_BUILDS
+                  ? classes.activeTab
+                  : classes.linkHover
+              )}>
+              Completed Builds
+            </Link>
+          </Typography>
+        </Box>
+      ) : null}
       <Box display="flex" className={classes.wrapper}>
         <Typography variant="caption" className={classes.typography}>
           <Link
@@ -110,17 +134,16 @@ const RightNavigation = (props) => {
         <Typography variant="caption" className={classes.typography}>
           <Link
             color="inherit"
-            onClick={() => clickHandler(RightNavs.API_REF)}
+            onClick={() => clickHandler(RightNavs.DOCUMENTATION)}
             classes={{root: classes.link}}
             className={clsx(
               classes.link,
               classes.linkTab,
-              active === RightNavs.API_REF
+              active === RightNavs.DOCUMENTATION
                 ? classes.activeTab
                 : classes.linkHover
             )}>
             Documentation
-            {/* document site in an iframe */}
           </Link>
         </Typography>
       </Box>

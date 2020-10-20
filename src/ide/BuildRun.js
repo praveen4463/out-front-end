@@ -18,6 +18,7 @@ import StopIcon from '@material-ui/icons/Stop';
 import AbortedIcon from '@material-ui/icons/NotInterested';
 import YetToRunIcon from '@material-ui/icons/FiberManualRecord';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import LinearProgress from '@material-ui/core/LinearProgress';
 import ErrorIcon from '@material-ui/icons/Error';
 import Typography from '@material-ui/core/Typography';
 import {makeStyles, withStyles, useTheme} from '@material-ui/core/styles';
@@ -896,6 +897,20 @@ const BuildRun = ({closeHandler}) => {
     [buildRun, completed, getAllVersionIdsByType, buildRunInterval]
   );
 
+  const getRunProgress = () => {
+    if (!allBuildRunVersions) {
+      return 0;
+    }
+    const done = allBuildRunVersions.filter(
+      (brv) => brv.status && brv.status !== TestStatus.RUNNING
+    ).length;
+    if (done === 0) {
+      return 0;
+    }
+    const total = allBuildRunVersions.length;
+    return Math.round((done / total) * 100);
+  };
+
   const getRunStatus = useCallback(() => {
     if (!allBuildRunVersions) {
       return '';
@@ -1237,6 +1252,15 @@ const BuildRun = ({closeHandler}) => {
             </IconButton>
           </Box>
         </Box>
+        {buildRunInterval && executingVersionId && !completed ? (
+          <Box width="100%">
+            <LinearProgress
+              color="secondary"
+              variant="determinate"
+              value={getRunProgress()}
+            />
+          </Box>
+        ) : null}
         <Box className={classes.outputPanelContent} flex={1}>
           {getSelectedNodeVersionIds().map((vid) => (
             <Box display="flex" flexDirection="column" px={1} key={vid}>

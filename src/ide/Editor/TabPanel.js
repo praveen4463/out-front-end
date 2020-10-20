@@ -45,6 +45,8 @@ import {
   IdeDispatchContext,
   IdeVarsContext,
   IdeBuildRunOngoingContext,
+  IdeDryRunOngoingContext,
+  IdeParseRunOngoingContext,
 } from '../Contexts';
 import Tooltip from '../../TooltipCustom';
 import {LastRun, LastRunError} from '../Explorer/model';
@@ -262,6 +264,8 @@ const TabPanel = React.memo(
     // TODO: similarly get dry/parse run context and do the same thing if any
     // of them is true.
     const buildRunOngoing = useContext(IdeBuildRunOngoingContext);
+    const dryRunOngoing = useContext(IdeDryRunOngoingContext);
+    const parseRunOngoing = useContext(IdeParseRunOngoingContext);
     const unmounted = useRef(false);
 
     function reducer(state, action) {
@@ -811,8 +815,8 @@ const TabPanel = React.memo(
     };
 
     useEffect(() => {
-      toggleRunOngoing(buildRunOngoing);
-    }, [buildRunOngoing]);
+      toggleRunOngoing(buildRunOngoing || dryRunOngoing || parseRunOngoing);
+    }, [buildRunOngoing, dryRunOngoing, parseRunOngoing]);
 
     const toggleOutputPanel = (isExpanded) => {
       dispatchControlled({
