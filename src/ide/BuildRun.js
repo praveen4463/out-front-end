@@ -41,15 +41,16 @@ import {
 } from './Contexts';
 import {RUN_BUILD_ON_NEW_RUN, RUN_BUILD_COMPLETE_ON_ERROR} from './actionTypes';
 import {BUILD_NEW_RUN, BUILD_COMPLETE_RUN} from '../actions/actionTypes';
-import {MaxLengths, ExplorerItemType, PARSE_SUCCESS_MSG} from './Constants';
-import {TestStatus, RunType, ApiStatuses} from '../Constants';
-import batchActions, {getLastRunAction} from './actionCreators';
+import {MaxLengths, ExplorerItemType} from './Constants';
+import {TestStatus} from '../Constants';
+import batchActions from './actionCreators';
 import {getBuildStoppingAction} from '../actions/actionCreators';
 import {
   versionsHaveParseErrorWhenStatusAvailable,
   versionsHaveLastParseStatus,
+  getVersionsNoParseStatus,
+  fillLastParseStatusAndGetFailed,
 } from './common';
-import {LastRunError} from './Explorer/model';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -199,7 +200,10 @@ const BuildRun = ({closeHandler}) => {
   const [selected, setSelected] = useState(null);
   const [versionsParseSucceeded, setVersionsParseSucceeded] = useState(false);
   const allBuildRunVersions = useMemo(
-    () => (buildRun === null ? null : Object.values(buildRun.buildRunVersions)),
+    () =>
+      buildRun === null
+        ? null
+        : buildRun.versionIds.map((vid) => buildRun.buildRunVersions[vid]),
     [buildRun]
   );
   const executingVersionId = useMemo(() => {
@@ -229,9 +233,8 @@ const BuildRun = ({closeHandler}) => {
     if (!buildRun) {
       return {fileIds: null, testIds: null, versionIds: null};
     }
-    // don't use buildRun keys for getting vids because it will give string keys.
-    // don't either use build.versionIds as it will turn to null on build completion.
-    const vids = allBuildRunVersions.map((brv) => brv.versionId);
+    // never use buildRun keys for getting vids because it will give string keys.
+    const vids = buildRun.versionIds;
     const tids = new Set();
     const fids = new Set();
     vids.forEach((vid) => {
@@ -248,7 +251,7 @@ const BuildRun = ({closeHandler}) => {
       testIds: Array.from(tids),
       versionIds: vids,
     };
-  }, [buildRun, etTests, etVersions, allBuildRunVersions]);
+  }, [buildRun, etTests, etVersions]);
 
   // This will recalculate on every change in buildRun, this can't be avoided
   // without introducing bugs.
@@ -333,93 +336,33 @@ const BuildRun = ({closeHandler}) => {
         versionIds &&
         !buildRunInterval &&
         !completed &&
-        !versionsHaveLastParseStatus(etVersions, versionIds) &&
         !versionsParseOngoingRef.current
       )
     ) {
       return;
     }
-    // console.log('parsing all versions');
-    versionsParseOngoingRef.current = true; // don't reset from here, it is used once per build
-    // and reset on build start.
-    const onSuccess = (response) => {
-      const actions = [];
-      const parseErrorVersionIds = [];
-      if (response.data) {
-        // we've parse errors in some versions
-        response.data.forEach((d) => {
-          const {versionId} = d;
-          parseErrorVersionIds.push(versionId);
-          const lastRunAction = getLastRunAction(
-            versionId,
-            RunType.PARSE_RUN,
-            null,
-            new LastRunError(d.error.msg, d.error.from, d.error.to)
-          );
-          actions.push(lastRunAction);
-        });
-      }
-      // versions that have no parse errors should also have lastRun
+    const versionIdsNoParseStatus = getVersionsNoParseStatus(
+      etVersions,
       versionIds
-        .filter((vid) => parseErrorVersionIds.indexOf(vid) < 0)
-        .forEach((vid) => {
-          const lastRunAction = getLastRunAction(
-            vid,
-            RunType.PARSE_RUN,
-            PARSE_SUCCESS_MSG,
-            null,
-            false
-          );
-          actions.push(lastRunAction);
-        });
-      dispatch(batchActions(actions));
-      setStatusMsg(
-        getInfoTypeStatusMsg(
-          `Parsing ${parseErrorVersionIds.length ? 'failed' : 'succeeded'}.`
-        )
-      );
-    };
-    const onError = (response) => {
-      completeOnError(`Can't start build, ${response.error.reason}`);
-    };
-    // send versionIds for parsing to api and expect only the failed ones with error.
-    // when all succeeded, there will be no data. When api couldn't parse for any
-    // reason, status will be failure with reason of error.
-    setTimeout(() => {
-      /* const response = {
-        status: ApiStatuses.SUCCESS,
-        data: [
-          {
-            versionId: versionIds[0],
-            error: {
-              msg: "no viable alternative at input 'a+' line 2:2",
-              from: {line: 2, ch: 1},
-              to: {line: 2, ch: 2},
-            },
-          },
-        ],
-      }; */
-      const response = {
-        status: ApiStatuses.SUCCESS,
-      };
-      /* const response = {
-        status: ApiStatuses.FAILURE,
-        error: {
-          reason: 'Internal exception occurred while parsing',
-        },
-      }; */
-      if (response.status === ApiStatuses.SUCCESS) {
-        onSuccess(response);
-      } else if (response.status === ApiStatuses.FAILURE) {
-        onError(response);
-      }
-    }, 2000);
-    setStatusMsg(getInfoTypeStatusMsg('Parsing...'));
+    );
+    if (!versionIdsNoParseStatus.length) {
+      return;
+    }
+    // console.log('parsing all versions');
+    versionsParseOngoingRef.current = true; // don't reset from here, it is used once per dry run
+    // and reset on dry run start.
+    fillLastParseStatusAndGetFailed(versionIdsNoParseStatus, dispatch)
+      .then() // no action when parsed, next effect will check results.
+      .catch((error) => {
+        completeOnError(`Can't start build, ${error.message}`);
+      });
+    setStatusMsg(getInfoTypeStatusMsg('Parsing...')); // next effect will overwrite this
+    // once all are parsed.
   }, [
-    buildRunInterval,
     completeOnError,
     completed,
     dispatch,
+    buildRunInterval,
     etVersions,
     getInfoTypeStatusMsg,
     versionIds,
@@ -453,8 +396,16 @@ const BuildRun = ({closeHandler}) => {
       );
       return;
     }
+    setStatusMsg(getInfoTypeStatusMsg('Parsing succeeded'));
     setVersionsParseSucceeded(true);
-  }, [buildRunInterval, completeOnError, completed, etVersions, versionIds]);
+  }, [
+    buildRunInterval,
+    completeOnError,
+    completed,
+    etVersions,
+    versionIds,
+    getInfoTypeStatusMsg,
+  ]);
 
   const expandAllNodes = useCallback(() => {
     setExpanded(

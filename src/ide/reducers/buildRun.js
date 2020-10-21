@@ -17,6 +17,7 @@ const onNewRun = (draft) => {
     brvs[v] = new BuildRunVersion(v);
   });
   draft.buildRun = new BuildRun(build.runId, brvs);
+  draft.buildRun.versionIds = build.versionIds;
 };
 
 const updateByProp = (draft, payload) => {

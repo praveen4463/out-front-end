@@ -81,22 +81,36 @@ const BottomNavigation = (props) => {
   const classes = useStyles();
 
   useEffect(() => {
-    if (!buildRunOngoing && openedBuildOutputOncePerBuild.current) {
+    // don't reset if the panel is already opened, useful when rerunning so that
+    // after rerun if user close panel (while running), we don't open it up.
+    if (
+      !buildRunOngoing &&
+      active !== BottomNavs.BUILD_RUN &&
+      openedBuildOutputOncePerBuild.current
+    ) {
       openedBuildOutputOncePerBuild.current = false;
     }
-  }, [buildRunOngoing]);
+  }, [buildRunOngoing, active]);
 
   useEffect(() => {
-    if (!dryRunOngoing && openedDryOutputOncePerDry.current) {
+    if (
+      !dryRunOngoing &&
+      active !== BottomNavs.DRY_RUN &&
+      openedDryOutputOncePerDry.current
+    ) {
       openedDryOutputOncePerDry.current = false;
     }
-  }, [dryRunOngoing]);
+  }, [dryRunOngoing, active]);
 
   useEffect(() => {
-    if (!parseRunOngoing && openedParseOutputOncePerParse.current) {
+    if (
+      !parseRunOngoing &&
+      active !== BottomNavs.PARSE &&
+      openedParseOutputOncePerParse.current
+    ) {
       openedParseOutputOncePerParse.current = false;
     }
-  }, [parseRunOngoing]);
+  }, [parseRunOngoing, active]);
 
   useEffect(() => {
     if (

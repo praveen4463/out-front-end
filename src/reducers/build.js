@@ -9,6 +9,7 @@ import {
   BUILD_NEW_SESSION_SUCCESS,
   BUILD_NEW_SESSION_ERROR,
 } from '../actions/actionTypes';
+import {getOrderedVersionsFromFiles} from './common';
 
 const updateByProp = (draft, payload) => {
   if (payload.prop === undefined || payload.value === undefined) {
@@ -20,22 +21,6 @@ const updateByProp = (draft, payload) => {
     throw new Error(`Build doesn't have given own prop ${prop}`);
   }
   build[prop] = value;
-};
-
-// TODO: later try to memoize this somehow
-const getOrderedVersionsFromFiles = (draft) => {
-  const versions = [];
-  const et = draft.files.entities;
-  const {files, tests} = et;
-  draft.files.result.forEach(
-    (fid) =>
-      files[fid].tests &&
-      files[fid].tests.forEach((tid) =>
-        tests[tid].versions.forEach((vid) => versions.push(vid))
-      )
-  );
-  // versions now have ordered versions
-  return versions;
 };
 
 const newRun = (draft, payload) => {
@@ -67,7 +52,7 @@ const startRun = (draft) => {
     // from all versions fetched from files.
     // TODO: later try to memoize this somehow
     build.versionIds = intersection(
-      getOrderedVersionsFromFiles(draft),
+      getOrderedVersionsFromFiles(draft.files),
       Array.from(draft.config.build.selectedVersions)
     );
   }

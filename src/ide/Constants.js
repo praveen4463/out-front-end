@@ -51,7 +51,7 @@ const LivePreviewConstants = {
   MAX_POLL_AFTER_NOT_FOUND: 5,
   OFFLINE_RECOVERY_TIME: 30000,
   ERROR_SHOT_FOUND_TEXT:
-    "There was an error generating live preview. We've been notified and will be fixing it on topmost priority.",
+    "There was an error generating live preview. We've been notified and working on getting it fixed.",
   COMPLETION_TEXT: 'Live preview has been ended.',
 };
 

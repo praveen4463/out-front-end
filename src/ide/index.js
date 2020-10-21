@@ -31,6 +31,12 @@ import {
   RUN_BUILD_UPDATE_VERSION,
   RUN_BUILD_COMPLETE_ON_ERROR,
   PUSH_COMPLETED_BUILDS,
+  DRY_COMPLETE_RUN,
+  RUN_DRY_UPDATE_VERSION,
+  RUN_DRY_COMPLETE_ON_ERROR,
+  RUN_DRY_ON_COMPLETED,
+  RUN_DRY_MARK_VERSION_STATUS,
+  RUN_DRY_UPDATE_BY_PROP,
 } from './actionTypes';
 import {
   BUILD_UPDATE_BY_PROP,
@@ -54,6 +60,7 @@ import {
   IdeBuildConfigContext,
   IdeBuildRunContext,
   IdeDryContext,
+  IdeDryRunContext,
   IdeParseContext,
   IdeDryRunOngoingContext,
   IdeParseRunOngoingContext,
@@ -69,6 +76,8 @@ import buildConfigReducer from '../reducers/buildConfig';
 import buildReducer from '../reducers/build';
 import buildRunReducer from './reducers/buildRun';
 import livePreviewReducer from './reducers/livePreview';
+import dryReducer from './reducers/dry';
+import dryRunReducer from './reducers/dryRun';
 import RootErrorFallback, {rootErrorHandler} from '../ErrorBoundary';
 import {
   VarTypes,
@@ -140,8 +149,10 @@ const initialState = {
   dry: {
     runOngoing: false,
     stopping: false,
+    versionIds: null, // sorted versionIds being tested
+    runId: null,
   },
-  dryRun: null,
+  dryRun: null, // instance of DryRun
   parse: {
     runOngoing: false,
     stopping: false,
@@ -208,6 +219,12 @@ function ideRootReducer(state, action) {
       if (type.startsWith('LP_')) {
         return livePreviewReducer(state, action);
       }
+      if (type.startsWith('DRY_')) {
+        return dryReducer(state, action);
+      }
+      if (type.startsWith('RUN_DRY')) {
+        return dryRunReducer(state, action);
+      }
       return ideReducer(state, action);
     }
   }
@@ -232,6 +249,9 @@ const Ide = () => {
   testProgressIntervalIdRef.current =
     state.buildRun === null ? null : state.buildRun.testProgressIntervalId;
   const etVersions = state.files ? state.files.entities.versions : null;
+  const dryStoppingRef = useRef(null);
+  const drvsRef = useRef(null);
+  dryStoppingRef.current = state.dry.stopping;
   const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
   const classes = useStyles();
 
@@ -318,8 +338,20 @@ const Ide = () => {
 
   brvsRef.current = useMemo(
     () =>
-      state.buildRun ? Object.values(state.buildRun.buildRunVersions) : null,
+      state.buildRun
+        ? state.buildRun.versionIds.map(
+            (vid) => state.buildRun.buildRunVersions[vid]
+          )
+        : null,
     [state.buildRun]
+  );
+
+  drvsRef.current = useMemo(
+    () =>
+      state.dryRun
+        ? state.dryRun.versionIds.map((vid) => state.dryRun.dryRunVersions[vid])
+        : null,
+    [state.dryRun]
   );
 
   useEffect(() => {
@@ -419,11 +451,16 @@ const Ide = () => {
             const {error} = data;
             lastRunError = new LastRunError(error.msg, error.from, error.to);
           }
+          let allOutput = buildRunVersion.output ?? '';
+          if (allOutput) {
+            allOutput += '\n';
+          }
+          allOutput += data.output;
           actions.push(
             getLastRunAction(
               buildRunVersion.versionId,
               RunType.BUILD_RUN,
-              data.output,
+              allOutput,
               lastRunError
             )
           );
@@ -470,7 +507,7 @@ const Ide = () => {
         let whichResponse = random(1, 9);
         // enable following for checking api error situation.
         // let whichResponse = random(1, 10);
-        // When this is replaced with api calls, remove stopping ref.
+        // !! TODO: When this is replaced with api calls, remove stopping ref.
         if (buildStoppingRef.current) {
           whichResponse = 8;
         }
@@ -547,7 +584,7 @@ const Ide = () => {
             },
           };
         }
-        // as response is received, check if componen is unmounted, if so, return
+        // as response is received, check if component is unmounted, if so, return
         if (unmounted.current) {
           clearInterval(testProgressIntervalIdRef.current);
           return;
@@ -577,7 +614,7 @@ const Ide = () => {
         state.buildRun &&
         !state.build.sessionId &&
         !pendingNewSessionRequest.current &&
-        versionsHaveLastParseStatus(etVersions, state.build.versionIds)
+        versionsHaveLastParseStatus(etVersions, state.buildRun.versionIds)
       )
     ) {
       return;
@@ -590,7 +627,7 @@ const Ide = () => {
     if (
       versionsHaveParseErrorWhenStatusAvailable(
         etVersions,
-        state.build.versionIds
+        state.buildRun.versionIds
       )
     ) {
       return;
@@ -635,6 +672,7 @@ const Ide = () => {
       );
     };
     setTimeout(() => {
+      // send buildConfig, buildRun.versionIds and expect new session data
       const response = {
         status: ApiStatuses.SUCCESS,
         data: {
@@ -661,12 +699,13 @@ const Ide = () => {
     state.build.runOngoing,
     state.buildRun,
     state.build.sessionId,
-    state.build.versionIds,
     etVersions,
     checkTestProgress,
   ]);
 
   // check stopping and send api request
+  // Note that similar code is not needed for dry as it check stopping inside
+  // progress function and stop versions.
   useEffect(() => {
     if (!state.build.stopping) {
       return;
@@ -680,7 +719,159 @@ const Ide = () => {
     // the progress interval will get stopped states for those tests.
   }, [state.build.stopping, state.build.buildId, setSnackbarErrorMsg]);
 
-  // TODO: handle stopping of parse and dry by breaking the interval
+  const runDry = useCallback(() => {
+    if (unmounted.current) {
+      return;
+    }
+    const drv = drvsRef.current.find((v) => !v.status);
+    if (!drv) {
+      // all versions updated, mark it done.
+      dispatch(
+        batchActions([{type: DRY_COMPLETE_RUN}, {type: RUN_DRY_ON_COMPLETED}])
+      );
+      return;
+    }
+    const {versionId} = drv;
+    if (dryStoppingRef.current) {
+      dispatch({
+        type: RUN_DRY_UPDATE_VERSION,
+        payload: {
+          versionId,
+          data: {
+            status: TestStatus.STOPPED,
+            timeTaken: 0,
+            output: 'Stopped',
+          },
+        },
+      });
+      runDry();
+      return;
+    }
+    const onSuccess = (response) => {
+      const {data} = response;
+      const actions = [
+        {
+          type: RUN_DRY_UPDATE_VERSION,
+          payload: {versionId, data},
+        },
+      ];
+      // update lastRun state of version when it completed execution (not when stopped)
+      if (
+        data.status === TestStatus.SUCCESS ||
+        data.status === TestStatus.ERROR
+      ) {
+        let lastRunError = null;
+        if (data.status === TestStatus.ERROR) {
+          const {error} = data;
+          lastRunError = new LastRunError(error.msg, error.from, error.to);
+        }
+        let allOutput = drv.output ?? '';
+        if (allOutput) {
+          allOutput += '\n';
+        }
+        allOutput += data.output;
+        actions.push(
+          getLastRunAction(versionId, RunType.DRY_RUN, allOutput, lastRunError)
+        );
+      }
+      dispatch(batchActions(actions));
+      runDry();
+    };
+    const onError = (response) => {
+      dispatch(
+        batchActions([
+          {type: DRY_COMPLETE_RUN},
+          {
+            type: RUN_DRY_COMPLETE_ON_ERROR,
+            payload: {
+              error: `Can't complete dry run, ${response.error.reason}.`,
+            },
+          },
+        ])
+      );
+    };
+    setTimeout(() => {
+      // send versionId, dry run config to api and expect success or failure.
+      const whichResponse = random(1, 9);
+      // enable following for checking api error situation.
+      // const whichResponse = random(1, 10);
+      let response;
+      if (whichResponse <= 7) {
+        response = {
+          status: ApiStatuses.SUCCESS,
+          data: {
+            status: TestStatus.SUCCESS,
+            timeTaken: random(1000, 1500), // timeTaken will be in millis
+            output: 'This output came in the end on success',
+          },
+        };
+      } else if (whichResponse <= 9) {
+        response = {
+          status: ApiStatuses.SUCCESS,
+          data: {
+            status: TestStatus.ERROR,
+            timeTaken: random(100, 500),
+            output: 'This output came in the end on error',
+            error: {
+              msg: 'Array index out of range line 3:12',
+              from: {line: 3, ch: 12},
+              // !!Note: api should always send the 'to' column that is after the 'to' char
+              to: {line: 3, ch: 13},
+            },
+          },
+        };
+      } else if (whichResponse === 10) {
+        response = {
+          status: ApiStatuses.ERROR,
+          error: {
+            reason: 'Network error',
+          },
+        };
+      }
+      // as response is received, check if component is unmounted, if so, return
+      if (unmounted.current) {
+        return;
+      }
+      if (response.status === ApiStatuses.SUCCESS) {
+        onSuccess(response);
+      } else if (response.status === ApiStatuses.ERROR) {
+        onError(response);
+      }
+    }, 2000);
+    // when a version is submitted for dry run, mark it running so that we can
+    // show it in running status (dry run has no running state in api, we submit
+    // dry run and receive it's final result)
+    dispatch({
+      type: RUN_DRY_MARK_VERSION_STATUS,
+      payload: {versionId, status: TestStatus.RUNNING},
+    });
+  }, []);
+
+  useEffect(() => {
+    if (
+      !(
+        state.dryRun &&
+        !state.dryRun.completed &&
+        !state.dryRun.inProgress &&
+        versionsHaveLastParseStatus(etVersions, state.dryRun.versionIds)
+      )
+    ) {
+      return;
+    }
+    if (
+      versionsHaveParseErrorWhenStatusAvailable(
+        etVersions,
+        state.dryRun.versionIds
+      )
+    ) {
+      return;
+    }
+    dispatch({
+      type: RUN_DRY_UPDATE_BY_PROP,
+      payload: {prop: 'inProgress', value: true},
+    });
+    runDry();
+  }, [etVersions, runDry, state.dryRun]);
 
   if (!allSet) {
     return (
@@ -728,47 +919,50 @@ const Ide = () => {
                           value={state.config.build}>
                           <IdeBuildRunContext.Provider value={state.buildRun}>
                             <IdeDryContext.Provider value={state.dry}>
-                              <IdeDryRunOngoingContext.Provider
-                                value={state.dry.runOngoing}>
-                                <IdeParseRunOngoingContext.Provider
-                                  value={state.parse.runOngoing}>
-                                  <IdeParseContext.Provider value={state.parse}>
-                                    <IdeCompletedBuildsContext.Provider
-                                      value={state.completedBuilds}>
-                                      <IdeLPContext.Provider
-                                        value={state.livePreview}>
-                                        <div
-                                          style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            height: '100%',
-                                            margin: 0,
-                                          }}>
+                              <IdeDryRunContext.Provider value={state.dryRun}>
+                                <IdeDryRunOngoingContext.Provider
+                                  value={state.dry.runOngoing}>
+                                  <IdeParseRunOngoingContext.Provider
+                                    value={state.parse.runOngoing}>
+                                    <IdeParseContext.Provider
+                                      value={state.parse}>
+                                      <IdeCompletedBuildsContext.Provider
+                                        value={state.completedBuilds}>
+                                        <IdeLPContext.Provider
+                                          value={state.livePreview}>
                                           <div
                                             style={{
                                               display: 'flex',
-                                              flex: '1 1 auto',
+                                              flexDirection: 'column',
+                                              height: '100%',
+                                              margin: 0,
                                             }}>
                                             <div
                                               style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                position: 'fixed',
-                                                left: 0,
-                                                right: 0,
-                                                top: 0,
-                                                bottom: 0,
+                                                display: 'flex',
+                                                flex: '1 1 auto',
                                               }}>
-                                              <TopNavigation />
-                                              <Content />
+                                              <div
+                                                style={{
+                                                  width: '100%',
+                                                  height: '100%',
+                                                  position: 'fixed',
+                                                  left: 0,
+                                                  right: 0,
+                                                  top: 0,
+                                                  bottom: 0,
+                                                }}>
+                                                <TopNavigation />
+                                                <Content />
+                                              </div>
                                             </div>
                                           </div>
-                                        </div>
-                                      </IdeLPContext.Provider>
-                                    </IdeCompletedBuildsContext.Provider>
-                                  </IdeParseContext.Provider>
-                                </IdeParseRunOngoingContext.Provider>
-                              </IdeDryRunOngoingContext.Provider>
+                                        </IdeLPContext.Provider>
+                                      </IdeCompletedBuildsContext.Provider>
+                                    </IdeParseContext.Provider>
+                                  </IdeParseRunOngoingContext.Provider>
+                                </IdeDryRunOngoingContext.Provider>
+                              </IdeDryRunContext.Provider>
                             </IdeDryContext.Provider>
                           </IdeBuildRunContext.Provider>
                         </IdeBuildConfigContext.Provider>

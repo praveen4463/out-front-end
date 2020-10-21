@@ -17,7 +17,12 @@ import {ApiStatuses, RunType} from '../../Constants';
 import {ExplorerItemType, ExplorerEditOperationType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
 import ColoredItemIcon from '../../components/ColoredItemIcon';
-import {IdeDispatchContext} from '../Contexts';
+import {
+  IdeDispatchContext,
+  IdeBuildRunOngoingContext,
+  IdeDryRunOngoingContext,
+  IdeParseRunOngoingContext,
+} from '../Contexts';
 import batchActions from '../actionCreators';
 import {
   EXP_UNLOAD_FILE,
@@ -26,6 +31,8 @@ import {
   EXP_DELETE_REVERT,
   EDR_EXP_VERSIONS_DELETED,
   EDR_EXP_VERSION_DBL_CLICK,
+  DRY_START_RUN,
+  PARSE_START_RUN,
 } from '../actionTypes';
 import {
   CONFIG_BUILD_ON_VERSIONS_DELETE,
@@ -115,6 +122,9 @@ const TreeItemContent = React.memo(
     filesRef,
   }) => {
     const dispatch = useContext(IdeDispatchContext);
+    const buildOngoing = useContext(IdeBuildRunOngoingContext);
+    const dryOngoing = useContext(IdeDryRunOngoingContext);
+    const parseOngoing = useContext(IdeParseRunOngoingContext);
     const [editing, setEditing] = useState(false);
     const [hovering, setHovering] = useState(false);
     const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
@@ -199,8 +209,7 @@ const TreeItemContent = React.memo(
       setEditing(false);
     };
 
-    const runBuildHandler = (e) => {
-      e.stopPropagation();
+    const getRunVersionIds = () => {
       let versionIds;
       const etFiles = files.entities.files;
       const etTests = files.entities.tests;
@@ -222,9 +231,30 @@ const TreeItemContent = React.memo(
         default:
           throw new Error(`Can't recognize ${itemType}`);
       }
+      return versionIds;
+    };
+
+    const runBuildHandler = (e) => {
+      e.stopPropagation();
       dispatch({
         type: BUILD_NEW_RUN,
-        payload: {versionIds},
+        payload: {versionIds: getRunVersionIds()},
+      });
+    };
+
+    const runDryHandler = (e) => {
+      e.stopPropagation();
+      dispatch({
+        type: DRY_START_RUN,
+        payload: {versionIds: getRunVersionIds()},
+      });
+    };
+
+    const runParseHandler = (e) => {
+      e.stopPropagation();
+      dispatch({
+        type: PARSE_START_RUN,
+        payload: {versionIds: getRunVersionIds()},
       });
     };
 
@@ -474,14 +504,10 @@ const TreeItemContent = React.memo(
       let text;
       switch (itemType) {
         case FILE:
-          text = `${initialText} All Tests ${
-            runType !== RunType.PARSE_RUN ? '(Latest Version Only)' : ''
-          }`;
+          text = `${initialText} All Tests (Latest Version Only)`;
           break;
         case TEST:
-          text = `${initialText} This Test ${
-            runType !== RunType.PARSE_RUN ? '(Latest Version Only)' : ''
-          }`;
+          text = `${initialText} This Test (Latest Version Only)`;
           break;
         case VERSION:
           text = `${initialText} This Version Only`;
@@ -490,6 +516,10 @@ const TreeItemContent = React.memo(
           throw new Error(`Can't find build run text for ${itemType}`);
       }
       return text;
+    };
+
+    const runDisabled = () => {
+      return buildOngoing || dryOngoing || parseOngoing;
     };
 
     if (editing) {
@@ -634,16 +664,19 @@ const TreeItemContent = React.memo(
           <>
             <MenuItem
               onClick={runBuildHandler}
+              disabled={runDisabled()}
               className={classes.contextMenuItem}>
               {getBuildRunTextPerExplorerItem(RunType.BUILD_RUN)}
             </MenuItem>
             <MenuItem
-              onClick={runBuildHandler}
+              onClick={runDryHandler}
+              disabled={runDisabled()}
               className={classes.contextMenuItem}>
               {getBuildRunTextPerExplorerItem(RunType.DRY_RUN)}
             </MenuItem>
             <MenuItem
-              onClick={runBuildHandler}
+              onClick={runParseHandler}
+              disabled={runDisabled()}
               className={classes.contextMenuItem}>
               {getBuildRunTextPerExplorerItem(RunType.PARSE_RUN)}
             </MenuItem>

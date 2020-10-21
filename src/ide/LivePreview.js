@@ -160,7 +160,7 @@ const LivePreview = ({closeHandler}) => {
       const error = `Unable to deliver live preview, ${response.error.reason}`;
       // For now just reject if error occurs on latest processed shot check.
       // TODO: later see if we need to retry based on logs.
-      reject(error);
+      reject(new Error(error));
     };
     // panel is reopened while preview running, get latest shot from api (esdb)
     // send buildId and expect either a shotName or nothing (if no shot saved yet)
@@ -467,7 +467,7 @@ const LivePreview = ({closeHandler}) => {
           startPreview(latestShotId);
         })
         .catch((error) => {
-          onPreviewEnd(error);
+          onPreviewEnd(error.message);
         });
       setStatusMsg(getInfoTypeStatusMsg('Connecting live preview...'));
       return;

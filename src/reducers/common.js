@@ -17,3 +17,19 @@ export const onBuildVarDelete = (config, payload) => {
     delete selectedBuildVarIdPerKey[buildVar.key];
   }
 };
+
+// TODO: later try to memoize this somehow
+export const getOrderedVersionsFromFiles = (stateFiles) => {
+  const versions = [];
+  const et = stateFiles.entities;
+  const {files, tests} = et;
+  stateFiles.result.forEach(
+    (fid) =>
+      files[fid].tests &&
+      files[fid].tests.forEach((tid) =>
+        tests[tid].versions.forEach((vid) => versions.push(vid))
+      )
+  );
+  // versions now have ordered versions
+  return versions;
+};

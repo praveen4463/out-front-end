@@ -19,11 +19,14 @@ import {
   IdeDryContext,
   IdeParseContext,
   IdeDispatchContext,
+  IdeFilesContext,
 } from './Contexts';
 import {getBuildStoppingAction} from '../actions/actionCreators';
 import {getDryStoppingAction, getParseStoppingAction} from './actionCreators';
 import {BUILD_NEW_RUN} from '../actions/actionTypes';
 import {DRY_START_RUN, PARSE_START_RUN} from './actionTypes';
+import {getOrderedVersionsFromFiles} from '../reducers/common';
+import {filterCurrentVersions} from './common';
 
 const useStyles = makeStyles((theme) => ({
   fontSizeSmall: {
@@ -46,6 +49,7 @@ const useStyles = makeStyles((theme) => ({
 
 const TopNavigation = () => {
   const dispatch = useContext(IdeDispatchContext);
+  const files = useContext(IdeFilesContext);
   const build = useContext(IdeBuildContext);
   const dry = useContext(IdeDryContext);
   const parse = useContext(IdeParseContext);
@@ -60,12 +64,24 @@ const TopNavigation = () => {
   const handleDry = () => {
     dispatch({
       type: DRY_START_RUN,
+      payload: {
+        versionIds: filterCurrentVersions(
+          getOrderedVersionsFromFiles(files),
+          files.entities.versions
+        ),
+      },
     });
   };
 
   const handleParse = () => {
     dispatch({
       type: PARSE_START_RUN,
+      payload: {
+        versionIds: filterCurrentVersions(
+          getOrderedVersionsFromFiles(files),
+          files.entities.versions
+        ),
+      },
     });
   };
 
