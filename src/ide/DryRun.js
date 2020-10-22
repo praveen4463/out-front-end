@@ -21,8 +21,7 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 import ErrorIcon from '@material-ui/icons/Error';
 import Typography from '@material-ui/core/Typography';
 import {makeStyles, withStyles, useTheme} from '@material-ui/core/styles';
-import PlayArrowIcon from '@material-ui/icons/PlayArrow';
-import PlayCircleFilledIcon from '@material-ui/icons/PlayCircleFilled';
+import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import IconButton from '@material-ui/core/IconButton';
 import PropTypes from 'prop-types';
 import SplitPane from 'react-split-pane';
@@ -323,7 +322,12 @@ const DryRun = ({closeHandler}) => {
     [dispatch]
   );
 
-  // check if all versions have parse status, else send api request.
+  // we should parse before any request to start dry run is gone. First check
+  // whether all versions have a lastParseRun, if no, first send a parse
+  // request for those versions and expect to get back only failed versions and status
+  // success. Set lastParseRun and lastRun of versions according to parse status (those received as failed
+  // and those not received as passed). If there was a lastParseRun with all versions,
+  // just verify there is no error.
   useEffect(() => {
     if (
       !(
@@ -362,13 +366,7 @@ const DryRun = ({closeHandler}) => {
     versionIds,
   ]);
 
-  // we should parse before any request to start session is gone. First check
-  // whether all versions have a lastParseRun, if no, first send a parse
-  // request for all versions and expect to get back only failed versions and status
-  // success. Set lastParseRun and lastRun of versions according to parse status (those received as failed
-  // and those not received as passed). If there was a lastParseRun with all versions,
-  // just verify there is no error.
-  // Check whether any test has parse errors, if so we should halt entire dry
+  // Check whether any test has parse errors, if so we should halt entire dry run
   // and also reset dry state together with dryRun.
   useEffect(() => {
     if (
@@ -879,7 +877,11 @@ const DryRun = ({closeHandler}) => {
                   aria-label="Rerun"
                   className={classes.iconDryActions}
                   onClick={handleRerun}>
-                  <PlayArrowIcon fontSize="small" className={classes.rerun} />
+                  <CheckCircleIcon
+                    fontSize="small"
+                    className={classes.rerun}
+                    classes={{fontSizeSmall: classes.fontSizeSmall}}
+                  />
                 </IconButton>
               </Tooltip>
               {versionIds.some(
@@ -890,7 +892,7 @@ const DryRun = ({closeHandler}) => {
                     aria-label="Run Failed"
                     className={classes.iconDryActions}
                     onClick={handleRunFailed}>
-                    <PlayCircleFilledIcon
+                    <CheckCircleIcon
                       color="error"
                       fontSize="small"
                       classes={{fontSizeSmall: classes.fontSizeSmall}}

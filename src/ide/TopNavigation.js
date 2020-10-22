@@ -22,7 +22,7 @@ import {
   IdeFilesContext,
 } from './Contexts';
 import {getBuildStoppingAction} from '../actions/actionCreators';
-import {getDryStoppingAction, getParseStoppingAction} from './actionCreators';
+import {getDryStoppingAction} from './actionCreators';
 import {BUILD_NEW_RUN} from '../actions/actionTypes';
 import {DRY_START_RUN, PARSE_START_RUN} from './actionTypes';
 import {getOrderedVersionsFromFiles} from '../reducers/common';
@@ -90,8 +90,6 @@ const TopNavigation = () => {
       dispatch(getBuildStoppingAction(true));
     } else if (dry.runOngoing) {
       dispatch(getDryStoppingAction(true));
-    } else if (parse.runOngoing) {
-      dispatch(getParseStoppingAction(true));
     }
   };
 
@@ -100,7 +98,7 @@ const TopNavigation = () => {
   };
 
   const stopDisabled = () => {
-    return build.stopping || dry.stopping || parse.stopping;
+    return build.stopping || dry.stopping;
   };
 
   return (
@@ -161,9 +159,16 @@ const TopNavigation = () => {
             />
           </IconButton>
         </Tooltip>
-        {(build.runOngoing && build.sessionId) ||
-        dry.runOngoing ||
-        parse.runOngoing ? (
+        {/* build run can't be stopped before session is created, this is so
+        because once we request session, machine starts to run build after it is
+        acquired, if we want to stop before getting session in response, machine
+        will still run entire build, user may think they cancelled build but it
+        ran. So stopping after session guarantees it gets stopped asap.
+        We can implement stop before session as well by putting an entry in db
+        that will be checked before starting session and if found true, build
+        is stopped but not doing it for now, this is a TODO */}
+        {/* For now parsing has no option to stop */}
+        {(build.runOngoing && build.sessionId) || dry.runOngoing ? (
           <Tooltip title="Stop ^C">
             <IconButton
               aria-label="Stop"

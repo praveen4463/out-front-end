@@ -62,6 +62,7 @@ import {
   IdeDryContext,
   IdeDryRunContext,
   IdeParseContext,
+  IdeParseRunContext,
   IdeDryRunOngoingContext,
   IdeParseRunOngoingContext,
   IdeCompletedBuildsContext,
@@ -78,6 +79,8 @@ import buildRunReducer from './reducers/buildRun';
 import livePreviewReducer from './reducers/livePreview';
 import dryReducer from './reducers/dry';
 import dryRunReducer from './reducers/dryRun';
+import parseReducer from './reducers/parse';
+import parseRunReducer from './reducers/parseRun';
 import RootErrorFallback, {rootErrorHandler} from '../ErrorBoundary';
 import {
   VarTypes,
@@ -155,7 +158,8 @@ const initialState = {
   dryRun: null, // instance of DryRun
   parse: {
     runOngoing: false,
-    stopping: false,
+    versionIds: null, // sorted versionIds being tested
+    runId: null,
   },
   parseRun: null,
   config: {
@@ -224,6 +228,12 @@ function ideRootReducer(state, action) {
       }
       if (type.startsWith('RUN_DRY')) {
         return dryRunReducer(state, action);
+      }
+      if (type.startsWith('PARSE_')) {
+        return parseReducer(state, action);
+      }
+      if (type.startsWith('RUN_PARSE')) {
+        return parseRunReducer(state, action);
       }
       return ideReducer(state, action);
     }
@@ -707,7 +717,7 @@ const Ide = () => {
   // Note that similar code is not needed for dry as it check stopping inside
   // progress function and stop versions.
   useEffect(() => {
-    if (!state.build.stopping) {
+    if (!(state.build.stopping && state.build.sessionId)) {
       return;
     }
     const onError = (response) => {
@@ -717,7 +727,12 @@ const Ide = () => {
     stopBuildRunning(state.build.buildId, () => null, onError);
     // after stop is sent to api, it will attempt to stop any pending tests and
     // the progress interval will get stopped states for those tests.
-  }, [state.build.stopping, state.build.buildId, setSnackbarErrorMsg]);
+  }, [
+    state.build.stopping,
+    state.build.sessionId,
+    state.build.buildId,
+    setSnackbarErrorMsg,
+  ]);
 
   const runDry = useCallback(() => {
     if (unmounted.current) {
@@ -926,39 +941,42 @@ const Ide = () => {
                                     value={state.parse.runOngoing}>
                                     <IdeParseContext.Provider
                                       value={state.parse}>
-                                      <IdeCompletedBuildsContext.Provider
-                                        value={state.completedBuilds}>
-                                        <IdeLPContext.Provider
-                                          value={state.livePreview}>
-                                          <div
-                                            style={{
-                                              display: 'flex',
-                                              flexDirection: 'column',
-                                              height: '100%',
-                                              margin: 0,
-                                            }}>
+                                      <IdeParseRunContext.Provider
+                                        value={state.parseRun}>
+                                        <IdeCompletedBuildsContext.Provider
+                                          value={state.completedBuilds}>
+                                          <IdeLPContext.Provider
+                                            value={state.livePreview}>
                                             <div
                                               style={{
                                                 display: 'flex',
-                                                flex: '1 1 auto',
+                                                flexDirection: 'column',
+                                                height: '100%',
+                                                margin: 0,
                                               }}>
                                               <div
                                                 style={{
-                                                  width: '100%',
-                                                  height: '100%',
-                                                  position: 'fixed',
-                                                  left: 0,
-                                                  right: 0,
-                                                  top: 0,
-                                                  bottom: 0,
+                                                  display: 'flex',
+                                                  flex: '1 1 auto',
                                                 }}>
-                                                <TopNavigation />
-                                                <Content />
+                                                <div
+                                                  style={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    position: 'fixed',
+                                                    left: 0,
+                                                    right: 0,
+                                                    top: 0,
+                                                    bottom: 0,
+                                                  }}>
+                                                  <TopNavigation />
+                                                  <Content />
+                                                </div>
                                               </div>
                                             </div>
-                                          </div>
-                                        </IdeLPContext.Provider>
-                                      </IdeCompletedBuildsContext.Provider>
+                                          </IdeLPContext.Provider>
+                                        </IdeCompletedBuildsContext.Provider>
+                                      </IdeParseRunContext.Provider>
                                     </IdeParseContext.Provider>
                                   </IdeParseRunOngoingContext.Provider>
                                 </IdeDryRunOngoingContext.Provider>

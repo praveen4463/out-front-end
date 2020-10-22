@@ -329,7 +329,12 @@ const BuildRun = ({closeHandler}) => {
     [dispatch]
   );
 
-  // check if all versions have parse status, else send api request.
+  // we should parse before any request to start session is gone. First check
+  // whether all versions have a lastParseRun, if no, first send a parse
+  // request for those versions and expect to get back only failed versions and status
+  // success. Set lastParseRun and lastRun of versions according to parse status (those received as failed
+  // and those not received as passed). If there was a lastParseRun with all versions,
+  // just verify there is no error.
   useEffect(() => {
     if (
       !(
@@ -368,12 +373,6 @@ const BuildRun = ({closeHandler}) => {
     versionIds,
   ]);
 
-  // we should parse before any request to start session is gone. First check
-  // whether all versions have a lastParseRun, if no, first send a parse
-  // request for all versions and expect to get back only failed versions and status
-  // success. Set lastParseRun and lastRun of versions according to parse status (those received as failed
-  // and those not received as passed). If there was a lastParseRun with all versions,
-  // just verify there is no error.
   // Check whether any test has parse errors, if so we should halt entire build
   // and also reset build state together with buildRun.
   useEffect(() => {

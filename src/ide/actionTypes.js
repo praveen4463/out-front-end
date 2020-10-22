@@ -55,9 +55,13 @@ export const DRY_START_RUN = 'DRY_START_RUN';
 export const DRY_COMPLETE_RUN = 'DRY_COMPLETE_RUN';
 
 // Parse actions
-export const PARSE_UPDATE_BY_PROP = 'PARSE_UPDATE_BY_PROP';
 export const PARSE_START_RUN = 'PARSE_START_RUN';
 export const PARSE_COMPLETE_RUN = 'PARSE_COMPLETE_RUN';
+
+// Parse Run actions
+export const RUN_PARSE_ON_NEW_RUN = 'RUN_PARSE_ON_NEW_RUN';
+export const RUN_PARSE_ON_COMPLETED = 'RUN_PARSE_ON_COMPLETED';
+export const RUN_PARSE_COMPLETE_ON_ERROR = 'RUN_PARSE_COMPLETE_ON_ERROR';
 
 // live preview actions
 export const LP_START = 'LP_START';

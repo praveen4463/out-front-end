@@ -32,6 +32,7 @@ function BuildRun(
   this.runId = runId;
   this.buildRunVersions = buildRunVersions; // object of shape {versionId: BuildRunVersion, ...}
   // interval that checks progress of tests
+  this.versionIds = versionIds;
   this.testProgressIntervalId = testProgressIntervalId;
   this.error = error; // any type of error occurred before completion of build, aborts entire build.
   this.completed = completed;
@@ -66,6 +67,7 @@ function DryRun(
 ) {
   this.runId = runId;
   this.dryRunVersions = dryRunVersions; // object of shape {versionId: DryRunVersion, ...}
+  this.versionIds = versionIds;
   this.inProgress = inProgress;
   this.error = error; // any type of error occurred before completion of dry run, aborts entire dry run.
   this.completed = completed;
@@ -73,4 +75,18 @@ function DryRun(
   this[immerable] = true;
 }
 
-export {BuildRun, BuildRunVersion, DryRun, DryRunVersion};
+function ParseRun(
+  runId,
+  versionIds, // sorted versionIds being tested
+  error = null,
+  completed = false
+) {
+  this.runId = runId;
+  this.versionIds = versionIds;
+  this.error = error;
+  this.completed = completed;
+
+  this[immerable] = true;
+}
+
+export {BuildRun, BuildRunVersion, DryRun, DryRunVersion, ParseRun};

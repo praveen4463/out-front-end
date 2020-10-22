@@ -17,8 +17,7 @@ const onNewRun = (draft) => {
   dry.versionIds.forEach((v) => {
     drvs[v] = new DryRunVersion(v);
   });
-  draft.dryRun = new DryRun(dry.runId, drvs);
-  draft.dryRun.versionIds = dry.versionIds;
+  draft.dryRun = new DryRun(dry.runId, drvs, dry.versionIds);
 };
 
 const updateByProp = (draft, payload) => {

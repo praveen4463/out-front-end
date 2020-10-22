@@ -221,9 +221,9 @@ const TreeItemContent = React.memo(
           );
           break;
         case TEST:
-          versionIds = etTests[itemId].versions.find(
-            (vid) => etVersions[vid].isCurrent
-          );
+          versionIds = [
+            etTests[itemId].versions.find((vid) => etVersions[vid].isCurrent),
+          ];
           break;
         case VERSION:
           versionIds = [itemId];

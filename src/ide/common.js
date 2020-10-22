@@ -20,6 +20,16 @@ const versionsHaveParseErrorWhenStatusAvailable = (etVersions, versionIds) => {
   return versionIds.some((vid) => etVersions[vid].lastParseRun.error);
 };
 
+const getVersionsWithParseErrorWhenStatusAvailable = (
+  etVersions,
+  versionIds
+) => {
+  if (!versionsHaveLastParseStatus(etVersions, versionIds)) {
+    throw new Error('All versions should have lastParseRun status available');
+  }
+  return versionIds.filter((vid) => etVersions[vid].lastParseRun.error);
+};
+
 /**
   used to populate last parse status to versionIds having no parse status, it
   returns the versionIds that failed parsing.
@@ -108,4 +118,5 @@ export {
   versionsHaveLastParseStatus,
   fillLastParseStatusAndGetFailed,
   filterCurrentVersions,
+  getVersionsWithParseErrorWhenStatusAvailable,
 };
