@@ -3,6 +3,7 @@ import {
   SET_FILES,
   SET_PROJECT,
   SET_VERSION_LAST_RUN,
+  CLEAR_VERSION_LAST_RUN,
   PUSH_COMPLETED_BUILDS,
 } from '../actionTypes';
 import getDeepClonedFiles from './common';
@@ -70,6 +71,21 @@ const setVersionLastRun = (draft, payload) => {
   }
 };
 
+const clearVersionLastRun = (draft, payload) => {
+  if (payload.versionId === undefined || payload.runType === undefined) {
+    throw new Error('Insufficient arguments passed to clearVersionLastRun.');
+  }
+  const {versionId, runType} = payload;
+  const et = draft.files.entities;
+  const version = et.versions[versionId];
+  if (version.lastRun && version.lastRun.runType === runType) {
+    version.lastRun = null;
+  }
+  if (runType === RunType.PARSE_RUN) {
+    version.lastParseRun = null;
+  }
+};
+
 const pushCompletedBuilds = (draft, payload) => {
   if (payload.buildId === undefined) {
     throw new Error('Insufficient arguments passed to pushCompletedBuilds.');
@@ -88,6 +104,9 @@ const ideReducer = produce((draft, action) => {
       break;
     case SET_VERSION_LAST_RUN:
       setVersionLastRun(draft, payload);
+      break;
+    case CLEAR_VERSION_LAST_RUN:
+      clearVersionLastRun(draft, payload);
       break;
     case PUSH_COMPLETED_BUILDS:
       pushCompletedBuilds(draft, payload);

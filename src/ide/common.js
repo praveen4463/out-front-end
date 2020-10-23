@@ -34,7 +34,12 @@ const getVersionsWithParseErrorWhenStatusAvailable = (
   used to populate last parse status to versionIds having no parse status, it
   returns the versionIds that failed parsing.
 */
-const fillLastParseStatusAndGetFailed = (versionIds, dispatch) => {
+// TODO: responseData is for testing only until api implemented. Remove once api is there.
+const fillLastParseStatusAndGetFailed = (
+  versionIds,
+  dispatch,
+  responseData = null
+) => {
   const onSuccess = (response, resolve) => {
     const actions = [];
     const parseErrorVersionIds = [];
@@ -61,8 +66,7 @@ const fillLastParseStatusAndGetFailed = (versionIds, dispatch) => {
         vid,
         RunType.PARSE_RUN,
         PARSE_SUCCESS_MSG,
-        null,
-        false
+        null
       );
       actions.push(lastRunAction);
     });
@@ -92,6 +96,7 @@ const fillLastParseStatusAndGetFailed = (versionIds, dispatch) => {
       }; */
       const response = {
         status: ApiStatuses.SUCCESS,
+        data: responseData,
       };
       /* const response = {
         status: ApiStatuses.FAILURE,

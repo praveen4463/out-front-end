@@ -873,31 +873,35 @@ const DryRun = ({closeHandler}) => {
           {dryRun && completed ? (
             <>
               <Tooltip title="Rerun">
-                <IconButton
-                  aria-label="Rerun"
-                  className={classes.iconDryActions}
-                  onClick={handleRerun}>
-                  <CheckCircleIcon
-                    fontSize="small"
-                    className={classes.rerun}
-                    classes={{fontSizeSmall: classes.fontSizeSmall}}
-                  />
-                </IconButton>
+                <span>
+                  <IconButton
+                    aria-label="Rerun"
+                    className={classes.iconDryActions}
+                    onClick={handleRerun}>
+                    <CheckCircleIcon
+                      fontSize="small"
+                      className={classes.rerun}
+                      classes={{fontSizeSmall: classes.fontSizeSmall}}
+                    />
+                  </IconButton>
+                </span>
               </Tooltip>
               {versionIds.some(
                 (vid) => dryRun.dryRunVersions[vid].status === TestStatus.ERROR
               ) ? (
                 <Tooltip title="Run Failed">
-                  <IconButton
-                    aria-label="Run Failed"
-                    className={classes.iconDryActions}
-                    onClick={handleRunFailed}>
-                    <CheckCircleIcon
-                      color="error"
-                      fontSize="small"
-                      classes={{fontSizeSmall: classes.fontSizeSmall}}
-                    />
-                  </IconButton>
+                  <span>
+                    <IconButton
+                      aria-label="Run Failed"
+                      className={classes.iconDryActions}
+                      onClick={handleRunFailed}>
+                      <CheckCircleIcon
+                        color="error"
+                        fontSize="small"
+                        classes={{fontSizeSmall: classes.fontSizeSmall}}
+                      />
+                    </IconButton>
+                  </span>
                 </Tooltip>
               ) : null}
             </>

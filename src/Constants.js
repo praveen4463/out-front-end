@@ -97,7 +97,6 @@ export const BuildCapsKeys = {
 export const BuildConfigKeys = {
   BCAP: 'BCAP',
   SV: 'SV',
-  SVI: 'SVI',
   DR: 'DR',
   TZ: 'TZ',
   SBVIPK: 'SBVIPK',
@@ -139,7 +138,6 @@ export const BuildCapsFields = {
 export const BuildConfigFields = {
   BCAP: 'buildCapabilityId',
   SV: 'selectedVersions',
-  SVI: 'selectedVersionsImplicit',
   DR: 'displayResolution',
   TZ: 'timezone',
   SBVIPK: 'selectedBuildVarIdPerKey',

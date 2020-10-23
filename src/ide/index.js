@@ -780,13 +780,13 @@ const Ide = () => {
           const {error} = data;
           lastRunError = new LastRunError(error.msg, error.from, error.to);
         }
-        let allOutput = drv.output ?? '';
-        if (allOutput) {
-          allOutput += '\n';
-        }
-        allOutput += data.output;
         actions.push(
-          getLastRunAction(versionId, RunType.DRY_RUN, allOutput, lastRunError)
+          getLastRunAction(
+            versionId,
+            RunType.DRY_RUN,
+            data.output,
+            lastRunError
+          )
         );
       }
       dispatch(batchActions(actions));

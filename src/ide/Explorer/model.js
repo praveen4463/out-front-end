@@ -20,7 +20,10 @@ function LastRunError(msg, fromPos, toPos) {
 function LastRun(runType, output, showSuccessMsgInStatus, error) {
   this.runType = runType; // Constants.RunType
   this.output = output; // the raw output received from api, may be null.
-  this.showSuccessMsgInStatus = showSuccessMsgInStatus;
+  this.showSuccessMsgInStatus = showSuccessMsgInStatus; // this may be false when
+  // no status regarding success is required in status bar. For instance, tab panel's
+  // output status make it false when auto save, auto parses so that user is not
+  // interrupted with parse success messages.
   this.error = error; // error is an instance of LastRunError, in future this may be an
   // array of LastRunError to contain multiple errors occurred, for example during
   // parsing. Must be null when there is no error occurred.
@@ -34,15 +37,18 @@ function Version(
   code,
   isCurrent,
   lastRun,
-  lastParseRun, // Additionally keeps lastRun object for parse request, so that
-  // parse status of a version is never overwritten by other runs. This is used
-  // when running build or dry runs to know parse status of a version so that an
-  // api request for parsing is avoided every time a new run is initiated. Note that
-  // when a version is parsed, both lastRun and lastParseRun will hold parse status.
-  // When a build is run, we would parse and set results to versions, once build runs,
-  // we would set it's result to version, loosing parse status. By keeping it separately,
-  // we will always know that versions were parsed. If they are changed, they will be
-  // automatically parsed, so just one parsing will be enough for the lifetime of IDE.
+  lastParseRun, // When any type of run is started, we want to make sure versions
+  // passed parsing so that runs don't fail with parsing errors after starting
+  // new server or initiating expensive api calls. lastRun field keep last run
+  // information of a version, which includes all type of runs. For instances when
+  // a version is parsed and then runs as build, lastRun first gets parse info then
+  // build info. If the version needs to run again, we need to parse again as we
+  // don't know it's parse status (even if it has no parse errors). This field
+  // always keeps most recent parse status of a version so that all runs first look
+  // into this, if null call api to know the status. Once this has value, no run
+  // will have to go to api again to know parse status.
+  // When a version has error, this and lastRun both will have parse status but we
+  // should use this field only for checking parse status to be consistent.
   showAsErrorInExplorer
 ) {
   this.id = id;

@@ -1011,28 +1011,32 @@ const BuildRun = ({closeHandler}) => {
           {buildRun && completed ? (
             <>
               <Tooltip title="Rerun">
-                <IconButton
-                  aria-label="Rerun"
-                  className={classes.iconBuildActions}
-                  onClick={handleRerun}>
-                  <PlayArrowIcon fontSize="small" className={classes.rerun} />
-                </IconButton>
+                <span>
+                  <IconButton
+                    aria-label="Rerun"
+                    className={classes.iconBuildActions}
+                    onClick={handleRerun}>
+                    <PlayArrowIcon fontSize="small" className={classes.rerun} />
+                  </IconButton>
+                </span>
               </Tooltip>
               {versionIds.some(
                 (vid) =>
                   buildRun.buildRunVersions[vid].status === TestStatus.ERROR
               ) ? (
                 <Tooltip title="Run Failed">
-                  <IconButton
-                    aria-label="Run Failed"
-                    className={classes.iconBuildActions}
-                    onClick={handleRunFailed}>
-                    <PlayCircleFilledIcon
-                      color="error"
-                      fontSize="small"
-                      classes={{fontSizeSmall: classes.fontSizeSmall}}
-                    />
-                  </IconButton>
+                  <span>
+                    <IconButton
+                      aria-label="Run Failed"
+                      className={classes.iconBuildActions}
+                      onClick={handleRunFailed}>
+                      <PlayCircleFilledIcon
+                        color="error"
+                        fontSize="small"
+                        classes={{fontSizeSmall: classes.fontSizeSmall}}
+                      />
+                    </IconButton>
+                  </span>
                 </Tooltip>
               ) : null}
             </>

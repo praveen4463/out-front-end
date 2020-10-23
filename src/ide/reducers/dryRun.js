@@ -60,15 +60,7 @@ const updateVersion = (draft, payload) => {
   const {versionId, data} = payload;
   const dryRunVersion = draft.dryRun.dryRunVersions[versionId];
   dryRunVersion.status = data.status;
-  if (data.output) {
-    // output should be appended with a line break.
-    if (dryRunVersion.output) {
-      dryRunVersion.output += '\n';
-    } else {
-      dryRunVersion.output = '';
-    }
-    dryRunVersion.output += data.output;
-  }
+  dryRunVersion.output = data.output; // entire dry run output comes at once.
   switch (data.status) {
     case TestStatus.SUCCESS:
     case TestStatus.STOPPED:

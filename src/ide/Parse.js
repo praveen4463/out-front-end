@@ -500,16 +500,18 @@ const Parse = ({closeHandler}) => {
           boxShadow={1}>
           {parseRun && completed ? (
             <Tooltip title="Rerun">
-              <IconButton
-                aria-label="Rerun"
-                className={classes.iconParseActions}
-                onClick={handleRerun}>
-                <BuildIcon
-                  fontSize="small"
-                  className={classes.rerun}
-                  classes={{fontSizeSmall: classes.fontSizeSmall}}
-                />
-              </IconButton>
+              <span>
+                <IconButton
+                  aria-label="Rerun"
+                  className={classes.iconParseActions}
+                  onClick={handleRerun}>
+                  <BuildIcon
+                    fontSize="small"
+                    className={classes.rerun}
+                    classes={{fontSizeSmall: classes.fontSizeSmall}}
+                  />
+                </IconButton>
+              </span>
             </Tooltip>
           ) : null}
         </Box>

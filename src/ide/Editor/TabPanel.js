@@ -40,7 +40,12 @@ import clsx from 'clsx';
 import produce, {immerable} from 'immer';
 
 import allHints from './addons/all-hints';
-import {BATCH_ACTIONS, EDR_VERSION_CODE_UPDATED} from '../actionTypes';
+import {
+  BATCH_ACTIONS,
+  EDR_VERSION_CODE_UPDATED,
+  CLEAR_VERSION_LAST_RUN,
+} from '../actionTypes';
+import {BUILD_NEW_RUN} from '../../actions/actionTypes';
 import {
   IdeDispatchContext,
   IdeVarsContext,
@@ -50,10 +55,11 @@ import {
 } from '../Contexts';
 import Tooltip from '../../TooltipCustom';
 import {LastRun, LastRunError} from '../Explorer/model';
-import {ApiStatuses, RunType} from '../../Constants';
+import {ApiStatuses, RunType, TestStatus} from '../../Constants';
 import {ZwlLexer, PARSE_SUCCESS_MSG} from '../Constants';
 
 import batchActions, {getLastRunAction} from '../actionCreators';
+import {fillLastParseStatusAndGetFailed} from '../common';
 import './material-darker.css';
 import './modes/zwl';
 
@@ -144,7 +150,7 @@ const useSummaryStyle = makeStyles((theme) => ({
   },
 }));
 
-const CODE_SAVE_WAIT_TIME = 5000;
+const CODE_SAVE_WAIT_TIME = 3000;
 const SAVE_MSG = 'All changes saved';
 
 const actionTypes = {
@@ -191,6 +197,11 @@ const StatusMessageType = {
   NORMAL: 'NORMAL',
   ERROR: 'ERROR',
   SUCCESS: 'SUCCESS',
+};
+
+const OutputType = {
+  NORMAL: 'NORMAL',
+  ERROR: 'ERROR',
 };
 
 // reducer for controlled state.
@@ -376,6 +387,35 @@ const TabPanel = React.memo(
       [version.id]
     );
 
+    /**
+     * write to output console after clearing it.
+     * @param {Message to write} msg
+     * @param {Type of output, defaults to OutputType.NORMAL} outputType
+     */
+    const writeOutput = (msg, outputType = OutputType.NORMAL) => {
+      const payloadWrite = {versionId: version.id};
+      if (outputType === OutputType.NORMAL) {
+        payloadWrite.outputNormal = msg;
+      } else {
+        payloadWrite.outputError = msg;
+      }
+      dispatchControlled(
+        batchActions([
+          {
+            type: actionTypes.CLEAR_OUTPUT,
+            payload: {versionId: version.id},
+          },
+          {
+            type:
+              outputType === OutputType.NORMAL
+                ? actionTypes.SET_OUTPUT_NORMAL
+                : actionTypes.SET_OUTPUT_ERROR,
+            payload: payloadWrite,
+          },
+        ])
+      );
+    };
+
     // This function is debounced and runs after some code is written.
     // If user tries to navigate away from current tab, debounced is flushed
     // so any pending invocation is run immediately, in that case, as far as
@@ -402,18 +442,33 @@ const TabPanel = React.memo(
         const onSuccess = (response) => {
           const actions = [codeUpdateAction];
           const parseRes = response.parseResult;
+          if (parseRes && parseRes.status === ApiStatuses.FAILURE) {
+            // when parsing failed, clear last run status if there is any parse
+            // status already so that runs don't take into account the invalid
+            // last run information and trigger a new parse.
+            actions.push({
+              type: CLEAR_VERSION_LAST_RUN,
+              payload: {versionId: version.id, runType: RunType.PARSE_RUN},
+            });
+            dispatchGlobal(batchActions(actions));
+            writeStatusMessage(
+              `Changes saved but there was a problem in parsing, ${parseRes.error.reason}`,
+              StatusMessageType.ERROR
+            );
+            return;
+          }
+          const parseError =
+            parseRes && parseRes.data ? parseRes.data.error : null;
           if (parseRes) {
             const lastRunAction = getLastRunAction(
               version.id,
               RunType.PARSE_RUN,
-              parseRes.status === ApiStatuses.FAILURE
-                ? null
-                : PARSE_SUCCESS_MSG,
-              parseRes.status === ApiStatuses.FAILURE
+              parseError ? null : PARSE_SUCCESS_MSG,
+              parseError
                 ? new LastRunError(
-                    parseRes.error.msg,
-                    parseRes.error.from,
-                    parseRes.error.to
+                    parseError.msg,
+                    parseError.from,
+                    parseError.to
                   )
                 : null,
               false
@@ -425,7 +480,7 @@ const TabPanel = React.memo(
           // When changes saved messages is printed, we want it to disappear
           // after sometime so that user know exactly when their code is getting
           // saved rather than showing it forever.
-          if (!parseRes || parseRes.status === ApiStatuses.SUCCESS) {
+          if (!parseRes || !parseError) {
             setTimeout(() => {
               const statusMsgRef = editorStatusMessageRef.current;
               if (
@@ -453,13 +508,17 @@ const TabPanel = React.memo(
         setTimeout(() => {
           const response = value.includes('FAIL_TEST')
             ? {
-                status: ApiStatuses.SUCCESS,
+                status: ApiStatuses.SUCCESS, // api status for save, success means saved.
                 parseResult: {
-                  status: ApiStatuses.FAILURE,
-                  error: {
-                    msg: "no viable alternative at input 'a+' line 2:2",
-                    from: {line: 2, ch: 1},
-                    to: {line: 2, ch: 2}, // !!Note: api should always send the 'to' column that is after the 'to' char
+                  status: ApiStatuses.SUCCESS, // api status for parse, success means parsed.
+                  // failure means problem in parsing.
+                  data: {
+                    // when parse errors, data is there, otherwise no data
+                    error: {
+                      msg: "no viable alternative at input 'a+' line 2:2",
+                      from: {line: 2, ch: 1},
+                      to: {line: 2, ch: 2}, // !!Note: api should always send the 'to' column that is after the 'to' char
+                    },
                   },
                 },
               }
@@ -468,25 +527,37 @@ const TabPanel = React.memo(
                 parseResult:
                   value && value.replace(/[\s\n\r\t]*/, '').length
                     ? {
-                        status: ApiStatuses.SUCCESS,
+                        status: ApiStatuses.SUCCESS, // no data means parse succeeded.
                       }
                     : null, // TODO: !!if there was no real code, api shouldn't do any parsing
+                // Don't assume we don't run change function when no code, because user may
+                // delete all code form version and want to save.
               };
-          /* sample response when save fails
+          /* Save failure, no parsing is done
           const response = {
             status: ApiStatuses.FAILURE,
-            parseResult: null,
             error: {
               reason: 'Network error',
+            },
+          }; */
+          /* Parse failure
+          const response = {
+            status: ApiStatuses.SUCCESS,
+            parseResult: {
+              status: ApiStatuses.FAILURE,
+              error: {
+                reason: 'Network error',
+              },
             },
           }; */
           // console.log('going to save code', changeObj);
           if (response.status === ApiStatuses.SUCCESS) {
             onSuccess(response);
-          } else {
+          } else if (response.status === ApiStatuses.FAILURE) {
             onError(response);
           }
-        }, 200);
+        }, 2000);
+        console.log('code saving');
       },
       [version.id, dispatchGlobal, writeStatusMessage]
     );
@@ -815,7 +886,12 @@ const TabPanel = React.memo(
     };
 
     useEffect(() => {
-      toggleRunOngoing(buildRunOngoing || dryRunOngoing || parseRunOngoing);
+      const globalRunOngoing =
+        buildRunOngoing || dryRunOngoing || parseRunOngoing;
+      toggleRunOngoing(globalRunOngoing);
+      if (globalRunOngoing) {
+        afterChangeDebounceRef.current.flush();
+      }
     }, [buildRunOngoing, dryRunOngoing, parseRunOngoing]);
 
     const toggleOutputPanel = (isExpanded) => {
@@ -852,21 +928,11 @@ const TabPanel = React.memo(
     };
 
     const stopRunWhenNoCode = () => {
-      const error = 'Want to write some code before trying to build it?';
+      const error = 'Want to write some code before trying to run it?';
       const code = editorRef.current.getValue();
       if (!(code && code.replace(/[\s\n\r\t]*/, '').length)) {
-        dispatchControlled(
-          batchActions([
-            {
-              type: actionTypes.CLEAR_OUTPUT,
-              payload: {versionId: version.id},
-            },
-            {
-              type: actionTypes.SET_OUTPUT_ERROR,
-              payload: {versionId: version.id, outputError: error},
-            },
-          ])
-        );
+        writeOutput(error, OutputType.ERROR);
+        writeStatusMessage('');
         return true;
       }
       return false;
@@ -888,17 +954,10 @@ const TabPanel = React.memo(
       afterChangeDebounceRef.current.flush();
       // validate whether there is a parse error in this version, if so build run
       // won't do anything.
-      if (
-        version.lastRun &&
-        version.lastRun.error &&
-        version.lastRun.runType === RunType.PARSE_RUN
-      ) {
+      if (version.lastParseRun && version.lastParseRun.error) {
         return;
       }
-      console.log(); // TODO: remove it, added for 'return' statement above.
-      // TODO: trigger a build run the normal way, i.e open the build config
-      // and select this version only, then all should work normally. This works
-      // as just a shortcut. While build is running, continuous output appears
+      // While build is running, continuous output appears
       // in bottom panel, it makes sense to not put that here because when live
       // preview panel is expanded fully, this panel will get hidden behind it.
       // Once build is started, api is polled to fetch the output and once one
@@ -907,17 +966,27 @@ const TabPanel = React.memo(
       // the currently opened version is the one that was updated after completion,
       // on re render, effect runs which will set the final output here in the
       // panel and point to the error if any.
+      dispatchGlobal({
+        type: BUILD_NEW_RUN,
+        payload: {versionIds: [version.id]},
+      });
+    };
 
-      // We can simulate this sending the same version's lastRun dispatch to
-      // global reducer, but it will work same as this component doing for dry
-      // run, so no need to replicate.
-
-      // set text 'build running', set toggleRunOngoing(true), trigger a build run,
-      // pass toggleRunOngoing(false) that should be called back once build run
-      // completes/stopped/cancelled.
-
-      // don't invoke toggleRunOngoing from here, global build run will update
-      // global state that should invoke it.
+    // TODO: delete it once api is there
+    const getParseResponseData = (isError) => {
+      return isError
+        ? [
+            {
+              versionId: version.id,
+              error: {
+                msg: "token recognition error at: '@' line 3:12",
+                from: {line: 3, ch: 12},
+                // !!Note: api should always send the 'to' column that is after the 'to' char
+                to: {line: 3, ch: 13},
+              },
+            },
+          ]
+        : null;
     };
 
     const handleParse = (event) => {
@@ -934,63 +1003,112 @@ const TabPanel = React.memo(
         return;
       }
       afterChangeDebounceRef.current.flush();
-      const onSuccess = () => {
+      if (version.lastParseRun) {
+        // when last parse status is error, lastRun is error too as we don't allow
+        // a failed parsing version to do any other run. In this case no action needed
+        // cause error is already shown.
+        // Otherwise if last run is parse, we're already showing the result, no action.
+        if (
+          version.lastParseRun.error ||
+          version.lastRun.runType === RunType.PARSE_RUN
+        ) {
+          return;
+        }
+        // when last run isn't parse, make it successful parse as we've parse result
+        // available.
         const lastRunAction = getLastRunAction(
           version.id,
           RunType.PARSE_RUN,
-          'Parsing completed, no problems found'
+          version.lastParseRun.output
         );
         dispatchGlobal(lastRunAction);
-      };
+        return;
+      }
+      // send api request as either code has changed or no last parse available.
+      fillLastParseStatusAndGetFailed(
+        [version.id],
+        dispatchGlobal,
+        getParseResponseData(editorRef.current.getValue().includes('FAIL_TEST'))
+      )
+        .then(() => {
+          toggleRunOngoing(false);
+        }) // no action when parsed, effect will read global state change.
+        .catch((error) => {
+          writeOutput(`Can't parse, ${error.message}`, OutputType.ERROR);
+        });
+      writeOutput('Parsing...');
+      toggleRunOngoing(true);
+    };
 
-      const onError = (response) => {
-        const {error} = response;
-        const lastRunAction = getLastRunAction(
-          version.id,
-          RunType.PARSE_RUN,
-          null,
-          new LastRunError(error.msg, error.from, error.to)
+    const dryRun = () => {
+      const onSuccess = (response) => {
+        const {data} = response;
+        let lastRunError = null;
+        if (data.status === TestStatus.ERROR) {
+          const {error} = data;
+          lastRunError = new LastRunError(error.msg, error.from, error.to);
+        }
+        dispatchGlobal(
+          getLastRunAction(
+            version.id,
+            RunType.DRY_RUN,
+            data.output,
+            lastRunError
+          )
         );
-        dispatchGlobal(lastRunAction);
       };
-      // TODO: Replace following timeout and sample values with real api call
-      // and results. This api will just parse using a versionId.
+      const onError = (response) => {
+        writeOutput(
+          `Can't complete dry run, ${response.error.reason}.`,
+          OutputType.ERROR
+        );
+      };
       setTimeout(() => {
-        const response = editorRef.current.getValue().includes('FAIL_TEST')
+        // send version.id and dry config to api and expect results in following format
+        const response = editorRef.current.getValue().includes('FAIL_DRY')
           ? {
-              status: ApiStatuses.FAILURE,
-              error: {
-                msg: "token recognition error at: '@' line 3:12",
-                from: {line: 3, ch: 12},
-                // !!Note: api should always send the 'to' column that is after the 'to' char
-                to: {line: 3, ch: 13},
+              status: ApiStatuses.SUCCESS,
+              data: {
+                status: TestStatus.ERROR,
+                timeTaken: 1000,
+                output: `Starting dry run...
+Executing function findElement with arguments .some-selector, Push Me, TEXT, true at line 2:1 to line 7:2`,
+                error: {
+                  msg:
+                    "function: findElement with parameters count: 4 isn't defined. at line 2:1 to 7:2",
+                  from: {line: 2, ch: 1},
+                  to: {line: 7, ch: 2}, // api should send the to column that is after the char
+                },
               },
             }
           : {
               status: ApiStatuses.SUCCESS,
+              data: {
+                status: TestStatus.SUCCESS,
+                timeTaken: 1000, // timeTaken will be in millis
+                output: `Starting dry run...
+Everything run just fine`,
+              },
             };
+        /*
+        const response = {
+          status: ApiStatuses.ERROR,
+          error: {
+            reason: 'Network error',
+          },
+        };
+        */
         if (response.status === ApiStatuses.SUCCESS) {
-          onSuccess();
-        } else {
+          onSuccess(response);
+        } else if (response.status === ApiStatuses.ERROR) {
           onError(response);
         }
         toggleRunOngoing(false);
-      }, 1000);
-      dispatchControlled(
-        batchActions([
-          {type: actionTypes.CLEAR_OUTPUT, payload: {versionId: version.id}},
-          {
-            type: actionTypes.SET_OUTPUT_NORMAL,
-            payload: {versionId: version.id, outputNormal: 'Parsing...'},
-          },
-        ])
-      );
+      }, 3000);
+      writeOutput('Dry running, output will appear post completion...');
       toggleRunOngoing(true);
     };
 
-    // TODO: write this as notes in docs for dry run:
-    // When dry run is initiated from within editor, it doesn't open up dry run
-    // config. Users have to setup dry run config beforehand.
     const handleDryRun = (event) => {
       // when panel is closed, and any action buttons are clicked, we want it to
       // open so that when the output arrives, we don't have to explicitly open
@@ -1005,77 +1123,32 @@ const TabPanel = React.memo(
         return;
       }
       afterChangeDebounceRef.current.flush();
-      // validate whether there is a parse error in this version, if so dry run
-      // won't do anything.
-      if (
-        version.lastRun &&
-        version.lastRun.error &&
-        version.lastRun.runType === RunType.PARSE_RUN
-      ) {
+      // check parse status
+      if (version.lastParseRun) {
+        if (version.lastParseRun.error) {
+          return;
+        }
+        dryRun();
         return;
       }
-      const onSuccess = (response) => {
-        const lastRunAction = getLastRunAction(
-          version.id,
-          RunType.DRY_RUN,
-          response.output
-        );
-        dispatchGlobal(lastRunAction);
-      };
-
-      const onError = (response) => {
-        const {error} = response;
-        const lastRunAction = getLastRunAction(
-          version.id,
-          RunType.DRY_RUN,
-          response.output,
-          new LastRunError(error.msg, error.from, error.to)
-        );
-        dispatchGlobal(lastRunAction);
-      };
-      // TODO: Replace following timeout and sample values with real api call
-      // and results. This api will dry run using versionId and dry run config,
-      // before sending request, set this versionId in dry run config so it
-      // always point to latest run version(s).
-      setTimeout(() => {
-        // this is done to support tests until api is integrated
-        const response = editorRef.current.getValue().includes('FAIL_TEST')
-          ? {
-              status: ApiStatuses.FAILURE,
-              error: {
-                msg:
-                  "function: findElement with parameters count: 4 isn't defined. at line 2:1 to 7:2",
-                from: {line: 2, ch: 1},
-                to: {line: 7, ch: 2}, // api should send the to column that is after the char
-              },
-              output: `Starting dry run...
-Executing function findElement with arguments .some-selector, Push Me, TEXT, true at line 2:1 to line 7:2`,
-            }
-          : {
-              status: ApiStatuses.SUCCESS,
-              output: `Starting dry run...
-Everything run just fine`,
-            };
-        if (response.status === ApiStatuses.SUCCESS) {
-          onSuccess(response);
-        } else {
-          onError(response);
-        }
-        toggleRunOngoing(false);
-      }, 3000);
-      dispatchControlled(
-        batchActions([
-          {type: actionTypes.CLEAR_OUTPUT, payload: {versionId: version.id}},
-          {
-            type: actionTypes.SET_OUTPUT_NORMAL,
-            payload: {
-              versionId: version.id,
-              outputNormal:
-                'Dry running, output will appear post completion...',
-            },
-          },
-        ])
-      );
+      // send api request as either code has changed or no last parse available.
+      fillLastParseStatusAndGetFailed(
+        [version.id],
+        dispatchGlobal,
+        getParseResponseData(editorRef.current.getValue().includes('FAIL_TEST'))
+      )
+        .then((errorVersions) => {
+          if (!errorVersions.length) {
+            dryRun();
+            return;
+          }
+          toggleRunOngoing(false);
+        })
+        .catch((error) => {
+          writeOutput(`Couldn't parse, ${error.message}`, OutputType.ERROR);
+          toggleRunOngoing(false); // don't use finally as when dryRun start, this is not reset.
+        });
+      writeOutput('Parsing...');
       toggleRunOngoing(true);
     };
 
@@ -1131,43 +1204,49 @@ Everything run just fine`,
                 in bottom panel, and once done then only the final output
                 appears here. */}
                 <Tooltip title="Run Build For This Version">
-                  <IconButton
-                    aria-label="Run Build For This Version"
-                    className={classes.iconButton}
-                    disabled={runOngoing}
-                    onClick={handleBuild}
-                    data-testid="outputPanelRunBuild">
-                    <PlayArrowIcon
-                      fontSize="small"
-                      classes={{fontSizeSmall: classes.fontSizeSmall}}
-                    />
-                  </IconButton>
+                  <span>
+                    <IconButton
+                      aria-label="Run Build For This Version"
+                      className={classes.iconButton}
+                      disabled={runOngoing}
+                      onClick={handleBuild}
+                      data-testid="outputPanelRunBuild">
+                      <PlayArrowIcon
+                        fontSize="small"
+                        classes={{fontSizeSmall: classes.fontSizeSmall}}
+                      />
+                    </IconButton>
+                  </span>
                 </Tooltip>
                 <Tooltip title="Parse This Version">
-                  <IconButton
-                    aria-label="Parse This Version"
-                    className={classes.iconButton}
-                    disabled={runOngoing}
-                    onClick={handleParse}
-                    data-testid="outputPanelParse">
-                    <BuildIcon
-                      fontSize="small"
-                      classes={{fontSizeSmall: classes.fontSizeXSmall}}
-                    />
-                  </IconButton>
+                  <span>
+                    <IconButton
+                      aria-label="Parse This Version"
+                      className={classes.iconButton}
+                      disabled={runOngoing}
+                      onClick={handleParse}
+                      data-testid="outputPanelParse">
+                      <BuildIcon
+                        fontSize="small"
+                        classes={{fontSizeSmall: classes.fontSizeXSmall}}
+                      />
+                    </IconButton>
+                  </span>
                 </Tooltip>
                 <Tooltip title="Dry Run This Version">
-                  <IconButton
-                    aria-label="Dry Run This Version"
-                    className={classes.iconButton}
-                    disabled={runOngoing}
-                    onClick={handleDryRun}
-                    data-testid="outputPanelDryRun">
-                    <CheckCircleIcon
-                      fontSize="small"
-                      classes={{fontSizeSmall: classes.fontSizeXSmall}}
-                    />
-                  </IconButton>
+                  <span>
+                    <IconButton
+                      aria-label="Dry Run This Version"
+                      className={classes.iconButton}
+                      disabled={runOngoing}
+                      onClick={handleDryRun}
+                      data-testid="outputPanelDryRun">
+                      <CheckCircleIcon
+                        fontSize="small"
+                        classes={{fontSizeSmall: classes.fontSizeXSmall}}
+                      />
+                    </IconButton>
+                  </span>
                 </Tooltip>
                 <Typography
                   variant="caption"
@@ -1226,6 +1305,7 @@ TabPanel.propTypes = {
     code: PropTypes.string,
     isCurrent: PropTypes.bool,
     lastRun: PropTypes.instanceOf(LastRun),
+    lastParseRun: PropTypes.instanceOf(LastRun),
     showAsErrorInExplorer: PropTypes.bool,
   }).isRequired,
   testName: PropTypes.string.isRequired,
