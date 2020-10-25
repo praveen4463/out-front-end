@@ -10,7 +10,7 @@ import {ThemeProvider, makeStyles} from '@material-ui/core/styles';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import {normalize} from 'normalizr';
 import {ErrorBoundary} from 'react-error-boundary';
-import {random} from 'lodash-es';
+import {random, intersection} from 'lodash-es';
 import TopNavigation from './TopNavigation';
 import Content from './Content';
 import darkTheme from './Themes';
@@ -53,6 +53,7 @@ import {
   IdeStateContext,
   IdeFilesContext,
   IdeEditorContext,
+  IdeVersionIdsCodeSaveInProgressContext,
   IdeVarsContext,
   IdeBuildRunOngoingContext,
   IdeDryRunConfigContext,
@@ -115,6 +116,7 @@ const useStyles = makeStyles((theme) => ({
 const initialState = {
   projectId: new URLSearchParams(document.location.search).get('project'),
   files: null,
+  versionIdsCodeSaveInProgress: new Set(),
   // build represents a new build request initiated upon user action
   build: {
     runOngoing: false,
@@ -262,6 +264,26 @@ const Ide = () => {
   const dryStoppingRef = useRef(null);
   const drvsRef = useRef(null);
   dryStoppingRef.current = state.dry.stopping;
+  const dryVersionIdsInSaveProgress = useMemo(
+    () =>
+      state.dryRun
+        ? intersection(
+            state.dryRun.versionIds,
+            Array.from(state.versionIdsCodeSaveInProgress)
+          )
+        : null,
+    [state.versionIdsCodeSaveInProgress, state.dryRun]
+  );
+  const buildVersionIdsInSaveProgress = useMemo(
+    () =>
+      state.buildRun
+        ? intersection(
+            state.buildRun.versionIds,
+            Array.from(state.versionIdsCodeSaveInProgress)
+          )
+        : null,
+    [state.versionIdsCodeSaveInProgress, state.buildRun]
+  );
   const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
   const classes = useStyles();
 
@@ -610,6 +632,15 @@ const Ide = () => {
     }, TestProgress.POLL_TIME);
   }, []);
 
+  // Don't start new session if there is any version being saved, so that we wait
+  // until all code is saved and have updated their lastRun state that is then
+  // checked for parsing. Make sure to put a condition on buildRun.completed so
+  // that we know we're looking at the current buildRun. The benefit of that is
+  // we never get into race conditions with version save progress check. When a run
+  // initiates, we first make runOngoing true. This is listen by tab panel which
+  // triggers code change event that will push the version whose code is being changed.
+  // A new buildRun instance is then created and after that this effect run, giving
+  // enough time for version to push through and get checked in here.
   // !! Don't start new session request until we've created buildRun from outside.
   // This is done so that before api is invoked, we've captured updated state
   // and thus the interval that checks on test progress gets the buildRun object,
@@ -622,8 +653,10 @@ const Ide = () => {
       !(
         state.build.runOngoing &&
         state.buildRun &&
+        !state.buildRun.completed &&
         !state.build.sessionId &&
         !pendingNewSessionRequest.current &&
+        !buildVersionIdsInSaveProgress.length &&
         versionsHaveLastParseStatus(etVersions, state.buildRun.versionIds)
       )
     ) {
@@ -711,6 +744,7 @@ const Ide = () => {
     state.build.sessionId,
     etVersions,
     checkTestProgress,
+    buildVersionIdsInSaveProgress,
   ]);
 
   // check stopping and send api request
@@ -868,6 +902,7 @@ const Ide = () => {
         state.dryRun &&
         !state.dryRun.completed &&
         !state.dryRun.inProgress &&
+        !dryVersionIdsInSaveProgress.length &&
         versionsHaveLastParseStatus(etVersions, state.dryRun.versionIds)
       )
     ) {
@@ -886,7 +921,7 @@ const Ide = () => {
       payload: {prop: 'inProgress', value: true},
     });
     runDry();
-  }, [etVersions, runDry, state.dryRun]);
+  }, [etVersions, runDry, state.dryRun, dryVersionIdsInSaveProgress]);
 
   if (!allSet) {
     return (
@@ -925,69 +960,72 @@ const Ide = () => {
           <IdeStateContext.Provider value={state}>
             <IdeFilesContext.Provider value={state.files}>
               <IdeEditorContext.Provider value={state.editor}>
-                <IdeVarsContext.Provider value={state.vars}>
-                  <IdeBuildRunOngoingContext.Provider
-                    value={state.build.runOngoing}>
-                    <IdeDryRunConfigContext.Provider value={state.config.dry}>
-                      <IdeBuildContext.Provider value={state.build}>
-                        <IdeBuildConfigContext.Provider
-                          value={state.config.build}>
-                          <IdeBuildRunContext.Provider value={state.buildRun}>
-                            <IdeDryContext.Provider value={state.dry}>
-                              <IdeDryRunContext.Provider value={state.dryRun}>
-                                <IdeDryRunOngoingContext.Provider
-                                  value={state.dry.runOngoing}>
-                                  <IdeParseRunOngoingContext.Provider
-                                    value={state.parse.runOngoing}>
-                                    <IdeParseContext.Provider
-                                      value={state.parse}>
-                                      <IdeParseRunContext.Provider
-                                        value={state.parseRun}>
-                                        <IdeCompletedBuildsContext.Provider
-                                          value={state.completedBuilds}>
-                                          <IdeLPContext.Provider
-                                            value={state.livePreview}>
-                                            <div
-                                              style={{
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                height: '100%',
-                                                margin: 0,
-                                              }}>
+                <IdeVersionIdsCodeSaveInProgressContext.Provider
+                  value={state.versionIdsCodeSaveInProgress}>
+                  <IdeVarsContext.Provider value={state.vars}>
+                    <IdeBuildRunOngoingContext.Provider
+                      value={state.build.runOngoing}>
+                      <IdeDryRunConfigContext.Provider value={state.config.dry}>
+                        <IdeBuildContext.Provider value={state.build}>
+                          <IdeBuildConfigContext.Provider
+                            value={state.config.build}>
+                            <IdeBuildRunContext.Provider value={state.buildRun}>
+                              <IdeDryContext.Provider value={state.dry}>
+                                <IdeDryRunContext.Provider value={state.dryRun}>
+                                  <IdeDryRunOngoingContext.Provider
+                                    value={state.dry.runOngoing}>
+                                    <IdeParseRunOngoingContext.Provider
+                                      value={state.parse.runOngoing}>
+                                      <IdeParseContext.Provider
+                                        value={state.parse}>
+                                        <IdeParseRunContext.Provider
+                                          value={state.parseRun}>
+                                          <IdeCompletedBuildsContext.Provider
+                                            value={state.completedBuilds}>
+                                            <IdeLPContext.Provider
+                                              value={state.livePreview}>
                                               <div
                                                 style={{
                                                   display: 'flex',
-                                                  flex: '1 1 auto',
+                                                  flexDirection: 'column',
+                                                  height: '100%',
+                                                  margin: 0,
                                                 }}>
                                                 <div
                                                   style={{
-                                                    width: '100%',
-                                                    height: '100%',
-                                                    position: 'fixed',
-                                                    left: 0,
-                                                    right: 0,
-                                                    top: 0,
-                                                    bottom: 0,
+                                                    display: 'flex',
+                                                    flex: '1 1 auto',
                                                   }}>
-                                                  <TopNavigation />
-                                                  <Content />
+                                                  <div
+                                                    style={{
+                                                      width: '100%',
+                                                      height: '100%',
+                                                      position: 'fixed',
+                                                      left: 0,
+                                                      right: 0,
+                                                      top: 0,
+                                                      bottom: 0,
+                                                    }}>
+                                                    <TopNavigation />
+                                                    <Content />
+                                                  </div>
                                                 </div>
                                               </div>
-                                            </div>
-                                          </IdeLPContext.Provider>
-                                        </IdeCompletedBuildsContext.Provider>
-                                      </IdeParseRunContext.Provider>
-                                    </IdeParseContext.Provider>
-                                  </IdeParseRunOngoingContext.Provider>
-                                </IdeDryRunOngoingContext.Provider>
-                              </IdeDryRunContext.Provider>
-                            </IdeDryContext.Provider>
-                          </IdeBuildRunContext.Provider>
-                        </IdeBuildConfigContext.Provider>
-                      </IdeBuildContext.Provider>
-                    </IdeDryRunConfigContext.Provider>
-                  </IdeBuildRunOngoingContext.Provider>
-                </IdeVarsContext.Provider>
+                                            </IdeLPContext.Provider>
+                                          </IdeCompletedBuildsContext.Provider>
+                                        </IdeParseRunContext.Provider>
+                                      </IdeParseContext.Provider>
+                                    </IdeParseRunOngoingContext.Provider>
+                                  </IdeDryRunOngoingContext.Provider>
+                                </IdeDryRunContext.Provider>
+                              </IdeDryContext.Provider>
+                            </IdeBuildRunContext.Provider>
+                          </IdeBuildConfigContext.Provider>
+                        </IdeBuildContext.Provider>
+                      </IdeDryRunConfigContext.Provider>
+                    </IdeBuildRunOngoingContext.Provider>
+                  </IdeVarsContext.Provider>
+                </IdeVersionIdsCodeSaveInProgressContext.Provider>
               </IdeEditorContext.Provider>
             </IdeFilesContext.Provider>
           </IdeStateContext.Provider>

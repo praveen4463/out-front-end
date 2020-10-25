@@ -28,7 +28,7 @@ import IconButton from '@material-ui/core/IconButton';
 import PropTypes from 'prop-types';
 import SplitPane from 'react-split-pane';
 import clsx from 'clsx';
-import {findLastIndex} from 'lodash-es';
+import {findLastIndex, intersection} from 'lodash-es';
 import Tooltip from '../TooltipCustom';
 import {getNoOfLines} from '../common';
 import {getNodeId, getBrokenNodeId} from './Explorer/internal';
@@ -38,6 +38,7 @@ import {
   IdeBuildContext,
   IdeBuildRunContext,
   IdeFilesContext,
+  IdeVersionIdsCodeSaveInProgressContext,
 } from './Contexts';
 import {RUN_BUILD_ON_NEW_RUN, RUN_BUILD_COMPLETE_ON_ERROR} from './actionTypes';
 import {BUILD_NEW_RUN, BUILD_COMPLETE_RUN} from '../actions/actionTypes';
@@ -194,6 +195,9 @@ const BuildRun = ({closeHandler}) => {
   const etVersions = files.entities.versions;
   const build = useContext(IdeBuildContext);
   const buildRun = useContext(IdeBuildRunContext);
+  const allVersionIdsInSaveProgress = useContext(
+    IdeVersionIdsCodeSaveInProgressContext
+  );
   const [sessionCheckIntervalId, setSessionCheckIntervalId] = useState(null);
   const [statusMsg, setStatusMsg] = useState(null);
   const [expanded, setExpanded] = useState([]);
@@ -258,6 +262,13 @@ const BuildRun = ({closeHandler}) => {
   const {fileIds, testIds, versionIds} = useMemo(() => {
     return getTreeFilterData();
   }, [getTreeFilterData]);
+  const versionIdsInSaveProgress = useMemo(
+    () =>
+      versionIds
+        ? intersection(versionIds, Array.from(allVersionIdsInSaveProgress))
+        : null,
+    [allVersionIdsInSaveProgress, versionIds]
+  );
 
   const getInfoTypeStatusMsg = useCallback(
     (msg) => {
@@ -329,6 +340,26 @@ const BuildRun = ({closeHandler}) => {
     [dispatch]
   );
 
+  useEffect(() => {
+    if (
+      !(
+        versionIds &&
+        !buildRunInterval &&
+        versionIdsInSaveProgress.length &&
+        !completed
+      )
+    ) {
+      return;
+    }
+    setStatusMsg(getInfoTypeStatusMsg('Saving changes...'));
+  }, [
+    completed,
+    getInfoTypeStatusMsg,
+    versionIds,
+    versionIdsInSaveProgress,
+    buildRunInterval,
+  ]);
+
   // we should parse before any request to start session is gone. First check
   // whether all versions have a lastParseRun, if no, first send a parse
   // request for those versions and expect to get back only failed versions and status
@@ -339,6 +370,7 @@ const BuildRun = ({closeHandler}) => {
     if (
       !(
         versionIds &&
+        !versionIdsInSaveProgress.length &&
         !buildRunInterval &&
         !completed &&
         !versionsParseOngoingRef.current
@@ -371,6 +403,7 @@ const BuildRun = ({closeHandler}) => {
     etVersions,
     getInfoTypeStatusMsg,
     versionIds,
+    versionIdsInSaveProgress,
   ]);
 
   // Check whether any test has parse errors, if so we should halt entire build
@@ -379,6 +412,7 @@ const BuildRun = ({closeHandler}) => {
     if (
       !(
         versionIds &&
+        !versionIdsInSaveProgress.length &&
         !buildRunInterval &&
         !completed &&
         versionsHaveLastParseStatus(etVersions, versionIds)
@@ -404,6 +438,7 @@ const BuildRun = ({closeHandler}) => {
     etVersions,
     versionIds,
     getInfoTypeStatusMsg,
+    versionIdsInSaveProgress,
   ]);
 
   const expandAllNodes = useCallback(() => {
@@ -454,6 +489,7 @@ const BuildRun = ({closeHandler}) => {
   useEffect(() => {
     if (
       buildRunOngoing &&
+      !completed &&
       !build.sessionId &&
       !sessionCheckIntervalId &&
       versionsParseSucceeded
@@ -497,6 +533,7 @@ const BuildRun = ({closeHandler}) => {
     };
   }, [
     build.sessionId,
+    completed,
     buildRunOngoing,
     getInfoTypeStatusMsg,
     sessionCheckIntervalId,

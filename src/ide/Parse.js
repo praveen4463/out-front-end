@@ -22,6 +22,7 @@ import IconButton from '@material-ui/core/IconButton';
 import PropTypes from 'prop-types';
 import SplitPane from 'react-split-pane';
 import clsx from 'clsx';
+import {intersection} from 'lodash-es';
 import Tooltip from '../TooltipCustom';
 import {getNodeId, getBrokenNodeId} from './Explorer/internal';
 import {
@@ -30,6 +31,7 @@ import {
   IdeParseContext,
   IdeParseRunContext,
   IdeFilesContext,
+  IdeVersionIdsCodeSaveInProgressContext,
 } from './Contexts';
 import {
   RUN_PARSE_ON_NEW_RUN,
@@ -179,6 +181,9 @@ const Parse = ({closeHandler}) => {
   const dispatch = useContext(IdeDispatchContext);
   const parseOngoing = useContext(IdeParseRunOngoingContext);
   const files = useContext(IdeFilesContext);
+  const allVersionIdsInSaveProgress = useContext(
+    IdeVersionIdsCodeSaveInProgressContext
+  );
   const etFiles = files.entities.files;
   const etTests = files.entities.tests;
   const etVersions = files.entities.versions;
@@ -193,6 +198,13 @@ const Parse = ({closeHandler}) => {
   // don't use versionIds in tree or output, versionIdsInError will be used
   // there as we show only versions having errors there.
   const versionIds = parseRun === null ? null : parseRun.versionIds;
+  const versionIdsInSaveProgress = useMemo(
+    () =>
+      versionIds
+        ? intersection(versionIds, Array.from(allVersionIdsInSaveProgress))
+        : null,
+    [allVersionIdsInSaveProgress, versionIds]
+  );
   const classes = useStyles();
   const theme = useTheme();
 
@@ -272,9 +284,23 @@ const Parse = ({closeHandler}) => {
     });
   }, [parse.runId, parseRun, parseOngoing, dispatch]);
 
+  useEffect(() => {
+    if (!(versionIds && versionIdsInSaveProgress.length && !completed)) {
+      return;
+    }
+    setStatusMsg(getInfoTypeStatusMsg('Saving changes...'));
+  }, [completed, getInfoTypeStatusMsg, versionIds, versionIdsInSaveProgress]);
+
   // check if all versions have parse status, else send api request.
   useEffect(() => {
-    if (!(versionIds && !completed && !versionsParseOngoingRef.current)) {
+    if (
+      !(
+        versionIds &&
+        !versionIdsInSaveProgress.length &&
+        !completed &&
+        !versionsParseOngoingRef.current
+      )
+    ) {
       return;
     }
     const versionIdsNoParseStatus = getVersionsNoParseStatus(
@@ -314,6 +340,7 @@ const Parse = ({closeHandler}) => {
     getErrorTypeStatusMsg,
     getInfoTypeStatusMsg,
     versionIds,
+    versionIdsInSaveProgress,
   ]);
 
   useEffect(() => {
@@ -321,6 +348,7 @@ const Parse = ({closeHandler}) => {
       !(
         versionIds &&
         !completed &&
+        !versionIdsInSaveProgress.length &&
         versionsHaveLastParseStatus(etVersions, versionIds)
       )
     ) {
@@ -339,6 +367,7 @@ const Parse = ({closeHandler}) => {
     );
   }, [
     versionIds,
+    versionIdsInSaveProgress,
     completed,
     etVersions,
     getInfoTypeStatusMsg,

@@ -5,6 +5,8 @@ import {
   SET_VERSION_LAST_RUN,
   CLEAR_VERSION_LAST_RUN,
   PUSH_COMPLETED_BUILDS,
+  VERSION_CODE_SAVE_IN_PROGRESS,
+  VERSION_CODE_SAVE_COMPLETED,
 } from '../actionTypes';
 import getDeepClonedFiles from './common';
 import {LastRunError, LastRun} from '../Explorer/model';
@@ -93,6 +95,24 @@ const pushCompletedBuilds = (draft, payload) => {
   draft.completedBuilds.push(payload.buildId);
 };
 
+const versionCodeSaveInProgress = (draft, payload) => {
+  if (payload.versionId === undefined) {
+    throw new Error(
+      'Insufficient arguments passed to versionCodeSaveInProgress.'
+    );
+  }
+  draft.versionIdsCodeSaveInProgress.add(payload.versionId);
+};
+
+const versionCodeSaveCompleted = (draft, payload) => {
+  if (payload.versionId === undefined) {
+    throw new Error(
+      'Insufficient arguments passed to versionCodeSaveCompleted.'
+    );
+  }
+  draft.versionIdsCodeSaveInProgress.delete(payload.versionId);
+};
+
 const ideReducer = produce((draft, action) => {
   const {payload} = action;
   switch (action.type) {
@@ -110,6 +130,12 @@ const ideReducer = produce((draft, action) => {
       break;
     case PUSH_COMPLETED_BUILDS:
       pushCompletedBuilds(draft, payload);
+      break;
+    case VERSION_CODE_SAVE_IN_PROGRESS:
+      versionCodeSaveInProgress(draft, payload);
+      break;
+    case VERSION_CODE_SAVE_COMPLETED:
+      versionCodeSaveCompleted(draft, payload);
       break;
     default:
       break;

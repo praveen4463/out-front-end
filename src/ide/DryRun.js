@@ -26,7 +26,7 @@ import IconButton from '@material-ui/core/IconButton';
 import PropTypes from 'prop-types';
 import SplitPane from 'react-split-pane';
 import clsx from 'clsx';
-import {findLastIndex} from 'lodash-es';
+import {findLastIndex, intersection} from 'lodash-es';
 import Tooltip from '../TooltipCustom';
 import {getNodeId, getBrokenNodeId} from './Explorer/internal';
 import {
@@ -35,6 +35,7 @@ import {
   IdeDryContext,
   IdeDryRunContext,
   IdeFilesContext,
+  IdeVersionIdsCodeSaveInProgressContext,
 } from './Contexts';
 import {
   RUN_DRY_ON_NEW_RUN,
@@ -194,6 +195,9 @@ const DryRun = ({closeHandler}) => {
   const etVersions = files.entities.versions;
   const dry = useContext(IdeDryContext);
   const dryRun = useContext(IdeDryRunContext);
+  const allVersionIdsInSaveProgress = useContext(
+    IdeVersionIdsCodeSaveInProgressContext
+  );
   const [statusMsg, setStatusMsg] = useState(null);
   const [expanded, setExpanded] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -253,6 +257,13 @@ const DryRun = ({closeHandler}) => {
   const {fileIds, testIds, versionIds} = useMemo(() => {
     return getTreeFilterData();
   }, [getTreeFilterData]);
+  const versionIdsInSaveProgress = useMemo(
+    () =>
+      versionIds
+        ? intersection(versionIds, Array.from(allVersionIdsInSaveProgress))
+        : null,
+    [allVersionIdsInSaveProgress, versionIds]
+  );
 
   const getInfoTypeStatusMsg = useCallback(
     (msg) => {
@@ -322,6 +333,26 @@ const DryRun = ({closeHandler}) => {
     [dispatch]
   );
 
+  useEffect(() => {
+    if (
+      !(
+        versionIds &&
+        !dryRunInProgress &&
+        versionIdsInSaveProgress.length &&
+        !completed
+      )
+    ) {
+      return;
+    }
+    setStatusMsg(getInfoTypeStatusMsg('Saving changes...'));
+  }, [
+    completed,
+    getInfoTypeStatusMsg,
+    versionIds,
+    versionIdsInSaveProgress,
+    dryRunInProgress,
+  ]);
+
   // we should parse before any request to start dry run is gone. First check
   // whether all versions have a lastParseRun, if no, first send a parse
   // request for those versions and expect to get back only failed versions and status
@@ -332,6 +363,7 @@ const DryRun = ({closeHandler}) => {
     if (
       !(
         versionIds &&
+        !versionIdsInSaveProgress.length &&
         !dryRunInProgress &&
         !completed &&
         !versionsParseOngoingRef.current
@@ -364,6 +396,7 @@ const DryRun = ({closeHandler}) => {
     etVersions,
     getInfoTypeStatusMsg,
     versionIds,
+    versionIdsInSaveProgress,
   ]);
 
   // Check whether any test has parse errors, if so we should halt entire dry run
@@ -372,6 +405,7 @@ const DryRun = ({closeHandler}) => {
     if (
       !(
         versionIds &&
+        !versionIdsInSaveProgress.length &&
         !dryRunInProgress &&
         !completed &&
         versionsHaveLastParseStatus(etVersions, versionIds)
@@ -395,6 +429,7 @@ const DryRun = ({closeHandler}) => {
     completed,
     etVersions,
     versionIds,
+    versionIdsInSaveProgress,
     getInfoTypeStatusMsg,
   ]);
 

@@ -44,6 +44,8 @@ import {
   BATCH_ACTIONS,
   EDR_VERSION_CODE_UPDATED,
   CLEAR_VERSION_LAST_RUN,
+  VERSION_CODE_SAVE_IN_PROGRESS,
+  VERSION_CODE_SAVE_COMPLETED,
 } from '../actionTypes';
 import {BUILD_NEW_RUN} from '../../actions/actionTypes';
 import {
@@ -52,6 +54,7 @@ import {
   IdeBuildRunOngoingContext,
   IdeDryRunOngoingContext,
   IdeParseRunOngoingContext,
+  IdeVersionIdsCodeSaveInProgressContext,
 } from '../Contexts';
 import Tooltip from '../../TooltipCustom';
 import {LastRun, LastRunError} from '../Explorer/model';
@@ -277,6 +280,10 @@ const TabPanel = React.memo(
     const buildRunOngoing = useContext(IdeBuildRunOngoingContext);
     const dryRunOngoing = useContext(IdeDryRunOngoingContext);
     const parseRunOngoing = useContext(IdeParseRunOngoingContext);
+    const versionIdsCodeSaveProgress = useContext(
+      IdeVersionIdsCodeSaveInProgressContext
+    );
+    const hasRunInvokedPostSaveProgressRef = useRef(false);
     const unmounted = useRef(false);
 
     function reducer(state, action) {
@@ -307,7 +314,11 @@ const TabPanel = React.memo(
     // be a button) but not doing that currently. For now let's assume user's won't
     // really need to stop for single version, and try to put later.
     // this is a global state for component, setting it reflects in all tabs
-    const [runOngoing, setRunOngoing] = useState(false);
+    const [runOngoing, setRunOngoing] = useState({
+      runType: null,
+      versionId: null,
+      isGlobalRun: false,
+    });
     /*
     Together with a controlled state, an uncontrolled version wise state is also
     kept in a ref rather than using a reducer cause
@@ -392,29 +403,32 @@ const TabPanel = React.memo(
      * @param {Message to write} msg
      * @param {Type of output, defaults to OutputType.NORMAL} outputType
      */
-    const writeOutput = (msg, outputType = OutputType.NORMAL) => {
-      const payloadWrite = {versionId: version.id};
-      if (outputType === OutputType.NORMAL) {
-        payloadWrite.outputNormal = msg;
-      } else {
-        payloadWrite.outputError = msg;
-      }
-      dispatchControlled(
-        batchActions([
-          {
-            type: actionTypes.CLEAR_OUTPUT,
-            payload: {versionId: version.id},
-          },
-          {
-            type:
-              outputType === OutputType.NORMAL
-                ? actionTypes.SET_OUTPUT_NORMAL
-                : actionTypes.SET_OUTPUT_ERROR,
-            payload: payloadWrite,
-          },
-        ])
-      );
-    };
+    const writeOutput = useCallback(
+      (msg, outputType = OutputType.NORMAL) => {
+        const payloadWrite = {versionId: version.id};
+        if (outputType === OutputType.NORMAL) {
+          payloadWrite.outputNormal = msg;
+        } else {
+          payloadWrite.outputError = msg;
+        }
+        dispatchControlled(
+          batchActions([
+            {
+              type: actionTypes.CLEAR_OUTPUT,
+              payload: {versionId: version.id},
+            },
+            {
+              type:
+                outputType === OutputType.NORMAL
+                  ? actionTypes.SET_OUTPUT_NORMAL
+                  : actionTypes.SET_OUTPUT_ERROR,
+              payload: payloadWrite,
+            },
+          ])
+        );
+      },
+      [version.id]
+    );
 
     // This function is debounced and runs after some code is written.
     // If user tries to navigate away from current tab, debounced is flushed
@@ -433,6 +447,16 @@ const TabPanel = React.memo(
           // editor's text.
           return;
         }
+        // code save in progress starts
+        const actionInProgress = {
+          type: VERSION_CODE_SAVE_IN_PROGRESS,
+          payload: {versionId: version.id},
+        };
+        const actionCompleted = {
+          type: VERSION_CODE_SAVE_COMPLETED,
+          payload: {versionId: version.id},
+        };
+        dispatchGlobal(actionInProgress);
         const value = editor.getValue();
         const codeUpdateAction = {
           type: EDR_VERSION_CODE_UPDATED,
@@ -440,7 +464,7 @@ const TabPanel = React.memo(
         };
 
         const onSuccess = (response) => {
-          const actions = [codeUpdateAction];
+          const actions = [codeUpdateAction, actionCompleted];
           const parseRes = response.parseResult;
           if (parseRes && parseRes.status === ApiStatuses.FAILURE) {
             // when parsing failed, clear last run status if there is any parse
@@ -495,9 +519,10 @@ const TabPanel = React.memo(
         };
 
         const onError = (response) => {
+          const actions = [codeUpdateAction, actionCompleted];
           // when version couldn't save, no parsing is done.
           // save the code in state even if it's not saved to db.
-          dispatchGlobal(codeUpdateAction);
+          dispatchGlobal(batchActions(actions));
           writeStatusMessage(
             `Couldn't save changes, ${response.error.reason}`,
             StatusMessageType.ERROR
@@ -557,7 +582,6 @@ const TabPanel = React.memo(
             onError(response);
           }
         }, 2000);
-        console.log('code saving');
       },
       [version.id, dispatchGlobal, writeStatusMessage]
     );
@@ -880,15 +904,28 @@ const TabPanel = React.memo(
     // all versions in editor, since the run feature with editor is meant to
     // run one version only. If user wants more than one version running, they
     // can use top icons.
-    const toggleRunOngoing = (running) => {
-      setRunOngoing(running);
-      editorRef.current.setOption('readOnly', running);
-    };
+    const toggleRunOngoing = useCallback(
+      (running, runType) => {
+        setRunOngoing((r) =>
+          !running ? null : {...r, runType, versionId: version.id}
+        );
+        if (!running) {
+          // reset run invoke state on every new run
+          hasRunInvokedPostSaveProgressRef.current = false;
+        }
+        editorRef.current.setOption('readOnly', running);
+      },
+      [version.id]
+    );
 
+    // make sure this runs only when global run changes, any external dependency
+    // shouldn't change on any other factor.
     useEffect(() => {
       const globalRunOngoing =
         buildRunOngoing || dryRunOngoing || parseRunOngoing;
-      toggleRunOngoing(globalRunOngoing);
+      setRunOngoing((r) =>
+        !globalRunOngoing ? null : {...r, isGlobalRun: true}
+      );
       if (globalRunOngoing) {
         afterChangeDebounceRef.current.flush();
       }
@@ -938,20 +975,17 @@ const TabPanel = React.memo(
       return false;
     };
 
-    const handleBuild = (event) => {
-      // when panel is closed, and any action buttons are clicked, we want it to
-      // open so that when the output arrives, we don't have to explicitly open
-      // it and decide whether to open and not (for example when parsing together
-      // with saving, we don't open.). We want to open only when explicitly some
-      // action is triggered.
-      // So if user clicks on an opened panel, don't close it.
-      if (isOutputPanelOpened()) {
-        event.stopPropagation();
-      }
-      if (stopRunWhenNoCode()) {
-        return;
-      }
-      afterChangeDebounceRef.current.flush();
+    const triggerBuildRunOnSave = useCallback(() => {
+      writeOutput(''); // clear output in case a save message was appearing
+      toggleRunOngoing(false); // make run ongoing false, this is done so that
+      // if build run skips, we won't have running state true here because skipping
+      // doesn't change global run ongoing. By making this true, we can be sure
+      // all situations are safe. If build doesn't run due to error, we have
+      // no running state, if build runs and goes on to start, the global state
+      // change will toggle to running state true, and if build run skips, we
+      // have false running state here. So this works for all cases. We're in
+      // fact releasing running state as the control is transferred to global
+      // build run.
       // validate whether there is a parse error in this version, if so build run
       // won't do anything.
       if (version.lastParseRun && version.lastParseRun.error) {
@@ -970,24 +1004,96 @@ const TabPanel = React.memo(
         type: BUILD_NEW_RUN,
         payload: {versionIds: [version.id]},
       });
+    }, [
+      dispatchGlobal,
+      version.id,
+      version.lastParseRun,
+      writeOutput,
+      toggleRunOngoing,
+    ]);
+
+    const handleBuild = (event) => {
+      // when panel is closed, and any action buttons are clicked, we want it to
+      // open so that when the output arrives, we don't have to explicitly open
+      // it and decide whether to open and not (for example when parsing together
+      // with saving, we don't open.). We want to open only when explicitly some
+      // action is triggered.
+      // So if user clicks on an opened panel, don't close it.
+      if (isOutputPanelOpened()) {
+        event.stopPropagation();
+      }
+      if (stopRunWhenNoCode()) {
+        return;
+      }
+      afterChangeDebounceRef.current.flush();
+      toggleRunOngoing(true, RunType.BUILD_RUN);
     };
 
     // TODO: delete it once api is there
-    const getParseResponseData = (isError) => {
-      return isError
-        ? [
-            {
-              versionId: version.id,
-              error: {
-                msg: "token recognition error at: '@' line 3:12",
-                from: {line: 3, ch: 12},
-                // !!Note: api should always send the 'to' column that is after the 'to' char
-                to: {line: 3, ch: 13},
+    const getParseResponseData = useCallback(
+      (isError) => {
+        return isError
+          ? [
+              {
+                versionId: version.id,
+                error: {
+                  msg: "token recognition error at: '@' line 3:12",
+                  from: {line: 3, ch: 12},
+                  // !!Note: api should always send the 'to' column that is after the 'to' char
+                  to: {line: 3, ch: 13},
+                },
               },
-            },
-          ]
-        : null;
-    };
+            ]
+          : null;
+      },
+      [version.id]
+    );
+
+    const triggerParseOnSave = useCallback(() => {
+      if (version.lastParseRun) {
+        // when last parse status is error, lastRun is error too as we don't allow
+        // a failed parsing version to do any other run. In this case no action needed
+        // cause error is already shown.
+        // Otherwise if last run is parse, we're already showing the result, no action.
+        if (
+          version.lastParseRun.error ||
+          version.lastRun.runType === RunType.PARSE_RUN
+        ) {
+          toggleRunOngoing(false);
+          return;
+        }
+        // when last run isn't parse, make it successful parse as we've parse result
+        // available.
+        const lastRunAction = getLastRunAction(
+          version.id,
+          RunType.PARSE_RUN,
+          version.lastParseRun.output
+        );
+        dispatchGlobal(lastRunAction);
+        toggleRunOngoing(false);
+        return;
+      }
+      // send api request as either code has changed or no last parse available.
+      fillLastParseStatusAndGetFailed(
+        [version.id],
+        dispatchGlobal,
+        getParseResponseData(editorRef.current.getValue().includes('FAIL_TEST'))
+      )
+        .then() // no action when parsed, effect will read global state change.
+        .catch((error) => {
+          writeOutput(`Can't parse, ${error.message}`, OutputType.ERROR);
+        })
+        .finally(() => toggleRunOngoing(false));
+      writeOutput('Parsing...');
+    }, [
+      dispatchGlobal,
+      getParseResponseData,
+      toggleRunOngoing,
+      version.id,
+      version.lastParseRun,
+      version.lastRun,
+      writeOutput,
+    ]);
 
     const handleParse = (event) => {
       // when panel is closed, and any action buttons are clicked, we want it to
@@ -1003,44 +1109,10 @@ const TabPanel = React.memo(
         return;
       }
       afterChangeDebounceRef.current.flush();
-      if (version.lastParseRun) {
-        // when last parse status is error, lastRun is error too as we don't allow
-        // a failed parsing version to do any other run. In this case no action needed
-        // cause error is already shown.
-        // Otherwise if last run is parse, we're already showing the result, no action.
-        if (
-          version.lastParseRun.error ||
-          version.lastRun.runType === RunType.PARSE_RUN
-        ) {
-          return;
-        }
-        // when last run isn't parse, make it successful parse as we've parse result
-        // available.
-        const lastRunAction = getLastRunAction(
-          version.id,
-          RunType.PARSE_RUN,
-          version.lastParseRun.output
-        );
-        dispatchGlobal(lastRunAction);
-        return;
-      }
-      // send api request as either code has changed or no last parse available.
-      fillLastParseStatusAndGetFailed(
-        [version.id],
-        dispatchGlobal,
-        getParseResponseData(editorRef.current.getValue().includes('FAIL_TEST'))
-      )
-        .then(() => {
-          toggleRunOngoing(false);
-        }) // no action when parsed, effect will read global state change.
-        .catch((error) => {
-          writeOutput(`Can't parse, ${error.message}`, OutputType.ERROR);
-        });
-      writeOutput('Parsing...');
-      toggleRunOngoing(true);
+      toggleRunOngoing(true, RunType.PARSE_RUN);
     };
 
-    const dryRun = () => {
+    const dryRun = useCallback(() => {
       const onSuccess = (response) => {
         const {data} = response;
         let lastRunError = null;
@@ -1106,26 +1178,13 @@ Everything run just fine`,
         toggleRunOngoing(false);
       }, 3000);
       writeOutput('Dry running, output will appear post completion...');
-      toggleRunOngoing(true);
-    };
+    }, [dispatchGlobal, toggleRunOngoing, version.id, writeOutput]);
 
-    const handleDryRun = (event) => {
-      // when panel is closed, and any action buttons are clicked, we want it to
-      // open so that when the output arrives, we don't have to explicitly open
-      // it and decide whether to open and not (for example when parsing together
-      // with saving, we don't open.). We want to open only when explicitly some
-      // action is triggered.
-      // So if user clicks on an opened panel, don't close it.
-      if (isOutputPanelOpened()) {
-        event.stopPropagation();
-      }
-      if (stopRunWhenNoCode()) {
-        return;
-      }
-      afterChangeDebounceRef.current.flush();
+    const triggerDryRunOnSave = useCallback(() => {
       // check parse status
       if (version.lastParseRun) {
         if (version.lastParseRun.error) {
+          toggleRunOngoing(false);
           return;
         }
         dryRun();
@@ -1146,11 +1205,82 @@ Everything run just fine`,
         })
         .catch((error) => {
           writeOutput(`Couldn't parse, ${error.message}`, OutputType.ERROR);
-          toggleRunOngoing(false); // don't use finally as when dryRun start, this is not reset.
+          toggleRunOngoing(false); // don't use finally as when dryRun start, this shouldn't reset.
         });
       writeOutput('Parsing...');
-      toggleRunOngoing(true);
+    }, [
+      dispatchGlobal,
+      dryRun,
+      getParseResponseData,
+      toggleRunOngoing,
+      version.id,
+      version.lastParseRun,
+      writeOutput,
+    ]);
+
+    const handleDryRun = (event) => {
+      // when panel is closed, and any action buttons are clicked, we want it to
+      // open so that when the output arrives, we don't have to explicitly open
+      // it and decide whether to open and not (for example when parsing together
+      // with saving, we don't open.). We want to open only when explicitly some
+      // action is triggered.
+      // So if user clicks on an opened panel, don't close it.
+      if (isOutputPanelOpened()) {
+        event.stopPropagation();
+      }
+      if (stopRunWhenNoCode()) {
+        return;
+      }
+      afterChangeDebounceRef.current.flush();
+      toggleRunOngoing(true, RunType.DRY_RUN);
     };
+
+    // check if there is any pending code update in progress, if so wait for it,
+    // and once done invoke the run that triggered this effect. This is done so
+    // that any ongoing change in last parse status is first reflect before we
+    // decide whether to proceed with the run. For example if current parse state
+    // is error, user fixed code and initiate run immediately, we'd first let the
+    // code to commit so that it's parse state changes to success before checking
+    // its parse state. This is done in global runs as well.
+    useEffect(() => {
+      if (
+        !runOngoing ||
+        runOngoing.isGlobalRun ||
+        runOngoing.versionId !== version.id
+      ) {
+        return;
+      }
+      if (versionIdsCodeSaveProgress.has(runOngoing.versionId)) {
+        writeOutput('Saving changes...');
+        return;
+      }
+      if (hasRunInvokedPostSaveProgressRef.current) {
+        return;
+      }
+      hasRunInvokedPostSaveProgressRef.current = true;
+      const {runType} = runOngoing;
+      switch (runType) {
+        case RunType.BUILD_RUN:
+          triggerBuildRunOnSave();
+          break;
+        case RunType.DRY_RUN:
+          triggerDryRunOnSave();
+          break;
+        case RunType.PARSE_RUN:
+          triggerParseOnSave();
+          break;
+        default:
+          throw new TypeError(`Unrecognized runType ${runType}`);
+      }
+    }, [
+      triggerBuildRunOnSave,
+      triggerDryRunOnSave,
+      triggerParseOnSave,
+      runOngoing,
+      versionIdsCodeSaveProgress,
+      writeOutput,
+      version.id,
+    ]);
 
     return (
       <>
@@ -1208,7 +1338,7 @@ Everything run just fine`,
                     <IconButton
                       aria-label="Run Build For This Version"
                       className={classes.iconButton}
-                      disabled={runOngoing}
+                      disabled={Boolean(runOngoing)}
                       onClick={handleBuild}
                       data-testid="outputPanelRunBuild">
                       <PlayArrowIcon
@@ -1223,7 +1353,7 @@ Everything run just fine`,
                     <IconButton
                       aria-label="Parse This Version"
                       className={classes.iconButton}
-                      disabled={runOngoing}
+                      disabled={Boolean(runOngoing)}
                       onClick={handleParse}
                       data-testid="outputPanelParse">
                       <BuildIcon
@@ -1238,7 +1368,7 @@ Everything run just fine`,
                     <IconButton
                       aria-label="Dry Run This Version"
                       className={classes.iconButton}
-                      disabled={runOngoing}
+                      disabled={Boolean(runOngoing)}
                       onClick={handleDryRun}
                       data-testid="outputPanelDryRun">
                       <CheckCircleIcon
