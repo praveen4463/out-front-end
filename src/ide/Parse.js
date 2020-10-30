@@ -137,7 +137,7 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   errorText: {
-    color: theme.palette.error.main,
+    color: theme.palette.error.light,
   },
 }));
 

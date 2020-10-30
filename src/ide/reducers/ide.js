@@ -10,7 +10,8 @@ import {
 } from '../actionTypes';
 import getDeepClonedFiles from './common';
 import {LastRunError, LastRun} from '../Explorer/model';
-import {RunType} from '../../Constants';
+import {CompletedBuild} from '../model';
+import {RunType, TestStatus} from '../../Constants';
 
 // !!if no reference if kept to the files sent via payload, there is no need to
 // deep clone files, remove it once we're using api to load data.
@@ -88,11 +89,66 @@ const clearVersionLastRun = (draft, payload) => {
   }
 };
 
+const getTotalBuildRunVersionsPerStatus = (buildRunVersionsArray, status) => {
+  return buildRunVersionsArray.filter((brv) => brv.status === status).length;
+};
+
 const pushCompletedBuilds = (draft, payload) => {
-  if (payload.buildId === undefined) {
+  if (payload.runId === undefined || payload.buildId === undefined) {
     throw new Error('Insufficient arguments passed to pushCompletedBuilds.');
   }
-  draft.completedBuilds.push(payload.buildId);
+  const {buildRun, completedBuilds} = draft;
+  const {versionIds, buildRunVersions, runId} = buildRun;
+  if (runId !== payload.runId) {
+    throw new Error(
+      'Expected current buildRun to contain details of most recent completed build'
+    );
+  }
+  const totalTime = versionIds.reduce(
+    (total, vid) => total + buildRunVersions[vid].timeTaken ?? 0,
+    0
+  );
+  let buildStatus;
+  const buildRunVersionsArray = Object.values(buildRunVersions);
+  const success = getTotalBuildRunVersionsPerStatus(
+    buildRunVersionsArray,
+    TestStatus.SUCCESS
+  );
+  const error = getTotalBuildRunVersionsPerStatus(
+    buildRunVersionsArray,
+    TestStatus.ERROR
+  );
+  const stopped = getTotalBuildRunVersionsPerStatus(
+    buildRunVersionsArray,
+    TestStatus.STOPPED
+  );
+  const aborted = getTotalBuildRunVersionsPerStatus(
+    buildRunVersionsArray,
+    TestStatus.ABORTED
+  );
+  if (success === buildRunVersionsArray.length) {
+    buildStatus = TestStatus.SUCCESS;
+  } else if (error) {
+    buildStatus = TestStatus.ERROR;
+  } else if (stopped) {
+    buildStatus = TestStatus.STOPPED;
+  } else if (aborted) {
+    buildStatus = TestStatus.ABORTED;
+  } else {
+    throw new Error("Couldn't get a status");
+  }
+
+  const completedBuild = new CompletedBuild(
+    payload.buildId,
+    Date.now(),
+    totalTime,
+    buildStatus,
+    success,
+    error,
+    stopped,
+    aborted
+  );
+  completedBuilds.push(completedBuild);
 };
 
 const versionCodeSaveInProgress = (draft, payload) => {

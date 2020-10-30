@@ -80,7 +80,7 @@ const useStyle = makeStyles((theme) => ({
     padding: theme.spacing(0.8),
   },
   errorText: {
-    color: theme.palette.error.main,
+    color: theme.palette.error.light,
   },
   fontSizeSmall: {
     fontSize: '0.875rem',

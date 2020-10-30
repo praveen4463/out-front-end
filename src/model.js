@@ -1,5 +1,6 @@
 import {immerable} from 'immer';
 import {BuildCapsTimeouts, Defaults} from './Constants';
+import resolutions from './config/desktopResolution.json';
 
 // doesn't have to be immer draftable as we set the whole object.
 export default function Browser(name, version) {
@@ -10,7 +11,7 @@ export default function Browser(name, version) {
 function BuildConfig(
   buildCapabilityId = null,
   selectedVersions = new Set(),
-  displayResolution = Defaults.DESKTOP_RES,
+  displayResolution,
   timezone = Defaults.TIMEZONE,
   selectedBuildVarIdPerKey = {},
   abortOnFailure = false,
@@ -32,7 +33,11 @@ function BuildConfig(
   ready to run a build. This also avoids any stale version in selected list.
   */
   this.selectedVersions = selectedVersions;
-  this.displayResolution = displayResolution;
+  if (!displayResolution) {
+    const screenRes = `${window.screen.width}x${window.screen.height}`;
+    this.displayResolution =
+      resolutions.indexOf(screenRes) >= 0 ? screenRes : Defaults.DESKTOP_RES;
+  }
   this.timezone = timezone;
   this.selectedBuildVarIdPerKey = selectedBuildVarIdPerKey;
   this.abortOnFailure = abortOnFailure;

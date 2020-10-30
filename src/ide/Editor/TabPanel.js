@@ -97,7 +97,7 @@ const useStyle = makeStyles((theme) => ({
     textAlign: 'center',
   },
   statusMessageError: {
-    color: theme.palette.error.main,
+    color: theme.palette.error.light,
   },
   statusMessageSuccess: {
     color: theme.palette.success.main,

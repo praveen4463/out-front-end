@@ -169,7 +169,7 @@ const useStyles = makeStyles((theme) => ({
     cursor: 'pointer',
   },
   errorText: {
-    color: theme.palette.error.main,
+    color: theme.palette.error.light,
   },
 }));
 

@@ -22,6 +22,7 @@ import {LP_START, LP_END} from './actionTypes';
 import {ShotIdentifiers, ApiStatuses} from '../Constants';
 import {LivePreviewConstants} from './Constants';
 import Application from '../config/application';
+import {getShotName} from '../common';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -71,9 +72,7 @@ const SHOT_ID_TMPL = '##ID##';
 const OFFLINE_MSG = "You're offline, waiting for network...";
 
 // !! TODO: for now even when fullscreen, there are close and exit button that
-// take up top space, ideally i should've just hid them on fullscreen and show
-// a snackbar like 'hit esc to exit full screen', but for now keeping it this
-// way. Will think about it in future.
+// take up top space, change this to buttons over image just like in shotsviewer
 const LivePreview = ({closeHandler}) => {
   const dispatch = useContext(IdeDispatchContext);
   const build = useContext(IdeBuildContext);
@@ -89,7 +88,11 @@ const LivePreview = ({closeHandler}) => {
   const classes = useStyles();
 
   const shotNameTemplate = useMemo(() => {
-    return `${livePreview.sessionId}-${livePreview.buildKey}-${SHOT_ID_TMPL}.png`;
+    return getShotName(
+      livePreview.sessionId,
+      livePreview.buildKey,
+      SHOT_ID_TMPL
+    );
   }, [livePreview.buildKey, livePreview.sessionId]);
 
   const getShotIdFromName = useCallback((shotName) => {
@@ -232,7 +235,7 @@ const LivePreview = ({closeHandler}) => {
       // filter them out in console, tell this to user. Currently we're relying
       // on this method only, and fix later if possible.
       let totalPollsNotFound = 0;
-      const show = async (stringShotId) => {
+      const show = (stringShotId) => {
         if (unmounted.current) {
           return;
         }

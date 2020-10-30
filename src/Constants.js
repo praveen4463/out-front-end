@@ -41,6 +41,13 @@ export const ApiStatuses = {
   STOPPING: 'STOPPING',
 };
 
+export const SampleApiError = {
+  status: ApiStatuses.FAILURE,
+  error: {
+    reason: 'Unexpected server error',
+  },
+};
+
 export const TestStatus = {
   RUNNING: 'RUNNING',
   ERROR: 'ERROR',

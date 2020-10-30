@@ -89,4 +89,31 @@ function ParseRun(
   this[immerable] = true;
 }
 
-export {BuildRun, BuildRunVersion, DryRun, DryRunVersion, ParseRun};
+function CompletedBuild(
+  buildId,
+  completedAt,
+  timeTaken,
+  status,
+  success,
+  error,
+  stopped,
+  aborted
+) {
+  this.buildId = buildId;
+  this.completedAt = completedAt;
+  this.timeTaken = timeTaken;
+  this.status = status;
+  this.success = success;
+  this.error = error;
+  this.stopped = stopped;
+  this.aborted = aborted;
+}
+
+export {
+  BuildRun,
+  BuildRunVersion,
+  DryRun,
+  DryRunVersion,
+  ParseRun,
+  CompletedBuild,
+};

@@ -99,6 +99,7 @@ import {
   versionsHaveLastParseStatus,
 } from './common';
 import './index.css';
+import {CompletedBuild} from './model';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -150,7 +151,7 @@ const initialState = {
     buildKey: null,
     sessionId: null,
   },
-  completedBuilds: [],
+  completedBuilds: [new CompletedBuild()], // array of CompletedBuild instance
   dry: {
     runOngoing: false,
     stopping: false,
@@ -387,7 +388,7 @@ const Ide = () => {
   );
 
   useEffect(() => {
-    if (!state.build.createNew) {
+    if (!state.build.createNew || state.build.openBuildConfig) {
       return;
     }
     if (
@@ -416,6 +417,7 @@ const Ide = () => {
     state.config.build.openLessOften,
     state.build.noBuildConfigIfValid,
     state.config.build.selectedVersions,
+    state.build.openBuildConfig,
   ]);
 
   const checkTestProgress = useCallback(() => {
@@ -449,7 +451,7 @@ const Ide = () => {
             {type: RUN_BUILD_ON_COMPLETED},
             {
               type: PUSH_COMPLETED_BUILDS,
-              payload: {buildId: buildIdRef.current},
+              payload: {runId: state.build.runId, buildId: buildIdRef.current},
             },
           ])
         );
@@ -517,7 +519,7 @@ const Ide = () => {
               {
                 type: RUN_BUILD_COMPLETE_ON_ERROR,
                 payload: {
-                  error: `Couldn't fetch test status, ${response.error.reason}. Try rerunning in sometime.`,
+                  error: `There was a problem during build, ${response.error.reason}. Try rerunning in sometime.`,
                 },
               },
             ])
@@ -535,7 +537,10 @@ const Ide = () => {
       setTimeout(() => {
         // send build.buildId, buildRunVersion.versionId, and
         // buildRunVersion.nextOutputToken (if not null)
-        // to api for build status and output
+        // to api for build status and output. Api will create nextOutputToken
+        // using date and append it to the params received. So the date of
+        // last returned record is kept in condition of token and when token is
+        // received, we fetch records post that date that.
         let whichResponse = random(1, 9);
         // enable following for checking api error situation.
         // let whichResponse = random(1, 10);
@@ -630,7 +635,7 @@ const Ide = () => {
       }, 2000);
       pendingTestProgressApiResponse = true;
     }, TestProgress.POLL_TIME);
-  }, []);
+  }, [state.build.runId]);
 
   // Don't start new session if there is any version being saved, so that we wait
   // until all code is saved and have updated their lastRun state that is then

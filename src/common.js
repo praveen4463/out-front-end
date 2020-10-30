@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import {Os, Browsers, Platforms} from './Constants';
+import {Os, Browsers, Platforms, ApiStatuses} from './Constants';
 import chrome from './icons/chrome.png';
 import firefox from './icons/firefox.png';
 import ie from './icons/ie.png';
@@ -99,4 +99,28 @@ export const getNoOfLines = (text) => {
     return 1;
   }
   return lines.length + 1; // the last line doesn't have a new line char so adding that
+};
+
+export const invokeOnApiCompletion = (response, onSuccess, onError) => {
+  if (response.status === ApiStatuses.SUCCESS) {
+    onSuccess(response);
+  } else if (response.status === ApiStatuses.FAILURE) {
+    onError(response);
+  }
+};
+
+export const getShotName = (sessionId, buildKey, id) => {
+  return `${sessionId}-${buildKey}-${id}.png`;
+};
+
+export const getShotNameParts = (shotName) => {
+  const lastHyphenAt = shotName.lastIndexOf('-');
+  const secondLastHyphenAt = shotName.lastIndexOf('-', lastHyphenAt - 1);
+  const sessionId = shotName.substring(0, secondLastHyphenAt);
+  const buildKey = shotName.substring(secondLastHyphenAt + 1, lastHyphenAt);
+  const shotId = shotName.substring(
+    lastHyphenAt + 1,
+    shotName.lastIndexOf('.')
+  );
+  return [sessionId, buildKey, shotId];
 };
