@@ -89,24 +89,40 @@ function ParseRun(
   this[immerable] = true;
 }
 
+function CompletedBuildVersion(
+  versionId,
+  status,
+  timeTaken,
+  error,
+  output,
+  fileName,
+  testName,
+  versionName
+) {
+  this.versionId = versionId;
+  this.status = status;
+  this.timeTaken = timeTaken;
+  this.error = error;
+  this.output = output;
+  this.fileName = fileName;
+  this.testName = testName;
+  this.versionName = versionName;
+
+  this[immerable] = true;
+}
+
 function CompletedBuild(
   buildId,
   completedAt,
-  timeTaken,
-  status,
-  success,
-  error,
-  stopped,
-  aborted
+  completedBuildVersions,
+  versionIds
 ) {
   this.buildId = buildId;
   this.completedAt = completedAt;
-  this.timeTaken = timeTaken;
-  this.status = status;
-  this.success = success;
-  this.error = error;
-  this.stopped = stopped;
-  this.aborted = aborted;
+  this.completedBuildVersions = completedBuildVersions; // object of shape {versionId: CompletedBuildVersion, ...}
+  this.versionIds = versionIds;
+
+  this[immerable] = true;
 }
 
 export {
@@ -115,5 +131,6 @@ export {
   DryRun,
   DryRunVersion,
   ParseRun,
+  CompletedBuildVersion,
   CompletedBuild,
 };

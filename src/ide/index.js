@@ -99,7 +99,6 @@ import {
   versionsHaveLastParseStatus,
 } from './common';
 import './index.css';
-import {CompletedBuild} from './model';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -151,7 +150,7 @@ const initialState = {
     buildKey: null,
     sessionId: null,
   },
-  completedBuilds: [new CompletedBuild()], // array of CompletedBuild instance
+  completedBuilds: [], // array of CompletedBuild instance
   dry: {
     runOngoing: false,
     stopping: false,

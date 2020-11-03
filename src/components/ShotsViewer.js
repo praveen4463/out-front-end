@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
@@ -17,8 +17,14 @@ import GetAppIcon from '@material-ui/icons/GetApp';
 import ReplayIcon from '@material-ui/icons/Replay';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
+import {useHotkeys} from 'react-hotkeys-hook';
 import {ApiStatuses} from '../Constants';
-import {invokeOnApiCompletion, getShotNameParts, getShotName} from '../common';
+import {
+  invokeOnApiCompletion,
+  getShotNameParts,
+  getShotName,
+  getVersionNamePath,
+} from '../common';
 import Application from '../config/application';
 import './no-spin-box.css';
 
@@ -28,7 +34,6 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: '#fff',
     color: '#000',
     overflow: 'hidden',
-    border: '1px solid #000',
   },
   fullScreen: {
     position: 'fixed',
@@ -125,6 +130,13 @@ const useStyles = makeStyles((theme) => ({
   msg: {
     color: '#000',
   },
+  showRunDetails: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: 600,
+  },
+  marginL16: {
+    marginLeft: theme.spacing(2),
+  },
 }));
 
 const Speeds = {
@@ -155,7 +167,14 @@ const DEFAULT_SPEED = Speeds['1x'];
 */
 // !! remove below ignore statement once api is there and buildId is used.
 // eslint-disable-next-line no-unused-vars
-const ShotsViewer = ({buildId, shotBucket, versionId}) => {
+const ShotsViewer = ({
+  buildId,
+  shotBucket,
+  versionId,
+  fileName,
+  testName,
+  versionName,
+}) => {
   const [fullScreen, setFullScreen] = useState(false);
   const [msg, setMsg] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
@@ -278,6 +297,9 @@ const ShotsViewer = ({buildId, shotBucket, versionId}) => {
   // this effect can run on changes in autoPlay.
   useEffect(() => {
     const startPlay = () => {
+      if (unmountedRef.current) {
+        return;
+      }
       if (indexRef.current === total) {
         setAutoPlay(false);
         return;
@@ -353,16 +375,38 @@ const ShotsViewer = ({buildId, shotBucket, versionId}) => {
     setFullScreen((f) => !f);
   };
 
-  const handleNextIndex = () => {
+  const handleNextIndex = useCallback(() => {
     if (index < total) {
       setIndex((i) => i + 1);
     }
-  };
+  }, [index, total]);
 
-  const handlePreviousIndex = () => {
+  const handlePreviousIndex = useCallback(() => {
     if (index > 1) {
       setIndex((i) => i - 1);
     }
+  }, [index]);
+
+  useHotkeys('right', handleNextIndex, {}, [handleNextIndex]);
+  useHotkeys('left', handlePreviousIndex, {}, [handlePreviousIndex]);
+
+  const showRunDetails = () => {
+    return (
+      <Box flex={1} display="flex" alignItems="center" px={1}>
+        {fullScreen ? (
+          <Typography variant="body2" className={classes.showRunDetails}>
+            {`# ${buildId}`}
+          </Typography>
+        ) : null}
+        {fullScreen && versionId ? (
+          <Typography
+            variant="body2"
+            className={clsx(classes.showRunDetails, classes.marginL16)}>
+            {getVersionNamePath(fileName, testName, versionName)}
+          </Typography>
+        ) : null}
+      </Box>
+    );
   };
 
   return (
@@ -451,7 +495,7 @@ const ShotsViewer = ({buildId, shotBucket, versionId}) => {
                 <PauseIcon fontSize="small" className={classes.icon} />
               </IconButton>
             ) : null}
-            <Box flex={1} />
+            {showRunDetails()}
             <Box
               className={classes.indexBoxContainer}
               display="flex"
@@ -506,7 +550,7 @@ const ShotsViewer = ({buildId, shotBucket, versionId}) => {
             ) : null}
           </>
         ) : null}
-        {!imageSrc ? <Box flex={1} /> : null}
+        {!imageSrc ? showRunDetails() : null}
         {!fullScreen ? (
           <IconButton
             aria-label="Full Screen"
@@ -536,10 +580,16 @@ ShotsViewer.propTypes = {
   buildId: PropTypes.number.isRequired,
   shotBucket: PropTypes.string.isRequired,
   versionId: PropTypes.number,
+  fileName: PropTypes.string,
+  testName: PropTypes.string,
+  versionName: PropTypes.string,
 };
 
 ShotsViewer.defaultProps = {
   versionId: null,
+  fileName: null,
+  testName: null,
+  versionName: null,
 };
 
 export default ShotsViewer;

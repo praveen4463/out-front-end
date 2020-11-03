@@ -10,8 +10,8 @@ import {
 } from '../actionTypes';
 import getDeepClonedFiles from './common';
 import {LastRunError, LastRun} from '../Explorer/model';
-import {CompletedBuild} from '../model';
-import {RunType, TestStatus} from '../../Constants';
+import {CompletedBuild, CompletedBuildVersion} from '../model';
+import {RunType} from '../../Constants';
 
 // !!if no reference if kept to the files sent via payload, there is no need to
 // deep clone files, remove it once we're using api to load data.
@@ -89,10 +89,6 @@ const clearVersionLastRun = (draft, payload) => {
   }
 };
 
-const getTotalBuildRunVersionsPerStatus = (buildRunVersionsArray, status) => {
-  return buildRunVersionsArray.filter((brv) => brv.status === status).length;
-};
-
 const pushCompletedBuilds = (draft, payload) => {
   if (payload.runId === undefined || payload.buildId === undefined) {
     throw new Error('Insufficient arguments passed to pushCompletedBuilds.');
@@ -104,49 +100,32 @@ const pushCompletedBuilds = (draft, payload) => {
       'Expected current buildRun to contain details of most recent completed build'
     );
   }
-  const totalTime = versionIds.reduce(
-    (total, vid) => total + buildRunVersions[vid].timeTaken ?? 0,
-    0
-  );
-  let buildStatus;
-  const buildRunVersionsArray = Object.values(buildRunVersions);
-  const success = getTotalBuildRunVersionsPerStatus(
-    buildRunVersionsArray,
-    TestStatus.SUCCESS
-  );
-  const error = getTotalBuildRunVersionsPerStatus(
-    buildRunVersionsArray,
-    TestStatus.ERROR
-  );
-  const stopped = getTotalBuildRunVersionsPerStatus(
-    buildRunVersionsArray,
-    TestStatus.STOPPED
-  );
-  const aborted = getTotalBuildRunVersionsPerStatus(
-    buildRunVersionsArray,
-    TestStatus.ABORTED
-  );
-  if (success === buildRunVersionsArray.length) {
-    buildStatus = TestStatus.SUCCESS;
-  } else if (error) {
-    buildStatus = TestStatus.ERROR;
-  } else if (stopped) {
-    buildStatus = TestStatus.STOPPED;
-  } else if (aborted) {
-    buildStatus = TestStatus.ABORTED;
-  } else {
-    throw new Error("Couldn't get a status");
-  }
-
+  const et = draft.files.entities;
+  const completedBuildVersions = {};
+  versionIds.forEach((vid) => {
+    const version = et.versions[vid];
+    const test = et.tests[version.testId];
+    const file = et.files[test.fileId];
+    const brv = buildRunVersions[vid];
+    // keep names of file, test etc cause they may be deleted after a build is done
+    // and we still have to show them.
+    const cbv = new CompletedBuildVersion(
+      vid,
+      brv.status,
+      brv.timeTaken,
+      brv.error,
+      brv.output,
+      file.name,
+      test.name,
+      version.name
+    );
+    completedBuildVersions[vid] = cbv;
+  });
   const completedBuild = new CompletedBuild(
     payload.buildId,
     Date.now(),
-    totalTime,
-    buildStatus,
-    success,
-    error,
-    stopped,
-    aborted
+    completedBuildVersions,
+    versionIds
   );
   completedBuilds.push(completedBuild);
 };

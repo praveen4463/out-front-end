@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useContext} from 'react';
+import React, {useState, useEffect, useContext, useCallback} from 'react';
 import IconButton from '@material-ui/core/IconButton';
 import EditIcon from '@material-ui/icons/Edit';
 import Menu from '@material-ui/core/Menu';
@@ -12,6 +12,7 @@ import CloseIcon from '@material-ui/icons/Close';
 import Typography from '@material-ui/core/Typography';
 import {makeStyles} from '@material-ui/core/styles';
 import Slide from '@material-ui/core/Slide';
+import {useHotkeys} from 'react-hotkeys-hook';
 import Tooltip from '../TooltipCustom';
 import BuildConfig from '../Screens/BuildConfig';
 import DryConfig from './Screens/DryConfig';
@@ -106,7 +107,7 @@ const EditMenu = ({editIconClasses, openBuildConfig}) => {
     );
   };
 
-  const handleClickBuildCaps = () => {
+  const handleClickBuildCaps = useCallback(() => {
     setState(
       new EditMenuState(
         null,
@@ -116,9 +117,9 @@ const EditMenu = ({editIconClasses, openBuildConfig}) => {
         MenuItems.BUILD_CAPS
       )
     );
-  };
+  }, []);
 
-  const handleClickBuildConfig = () => {
+  const handleClickBuildConfig = useCallback(() => {
     setState(
       new EditMenuState(
         null,
@@ -128,9 +129,9 @@ const EditMenu = ({editIconClasses, openBuildConfig}) => {
         MenuItems.BUILD_CONFIG
       )
     );
-  };
+  }, []);
 
-  const handleClickDryConfig = () => {
+  const handleClickDryConfig = useCallback(() => {
     setState(
       new EditMenuState(
         null,
@@ -140,9 +141,9 @@ const EditMenu = ({editIconClasses, openBuildConfig}) => {
         MenuItems.DRY_CONFIG
       )
     );
-  };
+  }, []);
 
-  const handleClickGlobalVarEdit = () => {
+  const handleClickGlobalVarEdit = useCallback(() => {
     setState(
       new EditMenuState(
         null,
@@ -152,9 +153,9 @@ const EditMenu = ({editIconClasses, openBuildConfig}) => {
         MenuItems.GLOBAL_VAR
       )
     );
-  };
+  }, []);
 
-  const handleClickBuildVarEdit = () => {
+  const handleClickBuildVarEdit = useCallback(() => {
     setState(
       new EditMenuState(
         null,
@@ -164,7 +165,15 @@ const EditMenu = ({editIconClasses, openBuildConfig}) => {
         MenuItems.BUILD_VAR
       )
     );
-  };
+  }, []);
+
+  useHotkeys('shift+a', handleClickBuildCaps, {}, [handleClickBuildCaps]);
+  useHotkeys('shift+c', handleClickBuildConfig, {}, [handleClickBuildConfig]);
+  useHotkeys('shift+d', handleClickDryConfig, {}, [handleClickDryConfig]);
+  useHotkeys('shift+g', handleClickGlobalVarEdit, {}, [
+    handleClickGlobalVarEdit,
+  ]);
+  useHotkeys('shift+b', handleClickBuildVarEdit, {}, [handleClickBuildVarEdit]);
 
   const closeDialog = () => {
     setState(new EditMenuState());
@@ -216,7 +225,7 @@ const EditMenu = ({editIconClasses, openBuildConfig}) => {
     if (openBuildConfig) {
       handleClickBuildConfig();
     }
-  }, [openBuildConfig, state.menuItem]);
+  }, [openBuildConfig, state.menuItem, handleClickBuildConfig]);
 
   return (
     <>
@@ -248,13 +257,19 @@ const EditMenu = ({editIconClasses, openBuildConfig}) => {
           vertical: 'top',
           horizontal: 'left',
         }}>
-        <MenuItem onClick={handleClickBuildCaps}>Build Capabilities</MenuItem>
+        <MenuItem onClick={handleClickBuildCaps}>
+          Build Capabilities ⇧A
+        </MenuItem>
         <Divider variant="middle" component="li" />
-        <MenuItem onClick={handleClickBuildConfig}>Build Config</MenuItem>
-        <MenuItem onClick={handleClickDryConfig}>Dry Run Config</MenuItem>
+        <MenuItem onClick={handleClickBuildConfig}>Build Config ⇧C</MenuItem>
+        <MenuItem onClick={handleClickDryConfig}>Dry Run Config ⇧D</MenuItem>
         <Divider variant="middle" component="li" />
-        <MenuItem onClick={handleClickGlobalVarEdit}>Global Variables</MenuItem>
-        <MenuItem onClick={handleClickBuildVarEdit}>Build Variables</MenuItem>
+        <MenuItem onClick={handleClickGlobalVarEdit}>
+          Global Variables ⇧G
+        </MenuItem>
+        <MenuItem onClick={handleClickBuildVarEdit}>
+          Build Variables ⇧B
+        </MenuItem>
       </Menu>
       <Dialog
         TransitionComponent={Transition}

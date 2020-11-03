@@ -51,7 +51,10 @@ const Content = () => {
   }, []);
 
   const getRightPaneDefaultCssWidth = () => {
-    if (rightNavActiveIcon === RightNavs.LIVE_PREVIEW) {
+    if (
+      rightNavActiveIcon === RightNavs.LIVE_PREVIEW ||
+      rightNavActiveIcon === RightNavs.COMPLETED_BUILDS
+    ) {
       return '100%';
     }
     return '40%';
@@ -61,11 +64,11 @@ const Content = () => {
     if (rightNavActiveIcon === None) {
       return 0;
     }
-    if (rightNavActiveIcon === RightNavs.LIVE_PREVIEW) {
+    if (
+      rightNavActiveIcon === RightNavs.LIVE_PREVIEW ||
+      rightNavActiveIcon === RightNavs.COMPLETED_BUILDS
+    ) {
       return '50%';
-    }
-    if (rightNavActiveIcon === RightNavs.COMPLETED_BUILDS) {
-      return '40%';
     }
     return '25%';
   };

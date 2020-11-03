@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import {Os, Browsers, Platforms, ApiStatuses} from './Constants';
+import {Os, Browsers, Platforms, ApiStatuses, TestStatus} from './Constants';
 import chrome from './icons/chrome.png';
 import firefox from './icons/firefox.png';
 import ie from './icons/ie.png';
@@ -124,3 +124,23 @@ export const getShotNameParts = (shotName) => {
   );
   return [sessionId, buildKey, shotId];
 };
+
+export const getTestStatusDisplayName = (testStatus) => {
+  switch (testStatus) {
+    case TestStatus.RUNNING:
+      return 'Running';
+    case TestStatus.SUCCESS:
+      return 'Passed';
+    case TestStatus.ERROR:
+      return 'Failed';
+    case TestStatus.ABORTED:
+      return 'Aborted';
+    case TestStatus.STOPPED:
+      return 'Stopped';
+    default:
+      throw new Error(`Unrecognized status ${testStatus}`);
+  }
+};
+
+export const getVersionNamePath = (fileName, testName, versionName) =>
+  `${fileName} > ${testName} > ${versionName}`;

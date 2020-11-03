@@ -51,6 +51,7 @@ import {
   versionsHaveLastParseStatus,
   getVersionsNoParseStatus,
   fillLastParseStatusAndGetFailed,
+  convertMillisIntoTimeText,
 } from './common';
 
 const useStyles = makeStyles((theme) => ({
@@ -827,35 +828,6 @@ const BuildRun = ({closeHandler}) => {
     },
     [getIconPerStatus, getStatusByType, getVersionIconRunningStatus]
   );
-
-  const convertMillisIntoTimeText = (millis) => {
-    if (millis < 1000) {
-      return `${millis} ms`;
-    }
-    const d = new Date(70, 0, 1, 0, 0, 0, millis);
-    const text = [];
-    const days = d.getDate() - 1;
-    const hours = d.getHours();
-    const mins = d.getMinutes();
-    const secs = d.getSeconds();
-    const ms = d.getMilliseconds();
-    if (days > 0) {
-      text.push(`${days} d`);
-    }
-    if (hours > 0) {
-      text.push(`${hours} h`);
-    }
-    if (mins > 0) {
-      text.push(`${mins} m`);
-    }
-    if (secs > 0) {
-      text.push(`${secs} s`);
-    }
-    if (ms > 0) {
-      text.push(`${ms} ms`);
-    }
-    return text.join(' ');
-  };
 
   const getTimeSpentText = useCallback(
     (itemType, itemId) => {

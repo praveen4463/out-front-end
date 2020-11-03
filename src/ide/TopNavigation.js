@@ -1,4 +1,4 @@
-import React, {useContext} from 'react';
+import React, {useContext, useMemo, useCallback} from 'react';
 import AppBar from '@material-ui/core/AppBar';
 import ToolBar from '@material-ui/core/Toolbar';
 import IconButton from '@material-ui/core/IconButton';
@@ -8,6 +8,7 @@ import BuildIcon from '@material-ui/icons/Build';
 import StopIcon from '@material-ui/icons/Stop';
 import Box from '@material-ui/core/Box';
 import {makeStyles} from '@material-ui/core/styles';
+import {useHotkeys} from 'react-hotkeys-hook';
 import MainMenu from './MainMenu';
 import EditMenu from './EditMenu';
 import HelpMenu from './HelpMenu';
@@ -55,13 +56,29 @@ const TopNavigation = () => {
   const parse = useContext(IdeParseContext);
   const classes = useStyles();
 
-  const handleBuild = () => {
+  const runButtonsDisabled = useMemo(
+    () => build.runOngoing || dry.runOngoing || parse.runOngoing,
+    [build.runOngoing, dry.runOngoing, parse.runOngoing]
+  );
+
+  const stopDisabled = useMemo(() => build.stopping || dry.stopping, [
+    build.stopping,
+    dry.stopping,
+  ]);
+
+  const handleBuild = useCallback(() => {
+    if (runButtonsDisabled) {
+      return;
+    }
     dispatch({
       type: BUILD_NEW_RUN,
     });
-  };
+  }, [dispatch, runButtonsDisabled]);
 
-  const handleDry = () => {
+  const handleDry = useCallback(() => {
+    if (runButtonsDisabled) {
+      return;
+    }
     dispatch({
       type: DRY_START_RUN,
       payload: {
@@ -71,9 +88,12 @@ const TopNavigation = () => {
         ),
       },
     });
-  };
+  }, [dispatch, files, runButtonsDisabled]);
 
-  const handleParse = () => {
+  const handleParse = useCallback(() => {
+    if (runButtonsDisabled) {
+      return;
+    }
     dispatch({
       type: PARSE_START_RUN,
       payload: {
@@ -83,23 +103,23 @@ const TopNavigation = () => {
         ),
       },
     });
-  };
+  }, [dispatch, files, runButtonsDisabled]);
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
+    if (stopDisabled) {
+      return;
+    }
     if (build.runOngoing) {
       dispatch(getBuildStoppingAction(true));
     } else if (dry.runOngoing) {
       dispatch(getDryStoppingAction(true));
     }
-  };
+  }, [build.runOngoing, dispatch, dry.runOngoing, stopDisabled]);
 
-  const runButtonsDisabled = () => {
-    return build.runOngoing || dry.runOngoing || parse.runOngoing;
-  };
-
-  const stopDisabled = () => {
-    return build.stopping || dry.stopping;
-  };
+  useHotkeys('b', handleBuild, {}, [handleBuild]);
+  useHotkeys('p', handleParse, {}, [handleParse]);
+  useHotkeys('d', handleDry, {}, [handleDry]);
+  useHotkeys('ctrl+c', handleStop, {}, [handleStop]);
 
   return (
     <AppBar classes={{root: classes.appBarRoot}}>
@@ -126,10 +146,10 @@ const TopNavigation = () => {
         <div>
           <MainMenu />
         </div>
-        <Tooltip title="Run Build R">
+        <Tooltip title="Run Build B">
           <IconButton
             aria-label="Run Build"
-            disabled={runButtonsDisabled()}
+            disabled={runButtonsDisabled}
             color="primary"
             onClick={handleBuild}>
             <PlayArrowIcon fontSize="small" />
@@ -138,7 +158,7 @@ const TopNavigation = () => {
         <Tooltip title="Parse All P">
           <IconButton
             aria-label="Parse"
-            disabled={runButtonsDisabled()}
+            disabled={runButtonsDisabled}
             color="primary"
             onClick={handleParse}>
             <BuildIcon
@@ -147,10 +167,10 @@ const TopNavigation = () => {
             />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Dry Run All ⇧D">
+        <Tooltip title="Dry Run All D">
           <IconButton
             aria-label="Dry Run"
-            disabled={runButtonsDisabled()}
+            disabled={runButtonsDisabled}
             color="primary"
             onClick={handleDry}>
             <CheckCircleIcon
@@ -172,10 +192,10 @@ const TopNavigation = () => {
           <Tooltip title="Stop ^C">
             <IconButton
               aria-label="Stop"
-              disabled={stopDisabled()}
+              disabled={stopDisabled}
               onClick={handleStop}>
               <StopIcon
-                color={stopDisabled() ? 'disabled' : 'error'}
+                color={stopDisabled ? 'disabled' : 'error'}
                 fontSize="small"
               />
             </IconButton>
