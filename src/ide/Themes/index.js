@@ -115,11 +115,6 @@ const darkTheme = createMuiTheme({
         fontSize: '0.875rem',
       },
     },
-    MuiButton: {
-      root: {
-        textTransform: 'unset',
-      },
-    },
   },
 });
 

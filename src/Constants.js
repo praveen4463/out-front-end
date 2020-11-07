@@ -41,13 +41,6 @@ export const ApiStatuses = {
   STOPPING: 'STOPPING',
 };
 
-export const SampleApiError = {
-  status: ApiStatuses.FAILURE,
-  error: {
-    reason: 'Unexpected server error',
-  },
-};
-
 export const TestStatus = {
   RUNNING: 'RUNNING',
   ERROR: 'ERROR',
@@ -285,6 +278,8 @@ export const BuildConfigInfo = {
 export const MaxLengths = {
   BUILD_CAPS_NAME: 200,
   BUILD_CAPS_TIMEOUT: 3600000,
+  UPLOAD_SIZE_MB: 100,
+  GCP_OBJECT_NAME: 500,
 };
 
 export const BuildCapsTimeouts = {
@@ -334,3 +329,10 @@ export const ShotIdentifiers = {
   EOS: 'EOS',
   ERROR: 'ERROR',
 };
+
+export const ASSET_UPLOAD_IN_PROGRESS_ERROR =
+  'Assets upload is still in progress, please try in sometime.';
+export const MB_BYTES = 1048576; // (1 KB = 1024 bytes, 1MB = 1024 KB) https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file
+export const GCP_OBJECT_NAME_REGEX = /[\\/\s*[\]?#]|^\.$|^\.\.$/;
+export const GCP_OBJECT_NAME_ILLEGAL_CHARS_STRING =
+  '\\, /, Whitespace, *, [, ], ?, #, Dot-As-File-Name, Two-Dots-As-File-Name';

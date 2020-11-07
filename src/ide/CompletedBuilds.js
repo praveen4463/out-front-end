@@ -395,7 +395,9 @@ const CompletedBuilds = ({closeHandler}) => {
   useEffect(() => {
     if (
       !expandedBuildId ||
-      buildDetailsBuildIdRef.current === expandedBuildId
+      buildDetailsBuildIdRef.current === expandedBuildId // when buildDetails is an error, it doesn't
+      // contain a buildId thus never match expandedBuildId when it's closed and reopened. This is intended
+      // so that when error occurs we can reattempt on every close and reopen.
     ) {
       return;
     }
@@ -423,6 +425,11 @@ const CompletedBuilds = ({closeHandler}) => {
       setCurrentBuildDetail(error);
     };
     // send api request to get build details, give expandedBuildId.
+    // !!! if allDoneTime of build is not yet set, api sends assets upload error.
+    // This is same for logs and elem shots api calls in this module but when we stop user at
+    // build details expand time, user can't touch anything that's not uploaded yet.
+    // It's important to stop user as we can't decide whether some log exist before
+    // upload fully done.
     setTimeout(() => {
       const response = {
         status: ApiStatuses.SUCCESS,
@@ -439,6 +446,7 @@ const CompletedBuilds = ({closeHandler}) => {
           shotBucket: 'zl-session-assets-mum',
         },
       };
+      // const response = getApiError(ASSET_UPLOAD_IN_PROGRESS_ERROR);
       invokeOnApiCompletion(response, onSuccess, onError);
     }, 1000);
     setCurrentBuildDetail(null);
@@ -700,6 +708,7 @@ const CompletedBuilds = ({closeHandler}) => {
 It's a chrome driver`,
         },
       };
+      // const response = getApiError(ASSET_UPLOAD_IN_PROGRESS_ERROR);
       invokeOnApiCompletion(response, onSuccess, onError);
     }, 1000);
     setDlgState(getLoader());
@@ -765,6 +774,7 @@ It's a chrome driver`,
           ],
         },
       };
+      // const response = getApiError(ASSET_UPLOAD_IN_PROGRESS_ERROR);
       invokeOnApiCompletion(response, onSuccess, onError);
     }, 1000);
     setDlgState(getLoader());
@@ -908,6 +918,7 @@ It's a chrome driver`,
           [BuildCapsFields.SM]: true,
         },
       };
+      // const response = getApiError('Network error');
       invokeOnApiCompletion(response, onSuccess, onError);
     }, 1000);
     setDlgState(getLoader());
@@ -953,6 +964,7 @@ It's a chrome driver`,
           },
         },
       };
+      // const response = getApiError('Network error');
       invokeOnApiCompletion(response, onSuccess, onError);
     }, 1000);
     setDlgState(getLoader());
@@ -1024,6 +1036,7 @@ It's a chrome driver`,
           [BuildConfigFields.ADAC]: true,
         },
       };
+      // const response = getApiError('Network error');
       invokeOnApiCompletion(response, onSuccess, onError);
     }, 1000);
     setDlgState(getLoader());
@@ -1466,9 +1479,12 @@ It's a chrome driver`,
                         </Box>
                       </Box>
                     ) : null}
-                    {currentBuildDetail && currentBuildDetail instanceof Error
-                      ? getErrorTypeMsg(currentBuildDetail.message)
-                      : null}
+                    {currentBuildDetail &&
+                    currentBuildDetail instanceof Error ? (
+                      <Box display="flex" justifyContent="center">
+                        {getErrorTypeMsg(currentBuildDetail.message)}
+                      </Box>
+                    ) : null}
                     {!currentBuildDetail && loadingBuildId === c.buildId ? (
                       <Box display="flex" justifyContent="space-evenly">
                         {[1, 2, 3].map((k) => getLoader(k))}

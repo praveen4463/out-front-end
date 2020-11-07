@@ -24,6 +24,7 @@ Cookies.set(
   Application.SESSION_ASSET_BUCKET_NAME_COOKIE,
   'zl-session-assets-mum'
 );
+Cookies.set(Application.USER_NAME_COOKIE, 'Zylitics Admin');
 
 // TODO: implement onReset error boundary
 ReactDOM.render(

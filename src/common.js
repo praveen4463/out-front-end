@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import {truncate} from 'lodash-es';
 import {Os, Browsers, Platforms, ApiStatuses, TestStatus} from './Constants';
 import chrome from './icons/chrome.png';
 import firefox from './icons/firefox.png';
@@ -109,6 +110,15 @@ export const invokeOnApiCompletion = (response, onSuccess, onError) => {
   }
 };
 
+export const getApiError = (error) => {
+  return {
+    status: ApiStatuses.FAILURE,
+    error: {
+      reason: error,
+    },
+  };
+};
+
 export const getShotName = (sessionId, buildKey, id) => {
   return `${sessionId}-${buildKey}-${id}.png`;
 };
@@ -144,3 +154,23 @@ export const getTestStatusDisplayName = (testStatus) => {
 
 export const getVersionNamePath = (fileName, testName, versionName) =>
   `${fileName} > ${testName} > ${versionName}`;
+
+export const getTruncated = (value, length) => {
+  return truncate(value, {
+    length,
+  });
+};
+
+export const getShortCurrentMonthName = () => {
+  return new Intl.DateTimeFormat('en-US', {month: 'short'}).format(new Date());
+};
+
+export const getFileSizeInUnit = (size) => {
+  if (size < 1024) {
+    return `${size} bytes`;
+  }
+  if (size >= 1024 && size < 1048576) {
+    return `${(size / 1024).toFixed(1)}KB`;
+  }
+  return `${(size / 1048576).toFixed(1)}MB`;
+};

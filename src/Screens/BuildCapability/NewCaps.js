@@ -47,7 +47,6 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.background.contrastText,
   },
   button: {
-    fontWeight: 400,
     marginLeft: theme.spacing(1),
   },
   buttonSave: {

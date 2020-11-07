@@ -71,7 +71,10 @@ const LeftNavigation = (props) => {
       </Box>
       <Box flex={1} />
       <Box display="flex" justifyContent="center">
-        <Link href="/dashboard">
+        <Link
+          href="/dashboard"
+          aria-label="Go To Dashboard"
+          title="Go To Dashboard">
           <SvgIcon fontSize="small">
             {/* TODO: replace with our 24x24 logo */}
             <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />

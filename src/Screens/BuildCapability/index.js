@@ -75,10 +75,6 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.background.contrastText,
     padding: `${theme.spacing(0.5)}px ${theme.spacing(2)}px`,
   },
-  button: {
-    textTransform: 'unset',
-    fontWeight: 400,
-  },
   capsDetail: {
     flexDirection: 'column',
   },

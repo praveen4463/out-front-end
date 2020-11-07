@@ -1,10 +1,13 @@
 import React from 'react';
 import IconButton from '@material-ui/core/IconButton';
+import Link from '@material-ui/core/Link';
 import Avatar from '@material-ui/core/Avatar';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import {makeStyles} from '@material-ui/core/styles';
+import Cookies from 'js-cookie';
 import Tooltip from '../TooltipCustom';
+import Application from '../config/application';
 
 const useStyles = makeStyles((theme) => ({
   avatar: {
@@ -14,9 +17,12 @@ const useStyles = makeStyles((theme) => ({
     height: theme.spacing(3),
     fontSize: '1rem',
   },
+  link: {
+    color: theme.palette.background.contrastText,
+  },
 }));
 
-const UserAvatar = () => {
+const UserAvatar = React.memo(() => {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const classes = useStyles();
 
@@ -28,18 +34,29 @@ const UserAvatar = () => {
     setAnchorEl(null);
   };
 
+  const getUserName = () => {
+    const name = Cookies.get(Application.USER_NAME_COOKIE);
+    return name ?? 'Not Logged In';
+  };
+
+  const getFirstLetter = () => {
+    const name = Cookies.get(Application.USER_NAME_COOKIE);
+    if (name) {
+      return name.substring(0, 1).toUpperCase();
+    }
+    return 'U'; // user
+  };
+
   return (
     <>
-      {/* Remember to get it from prop dynamically */}
-      <Tooltip title="Praveen Tiwari (You)">
+      <Tooltip title={`${getUserName()} (You)`}>
         <IconButton
           aria-controls="userAvatar"
           aria-haspopup="true"
           aria-label="user avatar"
           edge="end"
           onClick={handleClick}>
-          {/* Remember to get it from prop dynamically */}
-          <Avatar className={classes.avatar}>P</Avatar>
+          <Avatar className={classes.avatar}>{getFirstLetter()}</Avatar>
         </IconButton>
       </Tooltip>
       <Menu
@@ -56,10 +73,17 @@ const UserAvatar = () => {
           vertical: 'top',
           horizontal: 'left',
         }}>
-        <MenuItem onClick={handleClose}>View Account Profile</MenuItem>
+        <MenuItem>
+          <Link
+            href="/profile"
+            aria-label="View Account Profile"
+            className={classes.link}>
+            View Account Profile
+          </Link>
+        </MenuItem>
       </Menu>
     </>
   );
-};
+});
 
 export default UserAvatar;

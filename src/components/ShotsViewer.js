@@ -48,6 +48,9 @@ const useStyles = makeStyles((theme) => ({
     margin: `0 ${theme.spacing(1.5)}px`,
     background: 'none',
   },
+  downloadLink: {
+    height: '20px',
+  },
   icon: {
     color: '#fff',
   },
@@ -244,6 +247,7 @@ const ShotsViewer = ({
     setTimeout(() => {
       // send api request to get total shots and firstShotName for given build
       // and versionId (if given). Total shots shouldn't include eos or error shot.
+      // !! if allDoneTime of build is not yet set, api sends assets upload error.
       const response = {
         status: ApiStatuses.SUCCESS,
         data: {
@@ -253,7 +257,7 @@ const ShotsViewer = ({
           }.png`,
         },
       };
-      // use SampleApiError constant for error response
+      // const response = getApiError(ASSET_UPLOAD_IN_PROGRESS_ERROR);
       invokeOnApiCompletion(response, onSuccess, onError);
     }, 500);
     setMsg('Loading...');
@@ -540,7 +544,7 @@ const ShotsViewer = ({
                 aria-label="Download current screenshot"
                 title="Download current screenshot"
                 color="inherit"
-                className={classes.iconButton}>
+                className={clsx(classes.iconButton, classes.downloadLink)}>
                 <GetAppIcon
                   fontSize="small"
                   className={classes.icon}
