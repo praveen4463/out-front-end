@@ -73,7 +73,7 @@ const getSortedFiles = (files) => {
   return files.sort((a, b) => a.name.localeCompare(b.name));
 };
 
-const ENDPOINT = '/api/testFiles';
+const ENDPOINT = '/testFiles';
 
 const Actions = ({file, onDelete, deleteDisabled}) => {
   const {name} = file;

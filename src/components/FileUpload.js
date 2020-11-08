@@ -1,4 +1,4 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import Button from '@material-ui/core/Button';
 import {makeStyles} from '@material-ui/core/styles';
 import LinearProgress from '@material-ui/core/LinearProgress';
@@ -44,12 +44,20 @@ const FileUpload = ({
   isDuplicateFile,
   onStart,
   onComplete,
+  getSuccessMsg,
+  // eslint-disable-next-line no-unused-vars
+  getErrorMsg,
+  setSetStatus,
 }) => {
   const [uploadProgress, setUploadProgress] = useState(null);
   const [status, setStatus] = useState(null);
   const selectedFileRef = useRef(null);
   const fileInputRef = useRef(null);
   const classes = useStyles();
+
+  useEffect(() => {
+    setSetStatus(setStatus);
+  }, [setSetStatus]);
 
   const handleUploadClick = () => {
     fileInputRef.current.click();
@@ -106,23 +114,23 @@ const FileUpload = ({
       .put(endpoint, data, config)
       .then(() => {
         setUploadProgress(null);
-        setStatus(new Status(`${file.name} uploaded!`, true));
+        setStatus(new Status(getSuccessMsg(file.name), true));
         onComplete(file);
       })
       .catch((err) => {
         setUploadProgress(null);
-        const errMsg = `Couldn't upload, ${err.message}`;
+        const errMsg = getErrorMsg(file.name, err.message);
         setStatus(new Status(errMsg));
         onComplete(null, errMsg);
       }); */
     const success = () => {
       setUploadProgress(null);
-      setStatus(new Status(`${file.name} uploaded!`, true));
+      setStatus(new Status(getSuccessMsg(file.name), true));
       onComplete(file);
     };
     /* const error = (err) => {
       setUploadProgress(null);
-      const errMsg = `Couldn't upload, ${err.message}`;
+      const errMsg = getErrorMsg(file.name, err.message);
       setStatus(new Status(errMsg));
       onComplete(null, errMsg);
     }; */
@@ -178,7 +186,7 @@ const FileUpload = ({
     if (!isValidSize(size)) {
       setStatus(
         new Status(
-          `Uploading that big file is currently not supported, maximum allowed size is ${MaxLengths.UPLOAD_SIZE_MB}MB`
+          `Files that big are not currently supported, maximum allowed size is ${MaxLengths.UPLOAD_SIZE_MB}MB`
         )
       );
       return;
@@ -203,9 +211,7 @@ const FileUpload = ({
             variant="contained"
             color="secondary"
             onClick={handleUploadClick}
-            disabled={
-              uploadProgress !== null || !isReady || !fileInputRef.current
-            }>
+            disabled={uploadProgress !== null || !isReady}>
             {uploadButtonText}
           </Button>
         </Box>
@@ -234,7 +240,7 @@ const FileUpload = ({
         id="file"
         name="file"
         accept={uniqueFileTypeSpecifiers.join(',')}
-        style={{opacity: 0}}
+        style={{display: 'none'}}
         ref={fileInputRef}
         onChange={handleFileChange}
       />
@@ -252,6 +258,9 @@ FileUpload.propTypes = {
   isDuplicateFile: PropTypes.func,
   onStart: PropTypes.func,
   onComplete: PropTypes.func,
+  getSuccessMsg: PropTypes.func,
+  getErrorMsg: PropTypes.func,
+  setSetStatus: PropTypes.func,
 };
 
 FileUpload.defaultProps = {
@@ -263,6 +272,9 @@ FileUpload.defaultProps = {
   isDuplicateFile: () => false,
   onStart: () => null,
   onComplete: () => null,
+  getSuccessMsg: (fileName) => `${fileName} uploaded`,
+  getErrorMsg: (fileName, error) => `Couldn't upload ${fileName}, ${error}`,
+  setSetStatus: () => null,
 };
 
 export default FileUpload;
