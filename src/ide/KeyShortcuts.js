@@ -51,6 +51,10 @@ const KeyShortcuts = () => {
         <Label>Dry run all files</Label>
       </Row>
       <Row>
+        <Key>ctrl c</Key>
+        <Label>Stop a run</Label>
+      </Row>
+      <Row>
         <Key>shift a</Key>
         <Label>Manage build capabilities</Label>
       </Row>

@@ -8,6 +8,7 @@ import {makeStyles} from '@material-ui/core/styles';
 import Cookies from 'js-cookie';
 import Tooltip from '../TooltipCustom';
 import Application from '../config/application';
+import {completeRelativeUrl} from '../common';
 
 const useStyles = makeStyles((theme) => ({
   avatar: {
@@ -75,7 +76,7 @@ const UserAvatar = React.memo(() => {
         }}>
         <MenuItem>
           <Link
-            href="/profile"
+            href={completeRelativeUrl('/profile')}
             aria-label="View Account Profile"
             className={classes.link}>
             View Account Profile

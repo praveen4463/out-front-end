@@ -10,6 +10,7 @@ import SvgIcon from '@material-ui/core/SvgIcon';
 import PropTypes from 'prop-types';
 import Tooltip from '../TooltipCustom';
 import {LeftNavs} from './Constants';
+import {completeRelativeUrl} from '../common';
 
 const useStyles = makeStyles((theme) => ({
   nav: {
@@ -72,7 +73,7 @@ const LeftNavigation = (props) => {
       <Box flex={1} />
       <Box display="flex" justifyContent="center">
         <Link
-          href="/dashboard"
+          href={completeRelativeUrl('/dashboard')}
           aria-label="Go To Dashboard"
           title="Go To Dashboard">
           <SvgIcon fontSize="small">

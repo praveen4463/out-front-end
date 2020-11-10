@@ -6,7 +6,6 @@ import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
 import Alert from '@material-ui/lab/Alert';
 import Collapse from '@material-ui/core/Collapse';
-import clsx from 'clsx';
 import FileUpload from './FileUpload';
 import {ApiStatuses} from '../Constants';
 import {invokeOnApiCompletion} from '../common';
@@ -141,7 +140,7 @@ const Issue = () => {
             variant="body2"
             component="label"
             htmlFor="description"
-            className={clsx(classes.label)}>
+            className={classes.label}>
             Description
           </Typography>
           <TextField

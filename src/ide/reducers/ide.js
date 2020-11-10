@@ -29,7 +29,6 @@ const setProject = (draft, payload) => {
   }
 
   draft.projectId = payload.projectId;
-  // TODO: we need to also reset other things like files/tabs.
 };
 
 const setVersionLastRun = (draft, payload) => {

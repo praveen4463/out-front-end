@@ -10,9 +10,11 @@ import Typography from '@material-ui/core/Typography';
 import Dialog from '@material-ui/core/Dialog';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import DialogContent from '@material-ui/core/DialogContent';
+import Link from '@material-ui/core/Link';
 import Slide from '@material-ui/core/Slide';
 import Tooltip from '../TooltipCustom';
 import TestFileManager from '../Screens/TestFileManager';
+import {completeRelativeUrl} from '../common';
 
 const useStyles = makeStyles((theme) => ({
   menuIcon: {
@@ -34,6 +36,9 @@ const useStyles = makeStyles((theme) => ({
     right: theme.spacing(1),
     top: theme.spacing(1),
     color: theme.palette.grey[500],
+  },
+  link: {
+    color: theme.palette.background.contrastText,
   },
 }));
 
@@ -89,12 +94,16 @@ const MainMenu = () => {
           vertical: 'top',
           horizontal: 'left',
         }}>
-        <MenuItem onClick={handleClose}>New File</MenuItem>
-        <MenuItem onClick={handleClose}>Open File(s)</MenuItem>
-        <Divider variant="middle" component="li" />
         <MenuItem onClick={handleUploadTestFile}>Upload Test File(s)</MenuItem>
         <Divider variant="middle" component="li" />
-        <MenuItem onClick={handleClose}>Exit IDE</MenuItem>
+        <MenuItem onClick={handleClose}>
+          <Link
+            href={completeRelativeUrl('/dashboard')}
+            aria-label="Exit IDE"
+            className={classes.link}>
+            Exit IDE
+          </Link>
+        </MenuItem>
       </Menu>
       <Dialog
         TransitionComponent={Transition}

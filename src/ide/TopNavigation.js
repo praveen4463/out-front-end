@@ -40,7 +40,7 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: theme.palette.background.navigations,
   },
   toolbarRoot: {
-    alignItems: 'stretch',
+    alignItems: 'center',
   },
   toolbarGutters: {
     paddingLeft: theme.spacing(1),
@@ -57,8 +57,14 @@ const TopNavigation = () => {
   const classes = useStyles();
 
   const runButtonsDisabled = useMemo(
-    () => build.runOngoing || dry.runOngoing || parse.runOngoing,
-    [build.runOngoing, dry.runOngoing, parse.runOngoing]
+    () =>
+      build.runOngoing ||
+      dry.runOngoing ||
+      parse.runOngoing ||
+      !files ||
+      !files.result.length ||
+      files.result.every((fid) => !files.entities.files[fid].loadToTree),
+    [build.runOngoing, dry.runOngoing, files, parse.runOngoing]
   );
 
   const stopDisabled = useMemo(() => build.stopping || dry.stopping, [
@@ -147,37 +153,43 @@ const TopNavigation = () => {
           <MainMenu />
         </div>
         <Tooltip title="Run Build B">
-          <IconButton
-            aria-label="Run Build"
-            disabled={runButtonsDisabled}
-            color="primary"
-            onClick={handleBuild}>
-            <PlayArrowIcon fontSize="small" />
-          </IconButton>
+          <span>
+            <IconButton
+              aria-label="Run Build"
+              disabled={runButtonsDisabled}
+              color="primary"
+              onClick={handleBuild}>
+              <PlayArrowIcon fontSize="small" />
+            </IconButton>
+          </span>
         </Tooltip>
         <Tooltip title="Parse All P">
-          <IconButton
-            aria-label="Parse"
-            disabled={runButtonsDisabled}
-            color="primary"
-            onClick={handleParse}>
-            <BuildIcon
-              fontSize="small"
-              classes={{fontSizeSmall: classes.fontSizeSmall}}
-            />
-          </IconButton>
+          <span>
+            <IconButton
+              aria-label="Parse"
+              disabled={runButtonsDisabled}
+              color="primary"
+              onClick={handleParse}>
+              <BuildIcon
+                fontSize="small"
+                classes={{fontSizeSmall: classes.fontSizeSmall}}
+              />
+            </IconButton>
+          </span>
         </Tooltip>
         <Tooltip title="Dry Run All D">
-          <IconButton
-            aria-label="Dry Run"
-            disabled={runButtonsDisabled}
-            color="primary"
-            onClick={handleDry}>
-            <CheckCircleIcon
-              fontSize="small"
-              classes={{fontSizeSmall: classes.fontSizeSmall}}
-            />
-          </IconButton>
+          <span>
+            <IconButton
+              aria-label="Dry Run"
+              disabled={runButtonsDisabled}
+              color="primary"
+              onClick={handleDry}>
+              <CheckCircleIcon
+                fontSize="small"
+                classes={{fontSizeSmall: classes.fontSizeSmall}}
+              />
+            </IconButton>
+          </span>
         </Tooltip>
         {/* build run can't be stopped before session is created, this is so
         because once we request session, machine starts to run build after it is
@@ -190,15 +202,17 @@ const TopNavigation = () => {
         {/* For now parsing has no option to stop */}
         {(build.runOngoing && build.sessionId) || dry.runOngoing ? (
           <Tooltip title="Stop ^C">
-            <IconButton
-              aria-label="Stop"
-              disabled={stopDisabled}
-              onClick={handleStop}>
-              <StopIcon
-                color={stopDisabled ? 'disabled' : 'error'}
-                fontSize="small"
-              />
-            </IconButton>
+            <span>
+              <IconButton
+                aria-label="Stop"
+                disabled={stopDisabled}
+                onClick={handleStop}>
+                <StopIcon
+                  color={stopDisabled ? 'disabled' : 'error'}
+                  fontSize="small"
+                />
+              </IconButton>
+            </span>
           </Tooltip>
         ) : null}
         <EditMenu

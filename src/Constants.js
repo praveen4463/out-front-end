@@ -280,6 +280,7 @@ export const MaxLengths = {
   BUILD_CAPS_TIMEOUT: 3600000,
   UPLOAD_SIZE_MB: 100,
   GCP_OBJECT_NAME: 500,
+  PROJECT_NAME: 50,
 };
 
 export const BuildCapsTimeouts = {

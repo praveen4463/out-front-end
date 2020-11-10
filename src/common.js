@@ -174,3 +174,11 @@ export const getFileSizeInUnit = (size) => {
   }
   return `${(size / 1048576).toFixed(1)}MB`;
 };
+
+export const getQs = () => {
+  return new URLSearchParams(document.location.search);
+};
+
+export const completeRelativeUrl = (relative) => {
+  return `${relative}${document.location.search}`;
+};

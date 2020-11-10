@@ -27,6 +27,7 @@ import TreeItemContent from './TreeItemContent';
 import Tooltip from '../../TooltipCustom';
 import {
   IdeDispatchContext,
+  IdeProjectIdContext,
   IdeFilesContext,
   IdeEditorContext,
 } from '../Contexts';
@@ -296,6 +297,7 @@ const initialState = {
 parent re renders. */
 const Explorer = React.memo(({closeButton}) => {
   const dispatchGlobal = useContext(IdeDispatchContext);
+  const projectId = useContext(IdeProjectIdContext);
   const files = useContext(IdeFilesContext);
   const etFiles = files !== null ? files.entities.files : null;
   const etTests = files !== null ? files.entities.tests : null;
@@ -646,20 +648,26 @@ const Explorer = React.memo(({closeButton}) => {
         </Typography>
         <Box flex={1} />
         <Tooltip title="New File">
-          <IconButton
-            aria-label="New File"
-            className={classes.iconButton}
-            onClick={onNewFile}>
-            <FileIcon className={classes.icon} />
-          </IconButton>
+          <span>
+            <IconButton
+              aria-label="New File"
+              className={classes.iconButton}
+              disabled={!projectId}
+              onClick={onNewFile}>
+              <FileIcon className={classes.icon} />
+            </IconButton>
+          </span>
         </Tooltip>
         <Tooltip title="Load Existing File(s)">
-          <IconButton
-            aria-label="Load Existing File(s)"
-            className={classes.iconButton}
-            onClick={handleOnLoad}>
-            <AddCircleOutlineIcon className={classes.icon} />
-          </IconButton>
+          <span>
+            <IconButton
+              aria-label="Load Existing File(s)"
+              className={classes.iconButton}
+              disabled={!projectId}
+              onClick={handleOnLoad}>
+              <AddCircleOutlineIcon className={classes.icon} />
+            </IconButton>
+          </span>
         </Tooltip>
         <div className={classes.borderLeftLight}>{closeButton}</div>
       </Box>
