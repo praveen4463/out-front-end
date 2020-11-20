@@ -23,7 +23,7 @@ import useConfirmationDialog from '../../../hooks/useConfirmationDialog';
 import {ApiStatuses, VarTypes, ErrorType} from '../../../Constants';
 import {VAR_NEW, VAR_EDIT, VAR_DELETE} from '../../actionTypes';
 import {GlobalVars as GlobalVariables} from '../../../variables/model';
-import normalizeString from '../../../utils';
+import normalizeString, {equalIgnoreCase} from '../../../utils';
 
 const useStyles = makeStyles((theme) => ({
   deleteButton: {
@@ -216,8 +216,8 @@ const GlobalVars = () => {
     // check whether this is a duplicate
     if (
       vars.global &&
-      vars.global.result.some(
-        (id) => vars.global.entities.globalVars[id].key === normalized.key
+      vars.global.result.some((id) =>
+        equalIgnoreCase(vars.global.entities.globalVars[id].key, normalized.key)
       )
     ) {
       return {

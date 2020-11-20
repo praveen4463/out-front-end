@@ -6,6 +6,7 @@ import Button from '@material-ui/core/Button';
 import Link from '@material-ui/core/Link';
 import SvgIcon from '@material-ui/core/SvgIcon';
 import PropTypes from 'prop-types';
+import {completeRelativeUrl} from '../common';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -57,7 +58,7 @@ const RootErrorFallback = ({resetErrorBoundary}) => {
         flexDirection="column"
         className={classes.contentRoot}>
         <Box position="fixed" top={0} left={0} mx={3}>
-          <Link href="/dashboard">
+          <Link href={completeRelativeUrl('/dashboard')}>
             <SvgIcon fontSize="small">
               {/* TODO: replace with zylitics full logo */}
               <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
@@ -78,7 +79,7 @@ const RootErrorFallback = ({resetErrorBoundary}) => {
           </Button>
           <Button
             variant="contained"
-            href="/dashboard"
+            href={completeRelativeUrl('/dashboard')}
             className={classes.button}>
             Go To Dashboard
           </Button>

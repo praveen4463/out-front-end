@@ -1,5 +1,5 @@
 import produce from 'immer';
-import {union, pull} from 'lodash-es';
+import {pull} from 'lodash-es';
 import {ExplorerItemType} from '../Constants';
 import {Version, Test, File} from '../Explorer/model';
 import {
@@ -10,56 +10,13 @@ import {
   EXP_DELETE_ITEM,
   EXP_DELETE_REVERT,
 } from '../actionTypes';
-import getDeepClonedFiles from './common';
 import {getSortedNames} from '../../common';
 
 const loadFiles = (draft, payload) => {
-  if (payload.filesToLoad === undefined) {
+  if (payload.files === undefined) {
     throw new Error('Insufficient arguments passed to loadFiles.');
   }
-  // !!If no reference is kept to files for load, we can use them without cloning,
-  // remove it once api is used.
-  // never mutate a payload, always clone it.
-  const filesToLoad = getDeepClonedFiles(payload.filesToLoad);
-  // files should already be ordered by names, i.e file/test/version
-  // names should be ordered in ascending ordering, this is done at api level as
-  // it's much faster there for big files. Normalize will keep individual
-  // entities ordered by their ids but the arrays match the ordering of data.
-  // For instance, if file names have been ordered by name, files.entities.files
-  // will not keep that ordering but files.result does.
-  // Note that we've to make sure the algorithm used for sorting at api level is
-  // the same as what will be used here.
-  // All these new files should load to tree
-  Object.values(filesToLoad.entities.files).forEach((f) => {
-    // ! This is fine here as forEach mainly work via side effects.
-    // eslint-disable-next-line no-param-reassign
-    f.loadToTree = true;
-  });
-
-  const {files} = draft;
-
-  if (files === null) {
-    throw new Error(
-      'When loading existing files, having no file in state should not be possible'
-    );
-  }
-  const et = files.entities;
-  if (et.tests === undefined) {
-    et.tests = {};
-  }
-  if (et.versions === undefined) {
-    et.versions = {};
-  }
-  // Object.assign works well even if source is null/undefined.
-  Object.assign(et.files, filesToLoad.entities.files);
-  Object.assign(et.tests, filesToLoad.entities.tests);
-  Object.assign(et.versions, filesToLoad.entities.versions);
-  // merge new files with existing maintaining the sort order. union gives
-  // unique values.
-  files.result = getSortedNames(
-    union(files.result, filesToLoad.result),
-    et.files
-  );
+  draft.files = payload.files;
 };
 
 const unloadFile = (draft, payload) => {

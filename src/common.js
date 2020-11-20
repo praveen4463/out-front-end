@@ -182,3 +182,11 @@ export const getQs = () => {
 export const completeRelativeUrl = (relative) => {
   return `${relative}${document.location.search}`;
 };
+
+export const getNumberParamFromUrl = (param) => {
+  const pId = Number(getQs().get(param));
+  if (Number.isInteger(pId)) {
+    return pId;
+  }
+  return null;
+};

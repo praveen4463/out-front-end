@@ -37,6 +37,7 @@ import {
 } from '../../Constants';
 import Browser, {BuildCapabilities} from '../../model';
 import {getPlatformByOs} from '../../common';
+import {equalIgnoreCase} from '../../utils';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -167,7 +168,7 @@ const NewCaps = React.memo(
         errors[
           ValidatedFields.NAME
         ] = `${BuildCapsLabels.NAME} can't be more than ${MaxLengths.BUILD_CAPS_NAME} characters`;
-      } else if (existingNames.indexOf(name) >= 0) {
+      } else if (existingNames.some((n) => equalIgnoreCase(n, name))) {
         errors[
           ValidatedFields.NAME
         ] = `A capability of the same name already exists`;

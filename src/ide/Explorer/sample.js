@@ -128,13 +128,14 @@ const files = [
   new File(2, 'Build Run Tests', null),
   new File(4, 'IDE Debug Flow Tests', null),
   new File(3, 'IDE Output Tests', null),
-  new File(1, 'IDE Tests', testsFileId1),
+  new File(1, 'IDE Tests', testsFileId1), // kept tests with this file for testing purpose only.
   new File(5, 'URL Validation Tests', null),
 ];
 
 // These should mostly already exist in files array as we load all existing
 // files initially for duplicate check.
 const fileToLoad = [
+  new File(1, 'IDE Tests', testsFileId1),
   new File(6, 'Anchor Validation Tests', [
     new Test(6, 'anchor should change when i click on back button', 6, [
       new Version(

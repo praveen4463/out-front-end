@@ -13,4 +13,12 @@ export const pushIfNotExists = (array, value) => {
   }
 };
 
+export const getNumSeqArray = (len) => {
+  return Array.from({length: len}, (v, i) => i);
+};
+
+export const equalIgnoreCase = (v1, v2) => {
+  return v1.toLowerCase() === v2.toLowerCase();
+};
+
 export default normalizeString;

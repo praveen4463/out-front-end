@@ -3,6 +3,7 @@ import {pull} from 'lodash-es';
 import {VAR_SET, VAR_NEW, VAR_EDIT, VAR_DELETE} from '../actionTypes';
 import {VarTypes} from '../../Constants';
 import {getSortedNames} from '../../common';
+import {equalIgnoreCase} from '../../utils';
 
 const setVar = (draft, payload) => {
   if (payload.value === undefined) {
@@ -51,7 +52,7 @@ const deleteVar = (draft, payload) => {
 export const getCurrentPrimaryBuildVar = (vars, key) => {
   const {buildVars} = vars.build.entities;
   const currentPrimary = vars.build.result.filter(
-    (id) => buildVars[id].key === key && buildVars[id].primary
+    (id) => equalIgnoreCase(buildVars[id].key, key) && buildVars[id].primary
   );
   const size = currentPrimary.length;
   if (size === 0 || size > 1) {
@@ -107,12 +108,23 @@ const newVar = (draft, payload) => {
     } else {
       const {build} = vars;
       const {buildVars} = build.entities;
+      const existingBuildVarId = build.result.find((id) =>
+        equalIgnoreCase(buildVars[id].key, value.key)
+      );
       // if this new key doesn't yet exist, mark it primary.
-      if (!build.result.some((id) => buildVars[id].key === value.key)) {
+      if (!existingBuildVarId) {
         value.primary = true;
-      } else if (value.primary) {
-        // if this key exists and new key needs to be primary, reset previous
-        resetCurrentPrimary(vars, value.key);
+      } else {
+        if (value.primary) {
+          // if this key exists and new key needs to be primary, reset previous
+          resetCurrentPrimary(vars, value.key);
+        }
+        // when a key exists already, we assign the existing key to whatever is
+        // inputted by user, i.e a different cased key is changed to existing key,
+        // so that the grouping takes place on existing key, this is done even if
+        // user has given same cased key. For example if existing was SITE_URL,
+        // and user gives site_url, we change it to SITE_URL.
+        value.key = buildVars[existingBuildVarId].key;
       }
       buildVars[value.id] = value;
       build.result.push(value.id);

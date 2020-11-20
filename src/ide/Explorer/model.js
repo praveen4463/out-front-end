@@ -81,7 +81,7 @@ function File(id, name, tests, showAsErrorInExplorer, loadToTree) {
   this.tests = tests;
   this.showAsErrorInExplorer = showAsErrorInExplorer;
   // if any of version in this file has 'showAsErrorInExplorer=true', the file also contain
-  // the flag so that the whole tree could be marked an error.
+  // the flag so that the whole tree could be marked as error.
   this.loadToTree = loadToTree;
   this[immerable] = true;
 }

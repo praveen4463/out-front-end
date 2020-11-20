@@ -31,6 +31,7 @@ import {IdeDispatchContext, IdeProjectIdContext} from './Contexts';
 import useSnackbarTypeError from '../hooks/useSnackbarTypeError';
 import {MaxLengths, ApiStatuses} from '../Constants';
 import {invokeOnApiCompletion} from '../common';
+import {equalIgnoreCase} from '../utils';
 
 const useStyles = makeStyles((theme) => ({
   formControl: {
@@ -171,9 +172,7 @@ const ProjectSelector = React.memo(() => {
       );
       return;
     }
-    if (
-      projects.some((p) => p.name.toLowerCase() === projectName.toLowerCase())
-    ) {
+    if (projects.some((p) => equalIgnoreCase(p.name, projectName))) {
       setNameError('A project with the same name already exists');
       return;
     }

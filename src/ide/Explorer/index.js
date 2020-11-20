@@ -1,4 +1,5 @@
 import React, {
+  useState,
   useRef,
   useCallback,
   useContext,
@@ -18,7 +19,6 @@ import FileIcon from '@material-ui/icons/InsertDriveFile';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ArrowRightIcon from '@material-ui/icons/ArrowRight';
-import {normalize} from 'normalizr';
 import {random} from 'lodash-es';
 import produce, {immerable} from 'immer';
 import {ExplorerItemType, ExplorerEditOperationType} from '../Constants';
@@ -32,15 +32,11 @@ import {
   IdeEditorContext,
 } from '../Contexts';
 import batchActions from '../actionCreators';
-import {
-  EXP_LOAD_FILES,
-  EXP_NEW_ITEM,
-  EDR_EXP_VERSION_CLICK,
-} from '../actionTypes';
-import {Version, Test, File, filesSchema} from './model';
-import {fileToLoad as sampleFilesForOnLoad} from './sample';
+import {EXP_NEW_ITEM, EDR_EXP_VERSION_CLICK} from '../actionTypes';
+import {Version, Test, File} from './model';
 import ColoredItemIcon from '../../components/ColoredItemIcon';
 import {getNodeId, getBrokenNodeId} from './internal';
+import LoadFiles from './LoadFiles';
 
 const useStyles = makeStyles((theme) => ({
   explorer: {
@@ -299,6 +295,7 @@ const Explorer = React.memo(({closeButton}) => {
   const dispatchGlobal = useContext(IdeDispatchContext);
   const projectId = useContext(IdeProjectIdContext);
   const files = useContext(IdeFilesContext);
+  const [showLoadFiles, setShowLoadFiles] = useState(false);
   const etFiles = files !== null ? files.entities.files : null;
   const etTests = files !== null ? files.entities.tests : null;
   const etVersions = files !== null ? files.entities.versions : null;
@@ -386,34 +383,8 @@ const Explorer = React.memo(({closeButton}) => {
     dispatchLocal({type: actionTypes.NODE_TOGGLE, payload: {nodeIds}});
   };
 
-  // !!! Note: Very uncompleted functionality.
   const handleOnLoad = () => {
-    /*
-    TODO: Make sure some project is selected, if not ask user to do so in some
-    nice way like redirecting focus to project dropdown.
-    Make a design for the File selection component such as something that loads
-    a tree of all available files together with the test and version. For now
-    we may fetch all data at once rather than fetching tests/versions on demand.
-    User can see there which files are already shown in in the tree as those
-    are not selectable and tells that it is already there in tree.
-    When a file is selected, that node has a squish mark and green background,
-    clicking again toggles it. A panel besides the file tree show selected files
-    in a column and below that is a button 'load selected files'. Dialog has a
-    close button and clicking outside or escape closes it without committing
-    any file for loading.
-    use swr or similar to make request to api and get available files, when it's
-    not available show skelton in the modal box, once loaded show files, if
-    error, show some error that make sense to the problem within the modal.
-    Validate the received data against a prebuilt json schema and normalize it
-    before giving it to the FileSelect component. Note that the data should
-    already be ordered.
-    Once user selects file and clicks button, load all selected files into
-    tree.
-    */
-    // For now, assume we've the selected raw files form api and take sample
-    // files.
-    const filesToLoad = normalize(sampleFilesForOnLoad, filesSchema);
-    dispatchGlobal({type: EXP_LOAD_FILES, payload: {filesToLoad}});
+    setShowLoadFiles(true);
   };
 
   const onNewFile = () => {
@@ -441,7 +412,6 @@ const Explorer = React.memo(({closeButton}) => {
     });
   }, []);
 
-  // TODO: uncompleted functionality
   // TODO: see if we need to put this in useCallback
   const newItemCommitCallback = (newItemName, newItemType) => {
     /*
@@ -637,165 +607,173 @@ const Explorer = React.memo(({closeButton}) => {
   }, [files]);
 
   return (
-    <Box className={classes.explorer} data-testid="explorer">
-      <Box
-        display="flex"
-        alignItems="center"
-        className={classes.header}
-        boxShadow={3}>
-        <Typography variant="body2" className={classes.fileCaption}>
-          Files
-        </Typography>
-        <Box flex={1} />
-        <Tooltip title="New File">
-          <span>
-            <IconButton
-              aria-label="New File"
-              className={classes.iconButton}
-              disabled={!projectId}
-              onClick={onNewFile}>
-              <FileIcon className={classes.icon} />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title="Load Existing File(s)">
-          <span>
-            <IconButton
-              aria-label="Load Existing File(s)"
-              className={classes.iconButton}
-              disabled={!projectId}
-              onClick={handleOnLoad}>
-              <AddCircleOutlineIcon className={classes.icon} />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <div className={classes.borderLeftLight}>{closeButton}</div>
-      </Box>
-      <Box py={1}>
-        <TreeView
-          defaultCollapseIcon={<ArrowDropDownIcon />}
-          defaultExpandIcon={<ArrowRightIcon />}
-          defaultEndIcon={<div style={{width: 24}} />}
-          onNodeToggle={handleToggle}
-          onNodeSelect={handleSelect}
-          expanded={state.expandedNodes}
-          selected={state.selectedNode}>
-          {Boolean(state.addNewItem) &&
-            state.addNewItem.type === ExplorerItemType.FILE &&
-            getNewItemEditor(getNamesByIdMapping(filesResult, etFiles))}
-          {loadedFiles && loadedFiles.length ? (
-            loadedFiles.map((fid) => (
-              <TreeItem
-                nodeId={getNodeId(ExplorerItemType.FILE, fid)}
-                key={fid}
-                label={getTreeItemContent(
-                  ExplorerItemType.FILE,
-                  files.entities.files[fid].name,
-                  fid,
-                  null,
-                  getNamesByIdMapping(files.result, files.entities.files),
-                  files.entities.files[fid].showAsErrorInExplorer
-                )}
-                classes={{
-                  root: classes.root,
-                  content: classes.content,
-                  expanded: classes.expanded,
-                  selected: classes.selected,
-                  group: classes.group,
-                  label: classes.label,
-                  iconContainer: classes.iconContainer,
-                }}
-                data-testid={`${ExplorerItemType.FILE}-treeItem`}>
-                {/* onNodeSelect passes nodeId as node parameter, I've
+    <>
+      <Box className={classes.explorer} data-testid="explorer">
+        <Box
+          display="flex"
+          alignItems="center"
+          className={classes.header}
+          boxShadow={3}>
+          <Typography variant="body2" className={classes.fileCaption}>
+            Files
+          </Typography>
+          <Box flex={1} />
+          <Tooltip title="New File">
+            <span>
+              <IconButton
+                aria-label="New File"
+                className={classes.iconButton}
+                disabled={!projectId}
+                onClick={onNewFile}>
+                <FileIcon className={classes.icon} />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Load Existing File(s)">
+            <span>
+              <IconButton
+                aria-label="Load Existing File(s)"
+                className={classes.iconButton}
+                disabled={!projectId}
+                onClick={handleOnLoad}>
+                <AddCircleOutlineIcon className={classes.icon} />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <div className={classes.borderLeftLight}>{closeButton}</div>
+        </Box>
+        <Box py={1}>
+          <TreeView
+            defaultCollapseIcon={<ArrowDropDownIcon />}
+            defaultExpandIcon={<ArrowRightIcon />}
+            defaultEndIcon={<div style={{width: 24}} />}
+            onNodeToggle={handleToggle}
+            onNodeSelect={handleSelect}
+            expanded={state.expandedNodes}
+            selected={state.selectedNode}>
+            {Boolean(state.addNewItem) &&
+              state.addNewItem.type === ExplorerItemType.FILE &&
+              getNewItemEditor(getNamesByIdMapping(filesResult, etFiles))}
+            {loadedFiles && loadedFiles.length ? (
+              loadedFiles.map((fid) => (
+                <TreeItem
+                  nodeId={getNodeId(ExplorerItemType.FILE, fid)}
+                  key={fid}
+                  label={getTreeItemContent(
+                    ExplorerItemType.FILE,
+                    files.entities.files[fid].name,
+                    fid,
+                    null,
+                    getNamesByIdMapping(files.result, files.entities.files),
+                    files.entities.files[fid].showAsErrorInExplorer
+                  )}
+                  classes={{
+                    root: classes.root,
+                    content: classes.content,
+                    expanded: classes.expanded,
+                    selected: classes.selected,
+                    group: classes.group,
+                    label: classes.label,
+                    iconContainer: classes.iconContainer,
+                  }}
+                  data-testid={`${ExplorerItemType.FILE}-treeItem`}>
+                  {/* onNodeSelect passes nodeId as node parameter, I've
                 appended type to id because id's are not unique across
                 file/test/version and also I'd need it to know what type of
                 items selected */}
-                {Boolean(state.addNewItem) &&
-                  state.addNewItem.type === ExplorerItemType.TEST &&
-                  state.addNewItem.parentId === fid &&
-                  getNewItemEditor(
-                    getNamesByIdMapping(
-                      files.entities.files[fid].tests,
-                      files.entities.tests
-                    )
-                  )}
-                {Array.isArray(files.entities.files[fid].tests) &&
-                  files.entities.files[fid].tests.map((tid) => (
-                    <TreeItem
-                      nodeId={getNodeId(ExplorerItemType.TEST, tid)}
-                      key={tid}
-                      label={getTreeItemContent(
-                        ExplorerItemType.TEST,
-                        files.entities.tests[tid].name,
-                        files.entities.tests[tid].id,
-                        fid,
-                        getNamesByIdMapping(
-                          files.entities.files[fid].tests,
-                          files.entities.tests
-                        ),
-                        files.entities.tests[tid].showAsErrorInExplorer
-                      )}
-                      classes={{
-                        root: classes.root,
-                        content: classes.content,
-                        expanded: classes.expanded,
-                        selected: classes.selected,
-                        group: classes.group,
-                        label: classes.label,
-                        iconContainer: classes.iconContainer,
-                      }}
-                      data-testid={`${ExplorerItemType.TEST}-treeItem`}>
-                      {Boolean(state.addNewItem) &&
-                        state.addNewItem.type === ExplorerItemType.VERSION &&
-                        state.addNewItem.parentId === tid &&
-                        getNewItemEditor(
+                  {Boolean(state.addNewItem) &&
+                    state.addNewItem.type === ExplorerItemType.TEST &&
+                    state.addNewItem.parentId === fid &&
+                    getNewItemEditor(
+                      getNamesByIdMapping(
+                        files.entities.files[fid].tests,
+                        files.entities.tests
+                      )
+                    )}
+                  {Array.isArray(files.entities.files[fid].tests) &&
+                    files.entities.files[fid].tests.map((tid) => (
+                      <TreeItem
+                        nodeId={getNodeId(ExplorerItemType.TEST, tid)}
+                        key={tid}
+                        label={getTreeItemContent(
+                          ExplorerItemType.TEST,
+                          files.entities.tests[tid].name,
+                          files.entities.tests[tid].id,
+                          fid,
                           getNamesByIdMapping(
-                            files.entities.tests[tid].versions,
-                            files.entities.versions
-                          )
+                            files.entities.files[fid].tests,
+                            files.entities.tests
+                          ),
+                          files.entities.tests[tid].showAsErrorInExplorer
                         )}
-                      {Array.isArray(files.entities.tests[tid].versions) &&
-                        files.entities.tests[tid].versions.map((vid) => (
-                          <TreeItem
-                            nodeId={getNodeId(ExplorerItemType.VERSION, vid)}
-                            key={vid}
-                            label={getTreeItemContent(
-                              ExplorerItemType.VERSION,
-                              files.entities.versions[vid].name,
-                              files.entities.versions[vid].id,
-                              tid,
-                              getNamesByIdMapping(
-                                files.entities.tests[tid].versions,
-                                files.entities.versions
-                              ),
-                              files.entities.versions[vid]
-                                .showAsErrorInExplorer,
-                              files.entities.versions[vid].isCurrent
-                            )}
-                            classes={{
-                              root: classes.root,
-                              content: classes.content,
-                              expanded: classes.expanded,
-                              selected: classes.selected,
-                              group: classes.group,
-                              label: classes.label,
-                              iconContainer: classes.iconContainer,
-                            }}
-                            data-testid={`${ExplorerItemType.VERSION}-treeItem`}
-                          />
-                        ))}
-                    </TreeItem>
-                  ))}
-              </TreeItem>
-            ))
-          ) : (
-            <Typography variant="body2" className={classes.noFiles}>
-              No files to show, add/load some file(s)
-            </Typography>
-          )}
-        </TreeView>
+                        classes={{
+                          root: classes.root,
+                          content: classes.content,
+                          expanded: classes.expanded,
+                          selected: classes.selected,
+                          group: classes.group,
+                          label: classes.label,
+                          iconContainer: classes.iconContainer,
+                        }}
+                        data-testid={`${ExplorerItemType.TEST}-treeItem`}>
+                        {Boolean(state.addNewItem) &&
+                          state.addNewItem.type === ExplorerItemType.VERSION &&
+                          state.addNewItem.parentId === tid &&
+                          getNewItemEditor(
+                            getNamesByIdMapping(
+                              files.entities.tests[tid].versions,
+                              files.entities.versions
+                            )
+                          )}
+                        {Array.isArray(files.entities.tests[tid].versions) &&
+                          files.entities.tests[tid].versions.map((vid) => (
+                            <TreeItem
+                              nodeId={getNodeId(ExplorerItemType.VERSION, vid)}
+                              key={vid}
+                              label={getTreeItemContent(
+                                ExplorerItemType.VERSION,
+                                files.entities.versions[vid].name,
+                                files.entities.versions[vid].id,
+                                tid,
+                                getNamesByIdMapping(
+                                  files.entities.tests[tid].versions,
+                                  files.entities.versions
+                                ),
+                                files.entities.versions[vid]
+                                  .showAsErrorInExplorer,
+                                files.entities.versions[vid].isCurrent
+                              )}
+                              classes={{
+                                root: classes.root,
+                                content: classes.content,
+                                expanded: classes.expanded,
+                                selected: classes.selected,
+                                group: classes.group,
+                                label: classes.label,
+                                iconContainer: classes.iconContainer,
+                              }}
+                              data-testid={`${ExplorerItemType.VERSION}-treeItem`}
+                            />
+                          ))}
+                      </TreeItem>
+                    ))}
+                </TreeItem>
+              ))
+            ) : (
+              <Typography variant="body2" className={classes.noFiles}>
+                No files to show, add/load some file(s)
+              </Typography>
+            )}
+          </TreeView>
+        </Box>
       </Box>
-    </Box>
+      {showLoadFiles && (
+        <LoadFiles
+          showDialog={showLoadFiles}
+          setShowDialog={setShowLoadFiles}
+        />
+      )}
+    </>
   );
 });
 

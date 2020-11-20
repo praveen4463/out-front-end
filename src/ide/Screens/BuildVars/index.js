@@ -40,7 +40,7 @@ import {CONFIG_BUILD_ON_BUILD_VAR_DELETE} from '../../../actions/actionTypes';
 import {BuildVars as BuildVariables} from '../../../variables/model';
 import {getCurrentPrimaryBuildVar} from '../../reducers/var';
 import batchActions from '../../actionCreators';
-import normalizeString from '../../../utils';
+import normalizeString, {equalIgnoreCase} from '../../../utils';
 
 const DEF_GROUPED_COLUMN = 'key';
 
@@ -301,8 +301,14 @@ const BuildVars = () => {
       vars.build &&
       vars.build.result.some(
         (id) =>
-          vars.build.entities.buildVars[id].key === normalized.key &&
-          vars.build.entities.buildVars[id].value === normalized.value
+          equalIgnoreCase(
+            vars.build.entities.buildVars[id].key,
+            normalized.key
+          ) &&
+          equalIgnoreCase(
+            vars.build.entities.buildVars[id].value,
+            normalized.value
+          )
       )
     ) {
       return {

@@ -21,7 +21,7 @@ import {
   globalVars as sampleGlobalVars,
   buildVars as sampleBuildVars,
 } from '../variables/sample';
-import {filesSchema, LastRunError} from './Explorer/model';
+import {filesSchema, LastRunError, File} from './Explorer/model';
 import {globalVarsSchema, buildVarsSchema} from '../variables/model';
 import {
   BATCH_ACTIONS,
@@ -101,7 +101,7 @@ import {
   versionsHaveParseErrorWhenStatusAvailable,
   versionsHaveLastParseStatus,
 } from './common';
-import {invokeOnApiCompletion, getQs} from '../common';
+import {invokeOnApiCompletion, getNumberParamFromUrl} from '../common';
 import './index.css';
 
 const useStyles = makeStyles((theme) => ({
@@ -110,17 +110,9 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const getProjectFromUrl = () => {
-  const pId = Number(getQs().get(Application.PROJECT_QS));
-  if (Number.isInteger(pId)) {
-    return pId;
-  }
-  return null;
-};
-
 // This is the root state of IDE
 const initialState = {
-  projectId: getProjectFromUrl(),
+  projectId: getNumberParamFromUrl(Application.PROJECT_QS),
   files: null,
   versionIdsCodeSaveInProgress: new Set(),
   // build represents a new build request initiated upon user action
@@ -324,7 +316,7 @@ const Ide = () => {
     const url = new URL(document.location);
     const qsParams = url.searchParams;
     // see if there is any file in qs
-    const fileId = qsParams.get(Application.FILE_QS);
+    const fileId = getNumberParamFromUrl(Application.FILE_QS);
     // set projectId in uri, so that if use bookmarks the url, they get the same
     // project selected later. Note that we're replacing history and not pushing
     // so that doing back button won't show previous projects cause we're not
@@ -378,10 +370,16 @@ const Ide = () => {
       // selected a file from non ide page, came to ide, select different project
       // making file irrelevant to the project.) so api will check if it exists in
       // project and then only fetches it's tests.
+      const sampleFilesClone = sampleFiles.map(
+        (sf) => new File(sf.id, sf.name, sf.id !== fileId ? null : sf.tests)
+        // sample file may contain tests for some files by default, make it
+        // null for all files that are not requested via qs as not loaded files
+        // don't contain tests.
+      );
       const response = {
         status: ApiStatuses.SUCCESS,
         data: {
-          files: sampleFiles,
+          files: sampleFilesClone,
           globals: sampleGlobalVars,
           build: sampleBuildVars,
         },
