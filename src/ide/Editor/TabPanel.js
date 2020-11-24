@@ -275,8 +275,6 @@ const TabPanel = React.memo(
     // console.log('re rendering..');
     const dispatchGlobal = useContext(IdeDispatchContext);
     const vars = useContext(IdeVarsContext);
-    // TODO: similarly get dry/parse run context and do the same thing if any
-    // of them is true.
     const buildRunOngoing = useContext(IdeBuildRunOngoingContext);
     const dryRunOngoing = useContext(IdeDryRunOngoingContext);
     const parseRunOngoing = useContext(IdeParseRunOngoingContext);
@@ -338,6 +336,7 @@ const TabPanel = React.memo(
     const versionsStateUncontrolled = useRef({});
     const textAreaRef = useRef();
     const editorRef = useRef();
+    const editorVersionIdRef = useRef();
     const lineColTextRef = useRef();
     const editorStatusMessageRef = useRef(); // used in checking the current message in status
     const afterChangeDebounceRef = useRef(); // used in flushing or cancelling changes from anywhere
@@ -467,6 +466,7 @@ const TabPanel = React.memo(
           const actions = [codeUpdateAction, actionCompleted];
           const parseRes = response.parseResult;
           if (parseRes && parseRes.status === ApiStatuses.FAILURE) {
+            // Parsing failed means api couldn't parse due to some internal error
             // when parsing failed, clear last run status if there is any parse
             // status already so that runs don't take into account the invalid
             // last run information and trigger a new parse.
@@ -764,12 +764,14 @@ const TabPanel = React.memo(
     useEffect(() => {
       const editor = editorRef.current;
       // effect should set code only on version change.
-      if (editor.getValue() === version.code) {
+      if (editorVersionIdRef.current === version.id) {
         return;
       }
       editor.setValue(version.code);
+      // set versionId
+      editorVersionIdRef.current = version.id;
       // console.log('editor value is set');
-    }, [version.code]);
+    }, [version.code, version.id]);
 
     // When a version is changed, apply version's state.
     useEffect(() => {

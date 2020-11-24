@@ -10,6 +10,10 @@ CodeMirror.defineSimpleMode('zwl', {
       regex: /"(?:[^"\\\r\n]|\\[tnr"\\]|\\u[0-9a-fA-F]{4})*?"/,
       token: 'string',
     },
+    {
+      regex: /'(?:[^'\\\r\n]|\\[tnr'\\]|\\u[0-9a-fA-F]{4})*?'/,
+      token: 'string',
+    },
     {regex: /`/, token: 'string', next: 'rawString'},
     {regex: /\s+/, token: null},
     {regex: /(?:if|for|while|else|in|to)\b/, token: 'keyword'},

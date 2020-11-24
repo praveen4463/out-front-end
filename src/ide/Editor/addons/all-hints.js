@@ -5,6 +5,8 @@ import langFunctions from '../../../config/all-lang-func';
 import * as Constants from '../../../config/all-zwl-constants';
 
 // TODO: write a unit test for this entire functionality.
+// TODO: I changed this earlier so that only the code above is hinted and not below,
+// but we will required code below in hint too, make this change.
 const FUNC_NAME = /\w+(?=\()/;
 // selects just function name from a function with syntax foo(?param...)
 const RANGE = 500;

@@ -66,7 +66,6 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-// TODO: receive from props clickHandler from line
 const BottomNavigation = (props) => {
   const {clickHandler, active, lineColContainerRef} = props;
   const buildRunOngoing = useContext(IdeBuildRunOngoingContext);
