@@ -111,28 +111,28 @@ export const BuildConfigKeys = {
 export const BuildCapsFields = {
   ID: 'id',
   NAME: 'name',
-  OS: 'os',
-  BN: 'browserName',
-  BV: 'browserVersion',
-  PN: 'platformName',
-  AIC: 'acceptInsecureCertificate',
-  CVL: 'chromeVerboseLogging',
-  CSL: 'chromeSilentLogging',
-  CENL: 'chromeEnableNetworkLogs',
-  CEPL: 'chromeEnablePageLogs',
-  FLL: 'firefoxLogLevel',
-  IELL: 'ieLogLevel',
-  SM: 'startMaximize',
-  ST: 'scriptTimeout',
-  PLT: 'pageLoadTimeout',
-  EAT: 'elementAccessTimeout',
-  SFI: 'strictFileIntractability',
-  UPB: 'unhandledPromptBehavior',
-  IEESB: 'ieElementScrollBehavior',
-  IEEPH: 'ieEnablePersistentHovering',
-  IERWF: 'ieRequireWindowFocus',
-  IEDNE: 'ieDisableNativeEvents',
-  IEDECS: 'ieDestructivelyEnsureCleanSession',
+  OS: 'serverOs',
+  BN: 'wdBrowserName',
+  BV: 'wdBrowserVersion',
+  PN: 'wdPlatformName',
+  AIC: 'wdAcceptInsecureCerts',
+  CVL: 'wdChromeVerboseLogging',
+  CSL: 'wdChromeSilentOutput',
+  CENL: 'wdChromeEnableNetwork',
+  CEPL: 'wdChromeEnablePage',
+  FLL: 'wdFirefoxLogLevel',
+  IELL: 'wdIeLogLevel',
+  SM: 'wdBrwStartMaximize',
+  ST: 'wdTimeoutsScript',
+  PLT: 'wdTimeoutsPageLoad',
+  EAT: 'wdTimeoutsElementAccess',
+  SFI: 'wdStrictFileInteractability',
+  UPB: 'wdUnhandledPromptBehavior',
+  IEESB: 'wdIeElementScrollBehavior',
+  IEEPH: 'wdIeEnablePersistentHovering',
+  IERWF: 'wdIeRequireWindowFocus',
+  IEDNE: 'wdIeDisableNativeEvents',
+  IEDECS: 'wdIeDestructivelyEnsureCleanSession',
 };
 
 export const BuildConfigFields = {
@@ -337,3 +337,20 @@ export const MB_BYTES = 1048576; // (1 KB = 1024 bytes, 1MB = 1024 KB) https://d
 export const GCP_OBJECT_NAME_REGEX = /[\\/\s*[\]?#]|^\.$|^\.\.$/;
 export const GCP_OBJECT_NAME_ILLEGAL_CHARS_STRING =
   '\\, /, Whitespace, *, [, ], ?, #, Dot-As-File-Name, Two-Dots-As-File-Name';
+
+export const QueryKeys = {
+  PROJECTS: 'projects',
+  TEST_FILES: 'testFiles',
+  BUILD_CAPABILITIES: 'buildCapabilities',
+};
+
+export const Endpoints = {
+  PROJECTS: '/projects',
+  TEST_FILES: '/testFiles',
+  ISSUE: '/issue',
+  BUILD_CAPABILITIES: '/buildCapabilities',
+};
+
+export const Timeouts = {
+  API_TIMEOUT_LONG: 300000,
+};

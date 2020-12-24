@@ -18,6 +18,8 @@ import {makeStyles} from '@material-ui/core/styles';
 import FormHelperText from '@material-ui/core/FormHelperText';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
+import {useQuery} from 'react-query';
+import axios from 'axios';
 import TooltipCustom from '../../TooltipCustom';
 import TestSelect from '../../components/TestSelect';
 import {
@@ -27,14 +29,19 @@ import {
   BUILD_START_RUN,
   BUILD_CANCEL_RUN,
 } from '../../actions/actionTypes';
-import {getContextObjShape} from '../../common';
+import {
+  getContextObjShape,
+  handleApiError,
+  getNewIntlComparer,
+} from '../../common';
 import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 import {
-  ApiStatuses,
   BuildConfigLabels,
   BuildConfigFields,
   BuildConfigInfo,
   BuildConfigKeys,
+  QueryKeys,
+  Endpoints,
 } from '../../Constants';
 import resolutions from '../../config/desktopResolution.json';
 import timezones from '../../config/timezones.json';
@@ -232,45 +239,34 @@ const BuildConfig = ({
   const build = useContext(buildContext);
   const buildConfig = useContext(buildConfigContext);
   const buildVars = useContext(varsContext).build;
-  const [buildCaps, setBuildCaps] = useState(null);
   const [error, setError] = useState(initialError);
   const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
   const classes = useStyles();
 
-  // It should be fine to load build caps every time config is opened, it is
-  // expected our data library caches query results.
+  const buildCapsQuery = useQuery(
+    QueryKeys.BUILD_CAPABILITIES,
+    async () => {
+      const {data} = await axios(Endpoints.BUILD_CAPABILITIES);
+      data.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+      return data;
+    },
+    {
+      staleTime: 1000 * 60 * 10, // keep fetched caps in cache for atleast 10mins before refetching
+      // occurs on remount or win focus.
+    }
+  );
+
+  const buildCaps = buildCapsQuery.data;
+
   useEffect(() => {
-    const onSuccess = (response) => {
-      setBuildCaps(response.data);
-    };
-    const onError = (response) => {
-      setSnackbarErrorMsg(
-        `Couldn't get existing build capabilities, ${response.error.reason}`
+    if (buildCapsQuery.isError) {
+      handleApiError(
+        buildCapsQuery.error,
+        setSnackbarErrorMsg,
+        "Couldn't get existing build capabilities"
       );
-    };
-    setTimeout(() => {
-      // api returns sorted data by name
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: [
-          {id: 1, name: 'chrome85_win10_debug'},
-          {id: 2, name: 'firefox85_win8_1_debug'},
-          {id: 3, name: 'IE11_win10'},
-        ],
-      };
-      /* const response = {
-        status: ApiStatuses.FAILURE,
-        error: {
-          reason: 'Network error',
-        },
-      }; */
-      if (response.status === ApiStatuses.SUCCESS) {
-        onSuccess(response);
-      } else if (response.status === ApiStatuses.FAILURE) {
-        onError(response);
-      }
-    }, 500);
-  }, [setSnackbarErrorMsg]);
+    }
+  }, [buildCapsQuery.error, buildCapsQuery.isError, setSnackbarErrorMsg]);
 
   const validateOnRun = () => {
     const errors = {};

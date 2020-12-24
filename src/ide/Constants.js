@@ -5,7 +5,6 @@ const LeftNavs = {
 const RightNavs = {
   COMPLETED_BUILDS: 'COMPLETED_BUILDS',
   LIVE_PREVIEW: 'LIVE_PREVIEW',
-  DOCUMENTATION: 'DOCUMENTATION',
 };
 
 const BottomNavs = {

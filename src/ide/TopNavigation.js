@@ -56,15 +56,17 @@ const TopNavigation = () => {
   const parse = useContext(IdeParseContext);
   const classes = useStyles();
 
-  const runButtonsDisabled = useMemo(
+  const anyFiles = useMemo(
     () =>
-      build.runOngoing ||
-      dry.runOngoing ||
-      parse.runOngoing ||
-      !files ||
-      !files.result.length ||
-      files.result.every((fid) => !files.entities.files[fid].loadToTree),
-    [build.runOngoing, dry.runOngoing, files, parse.runOngoing]
+      files &&
+      files.result.length &&
+      files.result.some((fid) => files.entities.files[fid].loadToTree),
+    [files]
+  );
+
+  const runButtonsDisabled = useMemo(
+    () => build.runOngoing || dry.runOngoing || parse.runOngoing || !anyFiles,
+    [build.runOngoing, dry.runOngoing, anyFiles, parse.runOngoing]
   );
 
   const stopDisabled = useMemo(() => build.stopping || dry.stopping, [
@@ -218,6 +220,7 @@ const TopNavigation = () => {
         <EditMenu
           editIconClasses={{fontSizeSmall: classes.fontSizeEditIcon}}
           openBuildConfig={build.openBuildConfig}
+          anyFiles={anyFiles}
         />
         <Box
           display="flex"

@@ -6,9 +6,10 @@ import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
 import Alert from '@material-ui/lab/Alert';
 import Collapse from '@material-ui/core/Collapse';
+import axios from 'axios';
 import FileUpload from './FileUpload';
-import {ApiStatuses} from '../Constants';
-import {invokeOnApiCompletion} from '../common';
+import {Endpoints} from '../Constants';
+import {handleApiError} from '../common';
 
 const useStyles = makeStyles((theme) => ({
   alert: {
@@ -28,10 +29,6 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-// api will put these uploads in user-data bucket under 'uploads' dir (we need to change code
-// to put test files in separate directory) and append a timestamp with the name.
-const UPLOAD_ENDPOINT = '/userUploads';
-
 function Status(msg, isSuccess = false) {
   this.msg = msg;
   this.isSuccess = isSuccess;
@@ -43,7 +40,7 @@ const Issue = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState(null);
-  const uploadedFileRef = useRef(null);
+  const uploadedFileNameRef = useRef(null);
   const fileUploadSetStatusRef = useRef(null);
   const classes = useStyles();
 
@@ -64,17 +61,19 @@ const Issue = () => {
     }
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const desc = description.trim();
     if (!desc.length) {
       setDescriptionError('Description is required');
       return;
     }
-    const file = uploadedFileRef.current;
-    const onSuccess = () => {
-      if (file) {
-        console.log(`issue sent with file: ${file.name}`);
-      }
+    setSaving(true);
+    const body = {desc};
+    if (uploadedFileNameRef.current) {
+      body.fileName = uploadedFileNameRef.current;
+    }
+    try {
+      await axios.post(Endpoints.ISSUE, body);
       setStatus(
         new Status(
           "Thank you for taking the time to write this. We've received it and will be getting back very soon.",
@@ -83,40 +82,29 @@ const Issue = () => {
       );
       // reset when report sent so that another could be sent
       setDescription('');
-      uploadedFileRef.current = null;
-      fileUploadSetStatusRef.current(null);
-    };
-    const onError = (response) => {
-      setStatus(
-        new Status(`An error occurred while sending, ${response.error.reason}`)
+      uploadedFileNameRef.current = null;
+      fileUploadSetStatusRef.current(null); // invoking function of file upload
+    } catch (error) {
+      handleApiError(
+        error,
+        (msg) => setStatus(new Status(msg)),
+        'An error occurred while sending'
       );
       // when error occurs sending, don't clear file and attach status so that
       // user know their file is up (if successful attach) and they just need to
       // retry.
-    };
-    // When issue is submitted, api checks if any filename is given, if so it finds
-    // the file in bucket with matching name. If file found, it is attached to an email
-    // that will then be sent to issue tracker system which creates an issue, assigns
-    // reporter to the user.
-    setTimeout(() => {
+    } finally {
       setSaving(false);
-      const response = {
-        status: ApiStatuses.SUCCESS,
-      };
-      // const response = getApiError('Network error');
-      invokeOnApiCompletion(response, onSuccess, onError);
-    }, 1000);
-    setSaving(true);
+    }
   };
 
   const onUploadStart = () => {
     setUploading(true);
   };
 
-  const onUploadDone = (file) => {
-    // if uploaded, file is there.
-    if (file) {
-      uploadedFileRef.current = file;
+  const onUploadDone = (file, fileName) => {
+    if (fileName) {
+      uploadedFileNameRef.current = fileName;
     }
     setUploading(false);
   };
@@ -163,13 +151,11 @@ const Issue = () => {
           <FileUpload
             isReady={!saving}
             uploadButtonText="Attach a file"
-            endpoint={UPLOAD_ENDPOINT}
+            endpoint={Endpoints.ISSUE}
             onStart={onUploadStart}
             onComplete={onUploadDone}
             getSuccessMsg={(fileName) => `${fileName} attached`}
-            getErrorMsg={(fileName, error) =>
-              `Couldn't attach ${fileName}, ${error}`
-            }
+            getErrorMsg={(fileName) => `Couldn't attach ${fileName}`}
             setSetStatus={setFileUploadSetStatus}
           />
         </Box>

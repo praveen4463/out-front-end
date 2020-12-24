@@ -881,10 +881,9 @@ const TabPanel = React.memo(
           type: actionTypes.SET_OUTPUT_ERROR,
           payload: {versionId: version.id, outputError: error.msg},
         });
-        // markText requires 0 index based line:ch whereas api returns actual
-        // line:ch, thus need to -1 and create new objects.
-        const from = {line: error.fromPos.line - 1, ch: error.fromPos.ch - 1};
-        const to = {line: error.toPos.line - 1, ch: error.toPos.ch - 1};
+        // markText requires 0 index based line:ch and api returns the same.
+        const from = error.fromPos;
+        const to = error.toPos;
         doc.markText(from, to, {
           className: 'cm-errorText',
         });

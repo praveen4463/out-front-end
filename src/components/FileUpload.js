@@ -7,7 +7,6 @@ import Box from '@material-ui/core/Box';
 import Alert from '@material-ui/lab/Alert';
 import Collapse from '@material-ui/core/Collapse';
 import PropTypes from 'prop-types';
-// eslint-disable-next-line no-unused-vars
 import axios from 'axios';
 import useConfirmationDialog from '../hooks/useConfirmationDialog';
 import {
@@ -15,8 +14,10 @@ import {
   MB_BYTES,
   GCP_OBJECT_NAME_REGEX,
   GCP_OBJECT_NAME_ILLEGAL_CHARS_STRING,
+  Timeouts,
 } from '../Constants';
 import normalizeString from '../utils';
+import {handleApiError} from '../common';
 
 const useStyles = makeStyles((theme) => ({
   alert: {
@@ -37,7 +38,6 @@ const FileUpload = ({
   isReady,
   uploadButtonText,
   maxUploadMegaBytes,
-  // eslint-disable-next-line no-unused-vars
   endpoint,
   uniqueFileTypeSpecifiers,
   wrongTypeMsg,
@@ -45,13 +45,15 @@ const FileUpload = ({
   onStart,
   onComplete,
   getSuccessMsg,
-  // eslint-disable-next-line no-unused-vars
   getErrorMsg,
   setSetStatus,
 }) => {
   const [uploadProgress, setUploadProgress] = useState(null);
   const [status, setStatus] = useState(null);
   const selectedFileRef = useRef(null);
+  // after normalizing name, we should store file name separately because we can't
+  // change name in file object. Make sure to use this rather than file.name
+  const selectedFileNameRef = useRef(null);
   const fileInputRef = useRef(null);
   const classes = useStyles();
 
@@ -84,79 +86,75 @@ const FileUpload = ({
     return sizeBytes <= maxUploadMegaBytes * MB_BYTES;
   };
 
-  const upload = () => {
-    // I am assuming PUT will replace file when we upload same named file, otherwise
+  const upload = async () => {
+    // PUT will replace file when we upload same named file, otherwise
     // a new one will be created. That's why this function is called from replace dialog too.
-    // Following code should work when we've api setup to upload multipart form data,
-    // refer to spring docs for setting up that api and verify tat progress is working
-    // correctly. We will first send file to our api, api will upload the stream to
+    // We will first send file to our api, api will upload the stream to
     // gcs so that browser to gcs upload complexities are not there (like getting
     // signed urls for gcs and then upload directly there). I prefer to proxy the
     // upload through our api.
     // Reference axios: https://github.com/axios/axios/blob/master/examples/upload/
     // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/Using_XMLHttpRequest#Monitoring_progress
-    // For now I am going to mock everything.
     const file = selectedFileRef.current;
+    const fileName = selectedFileNameRef.current;
     setUploadProgress(0);
     setStatus(null);
     onStart();
-    /* const data = new FormData();
+    const data = new FormData();
     data.append('file', file);
+    data.append('fileName', fileName); // fileName could be different than file.name after normalizing,
+    // api should use it rather than file.name
     const config = {
       onUploadProgress(progressEvent) {
+        console.log('progressEvent fired', progressEvent);
         const percentCompleted = Math.round(
           (progressEvent.loaded * 100) / progressEvent.total
         );
+        /*
+        !NOTE:
+        Currently the progress indication is not working correctly. Progress events
+        can just track whether the file data is fully sent with the request but since
+        we are proxy the transfer via our api, it can just track client -> api upload
+        and not api -> GCS. It will mark the file completed as it's pushed to api.
+        To fix it, there are complicated things to implement. First, the file should go
+        to GCS in chunks and api should give us a transferId. Then from here make HEAD
+        req to api with transferId to know how many chunks have been pushed. See
+        https://pqina.nl/filepond/docs/patterns/api/server/#process-chunks to learn more
+        about the potential process.
+        Since uploading is used at fewer places I am leaving it as is, just stop the progress
+        bar in the middle somewhere so that user doesn't think transfer is completed whereas
+        it's taking more time. Later if needed I can fix things.
+        */
+        if (percentCompleted > 70) {
+          return;
+        }
         setUploadProgress(percentCompleted);
       },
+      timeout: Timeouts.API_TIMEOUT_LONG,
     };
-    axios
-      .put(endpoint, data, config)
-      .then(() => {
-        setUploadProgress(null);
-        setStatus(new Status(getSuccessMsg(file.name), true));
-        onComplete(file);
-      })
-      .catch((err) => {
-        setUploadProgress(null);
-        const errMsg = getErrorMsg(file.name, err.message);
-        setStatus(new Status(errMsg));
-        onComplete(null, errMsg);
-      }); */
-    const success = () => {
+    try {
+      await axios.put(endpoint, data, config);
       setUploadProgress(null);
-      setStatus(new Status(getSuccessMsg(file.name), true));
-      onComplete(file);
-    };
-    /* const error = (err) => {
+      setStatus(new Status(getSuccessMsg(fileName), true));
+      onComplete(file, fileName);
+    } catch (error) {
       setUploadProgress(null);
-      const errMsg = getErrorMsg(file.name, err.message);
-      setStatus(new Status(errMsg));
-      onComplete(null, errMsg);
-    }; */
-    let progress = 0;
-    const start = Date.now();
-    const send = () => {
-      setTimeout(() => {
-        progress += 10;
-        setUploadProgress(progress);
-        if (Date.now() - start < 4500) {
-          // break when 90% progress is done.
-          send();
-        } else {
-          success();
-          // error({message: 'Network error'});
-        }
-      }, 500);
-    };
-    send();
+      handleApiError(
+        error,
+        (errMsg) => {
+          setStatus(new Status(errMsg));
+          onComplete(null, null, errMsg);
+        },
+        getErrorMsg(fileName)
+      );
+    }
   };
 
   const [setShowReplaceDialog, replaceDialog] = useConfirmationDialog(
     upload,
     'Replace',
     `${
-      selectedFileRef.current ? selectedFileRef.current.name : ''
+      selectedFileNameRef.current ? selectedFileNameRef.current : ''
     } already exist, would you like to replace it?`,
     'replace-alert-dialog-description'
   );
@@ -172,13 +170,24 @@ const FileUpload = ({
     return null;
   };
 
+  // normalize name so that most common bugs in file name are handled, like spaces.
+  const normalizeFileName = (name) => {
+    return name.replaceAll(' ', '_');
+  };
+
   const handleFileChange = (e) => {
     const {files} = e.target;
     const file = files[0];
+    const name = normalizeFileName(file.name);
     selectedFileRef.current = file;
-    const {name, size, type} = file;
+    selectedFileNameRef.current = name;
+    const {size, type} = file;
     fileInputRef.current.value = ''; // reset file input here so that change event fires every time
     // a file is selected, even if it's the same file.
+    if (size === 0) {
+      setStatus(new Status('Selected file is empty'));
+      return;
+    }
     if (!isValidFileType(type)) {
       setStatus(new Status(wrongTypeMsg));
       return;
@@ -273,7 +282,7 @@ FileUpload.defaultProps = {
   onStart: () => null,
   onComplete: () => null,
   getSuccessMsg: (fileName) => `${fileName} uploaded`,
-  getErrorMsg: (fileName, error) => `Couldn't upload ${fileName}, ${error}`,
+  getErrorMsg: (fileName) => `Couldn't upload ${fileName}`,
   setSetStatus: () => null,
 };
 

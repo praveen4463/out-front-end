@@ -1,21 +1,24 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import GetAppIcon from '@material-ui/icons/GetApp';
 import IconButton from '@material-ui/core/IconButton';
 import DeleteIcon from '@material-ui/icons/Delete';
-import Link from '@material-ui/core/Link';
 import {makeStyles, withStyles} from '@material-ui/core/styles';
 import Box from '@material-ui/core/Box';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import Typography from '@material-ui/core/Typography';
 import MuiSkeleton from '@material-ui/lab/Skeleton';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import {pull} from 'lodash-es';
+import axios from 'axios';
+import {useQuery, useMutation, useQueryClient} from 'react-query';
 import {
-  invokeOnApiCompletion,
   getShortCurrentMonthName,
   getFileSizeInUnit,
+  getNewIntlComparer,
+  handleApiError,
 } from '../../common';
-import {ApiStatuses} from '../../Constants';
+import {Endpoints, QueryKeys, Timeouts} from '../../Constants';
 import useConfirmationDialog from '../../hooks/useConfirmationDialog';
 import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 import TooltipCustom from '../../TooltipCustom';
@@ -35,10 +38,10 @@ const Skeleton = withStyles((theme) => ({
   },
 }))(MuiSkeleton);
 
-function File(name, size, created) {
+function File(name, size, createDate) {
   this.name = name;
   this.size = size;
-  this.created = created;
+  this.createDate = createDate;
 }
 
 const useStyles = makeStyles((theme) => ({
@@ -67,15 +70,16 @@ const useStyles = makeStyles((theme) => ({
     background: 'none',
     height: '20px',
   },
+  neutral: {
+    color: '#868686',
+  },
 }));
 
 const getSortedFiles = (files) => {
-  return files.sort((a, b) => a.name.localeCompare(b.name));
+  return files.sort((a, b) => getNewIntlComparer()(a.name, b.name));
 };
 
-const ENDPOINT = '/testFiles';
-
-const Actions = ({file, onDelete, deleteDisabled}) => {
+const Actions = ({file, onDelete, onDownload, deleteDisabled, downloading}) => {
   const {name} = file;
   const classes = useStyles();
   const deleteAcceptHandler = () => {
@@ -93,16 +97,24 @@ const Actions = ({file, onDelete, deleteDisabled}) => {
     setShowDeleteDialog(true);
   };
 
+  const handleDownload = (e) => {
+    e.stopPropagation();
+    onDownload(file);
+  };
+
   return (
     <>
       <TooltipCustom title="Download File">
-        <Link
-          href={`${ENDPOINT}/${name}`} // get to endpoint downloads file, i.e content-disposition and content
-          aria-label="Download File"
-          color="inherit"
-          className={clsx(classes.icon, classes.downloadLink)}>
-          <GetAppIcon fontSize="small" />
-        </Link>
+        {!downloading ? (
+          <IconButton
+            aria-label="Download File"
+            onClick={handleDownload}
+            className={clsx(classes.icon, classes.downloadLink)}>
+            <GetAppIcon fontSize="small" />
+          </IconButton>
+        ) : (
+          <CircularProgress size={20} className={classes.neutral} />
+        )}
       </TooltipCustom>
       <TooltipCustom title="Delete File">
         <span>
@@ -123,43 +135,38 @@ const Actions = ({file, onDelete, deleteDisabled}) => {
 Actions.propTypes = {
   file: PropTypes.instanceOf(File).isRequired,
   onDelete: PropTypes.func.isRequired,
+  onDownload: PropTypes.func.isRequired,
   deleteDisabled: PropTypes.bool.isRequired,
+  downloading: PropTypes.bool.isRequired,
 };
 
 const TestFileManager = () => {
-  const [files, setFiles] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [downloadingFileNames, setDownloadingFileNames] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
+  const queryClient = useQueryClient();
   const classes = useStyles();
 
+  const testFileQuery = useQuery(QueryKeys.TEST_FILES, async () => {
+    const {data} = await axios(Endpoints.TEST_FILES);
+    const files = data.map((f) => new File(f.name, f.size, f.createDate));
+    return getSortedFiles(files);
+  });
+
+  const showError = useCallback(
+    (msg) => {
+      setSnackbarErrorMsg(msg);
+    },
+    [setSnackbarErrorMsg]
+  );
+
   useEffect(() => {
-    const onSuccess = (response) => {
-      setFiles(response.data.files);
-    };
-    const onError = (response) => {
-      setSnackbarErrorMsg(`Couldn't fetch files, ${response.error.reason}`);
-    };
-    setTimeout(() => {
-      // send GET request to ENDPOINT and expect list of files in order of name
-      // when no file, an empty array is returned.
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: {
-          files: [
-            new File('shot.svg', '1.5MB', 'Oct 29, 2020'), // just show day no time as these are test files
-            // it helps us in adding file locally rather than fetching again.
-            new File('movie.mov', '40MB', 'Oct 21, 2020'),
-            new File('plan.pdf', '0.5MB', 'Oct 22, 2020'),
-          ],
-        },
-      };
-      // const response = getApiError('Network error');
-      invokeOnApiCompletion(response, onSuccess, onError);
-      setLoading(false);
-    }, 1000);
-    setLoading(true);
-  }, [setSnackbarErrorMsg]);
+    if (testFileQuery.isError) {
+      handleApiError(testFileQuery.error, showError, 'Files failed to load');
+    }
+  }, [testFileQuery.error, testFileQuery.isError, showError]);
+
+  const files = testFileQuery.data;
 
   const getCurrentDate = () => {
     const d = new Date();
@@ -170,56 +177,75 @@ const TestFileManager = () => {
     return files.some((f) => f.name === fileName);
   };
 
-  const addNewRawFile = (rawFile) => {
+  const addNewRawFile = (rawFile, fileName) => {
     const file = new File(
-      rawFile.name,
+      fileName,
       getFileSizeInUnit(rawFile.size),
       getCurrentDate()
     );
-    const clonedFiles = [...files];
-    const index = files.findIndex((f) => f.name === file.name);
-    if (index >= 0) {
-      // if this upload is a duplicate named file, replace the existing.
-      clonedFiles.splice(index, 1, file);
-      setFiles(clonedFiles);
-      return;
-    }
-    clonedFiles.push(file);
-    setFiles(getSortedFiles(clonedFiles));
+    queryClient.setQueryData(QueryKeys.TEST_FILES, (old) => {
+      const clonedFiles = [...old];
+      const index = files.findIndex((f) => f.name === file.name);
+      if (index >= 0) {
+        // if this upload is a duplicate named file, replace the existing.
+        clonedFiles.splice(index, 1, file);
+        return clonedFiles;
+      }
+      clonedFiles.push(file);
+      return getSortedFiles(clonedFiles);
+    });
   };
 
-  const handleDelete = (file) => {
-    setFiles((fls) => {
-      const clone = [...fls];
-      pull(clone, file);
-      return [...clone];
-    });
+  const deleteFileMutation = useMutation(
+    async (file) => {
+      await axios.delete(`${Endpoints.TEST_FILES}/${file.name}`);
+    },
+    {
+      onMutate: (file) => {
+        queryClient.setQueryData(QueryKeys.TEST_FILES, (old) =>
+          pull([...old], file)
+        );
+      },
+      onError: (err, file) => {
+        handleApiError(err, showError, `Couldn't delete file`);
+        queryClient.setQueryData(QueryKeys.TEST_FILES, (old) =>
+          getSortedFiles([...old, file])
+        );
+      },
+    }
+  );
 
-    const onError = (response) => {
-      setSnackbarErrorMsg(
-        `Couldn't delete file ${file.name}, ${response.error.reason}`
+  const onDownloadFile = async (file) => {
+    const {name} = file;
+    try {
+      setDownloadingFileNames((fns) =>
+        !fns.includes(name) ? [...fns, name] : fns
       );
-      // on error, revert the deleted file
-      setFiles((fls) => getSortedFiles([...fls, file]));
-    };
-    setTimeout(() => {
-      // send DELETE request to endpoint with file name and expect success
-      const response = {
-        status: ApiStatuses.SUCCESS,
-      };
-      /* const response = getApiError('Network error'); */
-      invokeOnApiCompletion(response, () => null, onError);
-    }, 1000);
+      const {data} = await axios.get(`${Endpoints.TEST_FILES}/${name}`, {
+        responseType: 'blob',
+        timeout: Timeouts.API_TIMEOUT_LONG,
+      });
+      const url = window.URL.createObjectURL(new Blob([data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', name);
+      document.body.appendChild(link);
+      link.click();
+    } catch (error) {
+      handleApiError(error, showError, `Couldn't download file`);
+    } finally {
+      setDownloadingFileNames((fns) => pull([...fns], name));
+    }
   };
 
   const onUploadStart = () => {
     setUploading(true);
   };
 
-  const onUploadDone = (file) => {
+  const onUploadDone = (file, fileName) => {
     // if uploaded, file is there.
-    if (file) {
-      addNewRawFile(file);
+    if (file && fileName) {
+      addNewRawFile(file, fileName);
     }
     setUploading(false);
   };
@@ -229,12 +255,13 @@ const TestFileManager = () => {
       <Box display="flex" flexDirection="column">
         <FileUpload
           isReady={Boolean(files)}
-          endpoint={ENDPOINT}
+          maxUploadMegaBytes={200}
+          endpoint={Endpoints.TEST_FILES}
           isDuplicateFile={isDuplicateFile}
           onStart={onUploadStart}
           onComplete={onUploadDone}
         />
-        {!loading && files ? (
+        {!testFileQuery.isLoading && files ? (
           <>
             <Box display="flex" className={classes.header} p={1} boxShadow={1}>
               <Box flexBasis="7%" />
@@ -263,8 +290,10 @@ const TestFileManager = () => {
                     justifyContent="space-evenly">
                     <Actions
                       file={f}
-                      onDelete={handleDelete}
+                      onDelete={deleteFileMutation.mutate}
+                      onDownload={onDownloadFile}
                       deleteDisabled={uploading}
+                      downloading={downloadingFileNames.includes(f.name)}
                     />
                   </Box>
                   <Box flexBasis="68%" className={classes.textOverflowHide}>
@@ -276,7 +305,7 @@ const TestFileManager = () => {
                     <TextValue>{f.size}</TextValue>
                   </Box>
                   <Box flexBasis="15%">
-                    <TextValue>{f.created}</TextValue>
+                    <TextValue>{f.createDate}</TextValue>
                   </Box>
                 </Box>
               ))
@@ -291,7 +320,7 @@ const TestFileManager = () => {
             )}
           </>
         ) : null}
-        {loading ? (
+        {testFileQuery.isLoading ? (
           <Box display="flex" flexDirection="column" flex={1}>
             {[1, 2, 3, 4, 5, 6].map((k) => (
               <Skeleton variant="text" width="80%" height={15} key={k} />

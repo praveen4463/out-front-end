@@ -6,14 +6,15 @@ import firefox from './icons/firefox.png';
 import ie from './icons/ie.png';
 import windowsIcon from './icons/windows.png';
 
+// detects runtime's locale while building collator.
+export const getNewIntlComparer = () => new Intl.Collator().compare;
+
 export const getSortedNames = (ids, propMapping, propName = 'name') => {
   const pairs = ids.map((id) => [id, propMapping[id][propName]]);
   // The reference referenceStr should be string type, since our names comes
   // via text inputs, it's always string and doesn't need conversion or
   // string concat to make it a string.
-  // Note: localeCompare is by far the best for string comparison, reference:
-  // https://stackoverflow.com/a/26295229/1624454
-  pairs.sort((a, b) => a[1].localeCompare(b[1]));
+  pairs.sort((a, b) => getNewIntlComparer()(a[1], b[1]));
   // no locale specific options for now, TODO: for later.
   return pairs.map((p) => p[0]);
 };
@@ -169,10 +170,10 @@ export const getFileSizeInUnit = (size) => {
   if (size < 1024) {
     return `${size} bytes`;
   }
-  if (size >= 1024 && size < 1048576) {
-    return `${(size / 1024).toFixed(1)}KB`;
+  if (size < 1048576) {
+    return `${(size / 1024).toFixed(1)} KB`;
   }
-  return `${(size / 1048576).toFixed(1)}MB`;
+  return `${(size / 1048576).toFixed(1)} MB`;
 };
 
 export const getQs = () => {
@@ -189,4 +190,23 @@ export const getNumberParamFromUrl = (param) => {
     return pId;
   }
   return null;
+};
+
+export const handleApiError = (error, showError, message) => {
+  console.log(JSON.parse(JSON.stringify(error)));
+  // TODO: send to sentry from here
+  if (error.response) {
+    showError(`${message}, ${error.response.data.message}`);
+  } else if (error.request) {
+    // !NOTE: Any error thrown within axios, like timeout error will land up here as well,
+    // but we're shown server unreachable error. This may be fine for now but keep
+    // an eye on errors.
+    const errorMsg = navigator.onLine
+      ? 'server is unreachable. Please try in a few minutes or contact us.'
+      : 'network error';
+    showError(`${message}, ${errorMsg}`);
+  } else {
+    // throw so that error boundary could catch as this is unrecoverable error.
+    throw new Error(error.message);
+  }
 };

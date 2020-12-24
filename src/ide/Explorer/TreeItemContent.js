@@ -295,6 +295,10 @@ const TreeItemContent = React.memo(
       // updates are async.
       // While preparing for revert, also gather the versions being deleted in
       // this operation for updating tabs.
+      // note that we don't store entire objects for rollback because if the operation
+      // delays and user updates in state in middle, while roll backing we will
+      // loose their updates because we are setting previous state, that's why it is
+      // safe to do the in place update.
       const et = files.entities;
       const versionsDeleting = [];
       const revertOnError = {

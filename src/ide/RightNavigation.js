@@ -126,27 +126,6 @@ const RightNavigation = (props) => {
           </Link>
         </Typography>
       </Box>
-      <Box display="flex" flex={1} className={classes.wrapper} />
-      <Box
-        display="flex"
-        className={classes.wrapper}
-        style={{paddingBottom: 8}}>
-        <Typography variant="caption" className={classes.typography}>
-          <Link
-            color="inherit"
-            onClick={() => clickHandler(RightNavs.DOCUMENTATION)}
-            classes={{root: classes.link}}
-            className={clsx(
-              classes.link,
-              classes.linkTab,
-              active === RightNavs.DOCUMENTATION
-                ? classes.activeTab
-                : classes.linkHover
-            )}>
-            Documentation
-          </Link>
-        </Typography>
-      </Box>
     </Paper>
   );
 };

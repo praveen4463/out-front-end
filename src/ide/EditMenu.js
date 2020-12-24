@@ -3,7 +3,6 @@ import IconButton from '@material-ui/core/IconButton';
 import EditIcon from '@material-ui/icons/Edit';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
-import Divider from '@material-ui/core/Divider';
 import PropTypes from 'prop-types';
 import Dialog from '@material-ui/core/Dialog';
 import DialogTitle from '@material-ui/core/DialogTitle';
@@ -76,7 +75,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="down" ref={ref} {...props} />;
 });
 
-const EditMenu = ({editIconClasses, openBuildConfig}) => {
+const EditMenu = ({editIconClasses, openBuildConfig, anyFiles}) => {
   const dispatch = useContext(IdeDispatchContext);
   const [state, setState] = useState(new EditMenuState());
   const classes = useStyles();
@@ -260,10 +259,12 @@ const EditMenu = ({editIconClasses, openBuildConfig}) => {
         <MenuItem onClick={handleClickBuildCaps}>
           Build Capabilities ⇧A
         </MenuItem>
-        <Divider variant="middle" component="li" />
-        <MenuItem onClick={handleClickBuildConfig}>Build Config ⇧C</MenuItem>
-        <MenuItem onClick={handleClickDryConfig}>Dry Run Config ⇧D</MenuItem>
-        <Divider variant="middle" component="li" />
+        <MenuItem onClick={handleClickBuildConfig} disabled={!anyFiles}>
+          Build Config ⇧C
+        </MenuItem>
+        <MenuItem onClick={handleClickDryConfig} disabled={!anyFiles}>
+          Dry Run Config ⇧D
+        </MenuItem>
         <MenuItem onClick={handleClickGlobalVarEdit}>
           Global Variables ⇧G
         </MenuItem>
@@ -313,6 +314,11 @@ EditMenu.propTypes = {
     fontSizeSmall: PropTypes.string,
   }).isRequired,
   openBuildConfig: PropTypes.bool.isRequired,
+  anyFiles: PropTypes.bool,
+};
+
+EditMenu.defaultProps = {
+  anyFiles: false,
 };
 
 export default EditMenu;

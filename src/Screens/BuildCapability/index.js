@@ -17,19 +17,20 @@ import EditIcon from '@material-ui/icons/Edit';
 import DeleteIcon from '@material-ui/icons/Delete';
 import Button from '@material-ui/core/Button';
 import LinearProgress from '@material-ui/core/LinearProgress';
-import {random, pull} from 'lodash-es';
+import {pull} from 'lodash-es';
 import PropTypes from 'prop-types';
+import axios from 'axios';
+import {useQuery} from 'react-query';
 import NewCaps from './NewCaps';
 import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 import useConfirmationDialog from '../../hooks/useConfirmationDialog';
 import TooltipCustom from '../../TooltipCustom';
 import {
-  ApiStatuses,
   Browsers,
-  Platforms,
-  Os,
   BuildCapsLabels,
   BuildCapsFields,
+  Endpoints,
+  QueryKeys,
 } from '../../Constants';
 import {BuildCapabilities} from '../../model';
 import {
@@ -39,6 +40,7 @@ import {
   getOsIcon,
   getSortedNames,
   getContextObjShape,
+  handleApiError,
 } from '../../common';
 import {CONFIG_BUILD_ON_BUILD_CAPS_DELETE} from '../../actions/actionTypes';
 
@@ -201,7 +203,8 @@ function BuildCapsState(id, name, fullBuildCaps, lastFetchError) {
 
 const DATA = 'data';
 const SORTED_IDS = 'sortedIds';
-
+// TODO: Currently build capability component is not using react-query as
+// there will be some amount of work and testing efforts. This needs to use it soon after launch.
 const BuildCapability = React.memo(
   ({optIECleanSessionOnSave, dispatchContext}) => {
     const dispatch = useContext(dispatchContext);
@@ -211,7 +214,6 @@ const BuildCapability = React.memo(
     // console.log('caps', caps);
     const dCaps = caps ? caps[DATA] : null;
     const [expanded, setExpanded] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
     const [editing, setEditing] = useState(null);
     const [createNew, setCreateNew] = useState(false);
     const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
@@ -219,76 +221,76 @@ const BuildCapability = React.memo(
     const summary = useSummaryStyles();
 
     const fetchAndSetBuildCaps = (dCap, afterSet, afterErrorShow) => {
-      const modifyCaps = (response, errorMsg) => {
+      const modifyCaps = (data, errorMsg) => {
         setCaps((c) => ({
           [DATA]: {
             ...c[DATA],
             [dCap.id]: new BuildCapsState(
               dCap.id,
               dCap.name,
-              response.data ?? null, // if data is undefined, make it null
-              response.error ? errorMsg : null
+              data ?? null, // if data is undefined, make it null
+              data ? null : errorMsg
             ),
           },
           [SORTED_IDS]: c[SORTED_IDS],
         }));
       };
-      const onSuccess = (response) => {
-        modifyCaps(response);
-        if (afterSet) {
-          afterSet();
+
+      async function fetchBuildCapability() {
+        try {
+          const {data} = await axios(
+            `${Endpoints.BUILD_CAPABILITIES}/${dCap.id}`
+          );
+          const buildCapability = new BuildCapabilities(
+            dCap.id,
+            data[BuildCapsFields.NAME],
+            data[BuildCapsFields.OS],
+            data[BuildCapsFields.BN],
+            data[BuildCapsFields.BV],
+            data[BuildCapsFields.PN],
+            data[BuildCapsFields.AIC],
+            data[BuildCapsFields.ST],
+            data[BuildCapsFields.PLT],
+            data[BuildCapsFields.EAT],
+            data[BuildCapsFields.SFI],
+            data[BuildCapsFields.UPB],
+            data[BuildCapsFields.IEESB],
+            data[BuildCapsFields.IEEPH],
+            data[BuildCapsFields.IERWF],
+            data[BuildCapsFields.IEDNE],
+            data[BuildCapsFields.IEDECS],
+            data[BuildCapsFields.IELL],
+            data[BuildCapsFields.CVL],
+            data[BuildCapsFields.CSL],
+            data[BuildCapsFields.CENL],
+            data[BuildCapsFields.CEPL],
+            data[BuildCapsFields.FLL],
+            data[BuildCapsFields.SM]
+          );
+          modifyCaps(buildCapability);
+          if (afterSet) {
+            afterSet();
+          }
+        } catch (error) {
+          handleApiError(
+            error,
+            (errorMsg) => {
+              setSnackbarErrorMsg(errorMsg);
+              modifyCaps(null, errorMsg);
+            },
+            "Couldn't get details"
+          );
+          if (afterErrorShow) {
+            afterErrorShow();
+          }
         }
-      };
-      const onError = (response) => {
-        const error = `Couldn't get details, ${response.error.reason}`;
-        modifyCaps(response, error);
-        setSnackbarErrorMsg(error);
-        if (afterErrorShow) {
-          afterErrorShow();
-        }
-      };
+      }
 
       if (dCap.fullBuildCaps) {
         throw new Error('Nothing to fetch, full capability already there');
       }
-      setTimeout(() => {
-        let browser;
-        if (dCap.name.includes(Browsers.CHROME.VALUE)) {
-          browser = Browsers.CHROME.VALUE;
-        } else if (dCap.name.includes(Browsers.FIREFOX.VALUE)) {
-          browser = Browsers.FIREFOX.VALUE;
-        } else if (dCap.name.includes(Browsers.IE.VALUE)) {
-          browser = Browsers.IE.VALUE;
-        }
-        const response = {
-          status: ApiStatuses.SUCCESS,
-          data: new BuildCapabilities(
-            dCap.id,
-            dCap.name,
-            dCap.name.includes(Os.WIN10.VALUE)
-              ? Os.WIN10.VALUE
-              : Os.WIN8_1.VALUE,
-            browser,
-            `${browser === Browsers.IE.VALUE ? 11 : random(70, 85)}`,
-            Platforms.WINDOWS.VALUE,
-            random(1, 10) > 5,
-            random(30000, 60000),
-            random(100000, 200000),
-            random(30000, 60000)
-          ),
-        };
-        /* const response = {
-        status: ApiStatuses.FAILURE,
-        error: {
-          reason: 'Network error',
-        },
-      }; */
-        if (response.status === ApiStatuses.SUCCESS) {
-          onSuccess(response);
-        } else if (response.status === ApiStatuses.FAILURE) {
-          onError(response);
-        }
-      }, 500);
+
+      fetchBuildCapability();
     };
 
     const handleNew = () => {
@@ -345,51 +347,43 @@ const BuildCapability = React.memo(
         };
       });
 
-      const onSuccess = () => {
-        dispatch({
-          type: CONFIG_BUILD_ON_BUILD_CAPS_DELETE,
-          payload: {
-            buildCapabilityId: dCap.id,
-          },
-        });
-      };
+      async function deleteBuildCapability() {
+        try {
+          await axios.delete(`${Endpoints.BUILD_CAPABILITIES}/${dCap.id}`);
+          dispatch({
+            type: CONFIG_BUILD_ON_BUILD_CAPS_DELETE,
+            payload: {
+              buildCapabilityId: dCap.id,
+            },
+          });
+        } catch (error) {
+          handleApiError(
+            error,
+            setSnackbarErrorMsg,
+            `Couldn't delete capability ${dCap.name}`
+          );
+          // on error, revert the deleted caps
+          if (dCap.fullBuildCaps) {
+            addBuildCaps(dCap.fullBuildCaps);
+            return;
+          }
+          setCaps((c) => {
+            const newData = {
+              ...c[DATA],
+              [dCap.id]: new BuildCapsState(dCap.id, dCap.name),
+            };
+            return {
+              [DATA]: newData,
+              [SORTED_IDS]: getSortedNames(
+                [...c[SORTED_IDS], dCap.id],
+                newData
+              ),
+            };
+          });
+        }
+      }
 
-      const onError = (response) => {
-        setSnackbarErrorMsg(
-          `Couldn't delete capability ${dCap.name}, ${response.error.reason}`
-        );
-        // on error, revert the deleted caps
-        if (dCap.fullBuildCaps) {
-          addBuildCaps(dCap.fullBuildCaps);
-          return;
-        }
-        setCaps((c) => {
-          const newData = {
-            ...c[DATA],
-            [dCap.id]: new BuildCapsState(dCap.id, dCap.name),
-          };
-          return {
-            [DATA]: newData,
-            [SORTED_IDS]: getSortedNames([...c[SORTED_IDS], dCap.id], newData),
-          };
-        });
-      };
-      setTimeout(() => {
-        const response = {
-          status: ApiStatuses.SUCCESS,
-        };
-        /* const response = {
-        status: ApiStatuses.FAILURE,
-        error: {
-          reason: 'Network error',
-        },
-      }; */
-        if (response.status === ApiStatuses.SUCCESS) {
-          onSuccess();
-        } else if (response.status === ApiStatuses.FAILURE) {
-          onError(response);
-        }
-      }, 1000);
+      deleteBuildCapability();
     };
 
     const resetEditNew = useCallback(() => {
@@ -400,9 +394,6 @@ const BuildCapability = React.memo(
       }
     }, [createNew, editing]);
 
-    // TODO: currently i am not checking whether a change was made as part of edit
-    // before sending api request, check this and skip api request, better is to
-    // not allow submit if there was no change.
     const onSave = useCallback(
       (buildCaps) => {
         addBuildCaps(buildCaps); // works for both edit or new
@@ -416,6 +407,20 @@ const BuildCapability = React.memo(
     }, [resetEditNew]);
 
     const handleChange = (panelId) => (event, isExpanded) => {
+      // if some other panel was expanded and it was in error condition, reset error so that
+      // if opened again, we will refetch
+      if (expanded) {
+        const dCap = dCaps[expanded];
+        if (dCap.lastFetchError) {
+          setCaps((c) => ({
+            [DATA]: {
+              ...c[DATA],
+              [dCap.id]: new BuildCapsState(dCap.id, dCap.name, null, null),
+            },
+            [SORTED_IDS]: c[SORTED_IDS],
+          }));
+        }
+      }
       setExpanded(isExpanded ? panelId : false);
     };
 
@@ -440,7 +445,7 @@ const BuildCapability = React.memo(
       }
       const dCap = dCaps[expanded];
 
-      // first check whether last api call returned error, if so show that rather than stale data
+      // first check whether last api call returned error, if so show that.
       if (dCap.lastFetchError) {
         return (
           <Typography variant="body2" color="error">
@@ -449,7 +454,7 @@ const BuildCapability = React.memo(
         );
       }
 
-      // if no error, check if we've data, we won't have any data if this is the first load
+      // if no error, check if we've data
       if (dCap.fullBuildCaps) {
         const fullCaps = dCap.fullBuildCaps;
         return (
@@ -554,7 +559,7 @@ const BuildCapability = React.memo(
         );
       }
 
-      // This is the first expand for this capability, load from api
+      // load from api
       fetchAndSetBuildCaps(dCap);
 
       // render a loader while data is being fetched
@@ -567,52 +572,38 @@ const BuildCapability = React.memo(
       );
     };
 
-    useEffect(() => {
-      setIsLoading(true);
+    const buildCapsQuery = useQuery(
+      QueryKeys.BUILD_CAPABILITIES,
+      async () => {
+        const {data} = await axios(Endpoints.BUILD_CAPABILITIES);
+        return data;
+      },
+      {
+        staleTime: 1000 * 60 * 5,
+      }
+    );
 
-      const onSuccess = (response) => {
-        const {data} = response;
-        const o = {};
-        const ids = [];
-        data.forEach((d) => {
-          o[d.id] = new BuildCapsState(d.id, d.name);
-          ids.push(d.id); // preventing Object.keys later as it will return string ids
-        });
-        if (Object.keys(o).length) {
-          // no need to sort as api returns sorted data
-          // setCaps({[DATA]: o, [SORTED_IDS]: getSortedNames(ids, o)});
-          setCaps({[DATA]: o, [SORTED_IDS]: ids});
-        }
-      };
-      const onError = (response) => {
-        setSnackbarErrorMsg(
-          `Couldn't get existing build capabilities, ${response.error.reason}`
+    useEffect(() => {
+      const o = {};
+      const ids = [];
+      buildCapsQuery.data.forEach((d) => {
+        o[d.id] = new BuildCapsState(d.id, d.name);
+        ids.push(d.id); // preventing Object.keys later as it will return string ids
+      });
+      if (Object.keys(o).length) {
+        setCaps({[DATA]: o, [SORTED_IDS]: getSortedNames(ids, o)});
+      }
+    }, [buildCapsQuery.data]);
+
+    useEffect(() => {
+      if (buildCapsQuery.isError) {
+        handleApiError(
+          buildCapsQuery.error,
+          setSnackbarErrorMsg,
+          "Couldn't get existing build capabilities"
         );
-      };
-      setTimeout(() => {
-        setIsLoading(false);
-        // api returns sorted by name.
-        const response = {
-          status: ApiStatuses.SUCCESS,
-          data: [
-            {id: 1, name: 'chrome85_win10_debug'},
-            {id: 2, name: 'firefox85_win8_1_debug'},
-            {id: 3, name: 'IE11_win10'},
-          ],
-        };
-        /* const response = {
-        status: ApiStatuses.FAILURE,
-        error: {
-          reason: 'Network error',
-        },
-      }; */
-        if (response.status === ApiStatuses.SUCCESS) {
-          onSuccess(response);
-        } else if (response.status === ApiStatuses.FAILURE) {
-          onError(response);
-        }
-      }, 1000);
-    }, [setSnackbarErrorMsg]);
+      }
+    }, [buildCapsQuery.error, buildCapsQuery.isError, setSnackbarErrorMsg]);
 
     const getNames = useMemo(() => {
       if (!dCaps) {
@@ -629,7 +620,9 @@ const BuildCapability = React.memo(
             color="secondary"
             className={classes.button}
             onClick={handleNew}
-            disabled={isLoading || createNew || Boolean(editing)}>
+            disabled={
+              buildCapsQuery.isLoading || createNew || Boolean(editing)
+            }>
             Add New Build Capability
           </Button>
         </Box>
@@ -708,7 +701,7 @@ const BuildCapability = React.memo(
                 )
               )
             : null}
-          {isLoading ? (
+          {buildCapsQuery.isLoading ? (
             <Box
               display="flex"
               flexDirection="column"
@@ -719,7 +712,9 @@ const BuildCapability = React.memo(
               ))}
             </Box>
           ) : null}
-          {!isLoading && !createNew && (!dCaps || !caps[SORTED_IDS].length) ? (
+          {!buildCapsQuery.isLoading &&
+          !createNew &&
+          (!dCaps || !caps[SORTED_IDS].length) ? (
             <Typography
               variant="body1"
               style={{textAlign: 'center', marginTop: '20px'}}>

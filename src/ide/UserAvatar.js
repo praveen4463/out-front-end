@@ -1,6 +1,6 @@
 import React from 'react';
 import IconButton from '@material-ui/core/IconButton';
-import Link from '@material-ui/core/Link';
+import Button from '@material-ui/core/Button';
 import Avatar from '@material-ui/core/Avatar';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -18,8 +18,17 @@ const useStyles = makeStyles((theme) => ({
     height: theme.spacing(3),
     fontSize: '1rem',
   },
+  linkMenu: {
+    padding: 0,
+  },
   link: {
-    color: theme.palette.background.contrastText,
+    textTransform: 'none',
+    letterSpacing: 0,
+    fontWeight: 400,
+    width: '100%',
+    paddingLeft: theme.spacing(4),
+    paddingRight: theme.spacing(12),
+    justifyContent: 'flex-start',
   },
 }));
 
@@ -74,13 +83,15 @@ const UserAvatar = React.memo(() => {
           vertical: 'top',
           horizontal: 'left',
         }}>
-        <MenuItem>
-          <Link
+        <MenuItem className={classes.linkMenu}>
+          <Button
             href={completeRelativeUrl('/profile')}
-            aria-label="View Account Profile"
+            rel="noopener"
+            target="_blank"
+            aria-label="Profile"
             className={classes.link}>
-            View Account Profile
-          </Link>
+            Profile
+          </Button>
         </MenuItem>
       </Menu>
     </>

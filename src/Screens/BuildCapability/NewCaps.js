@@ -14,15 +14,14 @@ import FormControl from '@material-ui/core/FormControl';
 import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
 import Checkbox from '@material-ui/core/Checkbox';
-import {random} from 'lodash-es';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
+import axios from 'axios';
 import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 import TooltipCustom from '../../TooltipCustom';
 import BrowserSelect from '../../components/BrowserSelect';
 import OsSelect from '../../components/OsSelect';
 import {
-  ApiStatuses,
   Browsers,
   BuildCapsLabels,
   BuildCapsFields,
@@ -34,9 +33,10 @@ import {
   FirefoxLogLevel,
   PromptBehavior,
   IEScrollBehavior,
+  Endpoints,
 } from '../../Constants';
 import Browser, {BuildCapabilities} from '../../model';
-import {getPlatformByOs} from '../../common';
+import {getPlatformByOs, handleApiError} from '../../common';
 import {equalIgnoreCase} from '../../utils';
 
 const useStyles = makeStyles((theme) => ({
@@ -165,6 +165,8 @@ const NewCaps = React.memo(
       if (len === 0) {
         errors[ValidatedFields.NAME] = `${BuildCapsLabels.NAME} is required`;
       } else if (len > MaxLengths.BUILD_CAPS_NAME) {
+        // although db can store unlimited length name for build caps but I'm keeping
+        // this check to have readable names from user.
         errors[
           ValidatedFields.NAME
         ] = `${BuildCapsLabels.NAME} can't be more than ${MaxLengths.BUILD_CAPS_NAME} characters`;
@@ -267,7 +269,7 @@ const NewCaps = React.memo(
       // for now even if it's edit, send the whole build caps object.
       // TODO: later track for changes and send changed fields only.
       const clone = {...caps}; // don't mutate the state, if an error occurs it will
-      // continue to be used. There is not nested object inside caps.
+      // continue to be used. There is no nested object inside caps.
       clone[BuildCapsFields.NAME] = clone[BuildCapsFields.NAME].trim(); // no need to escape
       // backslashes, quotes etc, JSON.stringify will do that.
       clone[BuildCapsFields.ST] = normalizeTimeouts(
@@ -286,44 +288,44 @@ const NewCaps = React.memo(
         clone[BuildCapsFields.IEDESC] = true;
       }
 
-      const onSuccess = (response) => {
-        if (response.data && response.data.id) {
-          clone[BuildCapsFields.ID] = response.data.id;
+      if (clone[BuildCapsFields.ID] && initialCaps) {
+        // when updating, make sure when no data is changed, we don't post to api
+        // make sure the comparison of all keys happen after normalizing timeouts,
+        // trimming free input fields, so that even if user added some whitespaces,
+        // we don't consider it a change. Also suppose user changes timeout field,
+        // and revert. This change will cause 'caps' to have that timeout field as
+        // 'string' type. When we compare below, string won't match to number and even
+        // tho the value is same we will consider it a change that will fail at api
+        // because api checks that update operation should actually update one row.
+        // Thus compare only after converting number fields to number.
+        let hasChanged = false;
+        const keys = Object.keys(initialCaps);
+        for (let i = 0; i < keys.length; i += 1) {
+          const key = keys[i];
+          if (initialCaps[key] !== clone[key]) {
+            hasChanged = true;
+            break;
+          }
         }
-        onSave(clone);
-      };
+        if (!hasChanged) {
+          onCancel();
+          return;
+        }
+      }
 
-      const onError = (response) => {
-        setSaving(false);
-        setSnackbarErrorMsg(`Couldn't save, ${response.error.reason}`);
-      };
+      async function saveBuildCapability() {
+        try {
+          const {data} = await axios.post(Endpoints.BUILD_CAPABILITIES, clone);
+          // data is id
+          clone[BuildCapsFields.ID] = data;
+          onSave(clone);
+        } catch (ex) {
+          setSaving(false);
+          handleApiError(ex, setSnackbarErrorMsg, "Couldn't save");
+        }
+      }
 
-      // send entire cloned BuildCaps object to api for saving, wait for response
-      setTimeout(() => {
-        const response = {
-          status: ApiStatuses.SUCCESS,
-        };
-        /* const response = {
-          status: ApiStatuses.FAILURE,
-          error: {
-            reason: 'Internal Error',
-          },
-        }; */
-        // if it was an edit, there won't be any data returned from api
-        if (
-          response.status === ApiStatuses.SUCCESS &&
-          !caps[BuildCapsFields.ID]
-        ) {
-          response.data = {
-            id: random(1000, 10000),
-          };
-        }
-        if (response.status === ApiStatuses.SUCCESS) {
-          onSuccess(response);
-        } else if (response.status === ApiStatuses.FAILURE) {
-          onError(response);
-        }
-      }, 1000);
+      saveBuildCapability();
     };
 
     const handleCancel = (e) => {

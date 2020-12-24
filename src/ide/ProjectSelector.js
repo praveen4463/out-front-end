@@ -1,9 +1,9 @@
 import React, {
   useState,
-  useEffect,
   useContext,
   useCallback,
   useMemo,
+  useEffect,
 } from 'react';
 import {makeStyles} from '@material-ui/core/styles';
 import AddCircleIcon from '@material-ui/icons/AddCircle';
@@ -23,14 +23,15 @@ import CloseIcon from '@material-ui/icons/Close';
 import Slide from '@material-ui/core/Slide';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
-import {random} from 'lodash-es';
+import axios from 'axios';
+import {useQuery, useMutation, useQueryClient} from 'react-query';
 import Tooltip from '../TooltipCustom';
 import {RESET_STATE, SET_PROJECT} from './actionTypes';
 import batchActions from './actionCreators';
 import {IdeDispatchContext, IdeProjectIdContext} from './Contexts';
 import useSnackbarTypeError from '../hooks/useSnackbarTypeError';
-import {MaxLengths, ApiStatuses} from '../Constants';
-import {invokeOnApiCompletion} from '../common';
+import {MaxLengths, QueryKeys, Endpoints} from '../Constants';
+import {getNewIntlComparer, handleApiError} from '../common';
 import {equalIgnoreCase} from '../utils';
 
 const useStyles = makeStyles((theme) => ({
@@ -71,6 +72,12 @@ const useStyles = makeStyles((theme) => ({
     top: theme.spacing(1),
     color: theme.palette.grey[500],
   },
+  buttonCancel: {
+    marginLeft: theme.spacing(1),
+  },
+  buttonSave: {
+    padding: `0px ${theme.spacing(6)}px`,
+  },
 }));
 
 const Transition = React.forwardRef(function Transition(props, ref) {
@@ -81,26 +88,42 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 const ProjectSelector = React.memo(() => {
   const dispatch = useContext(IdeDispatchContext);
   const projectId = useContext(IdeProjectIdContext);
-  const [projects, setProjects] = useState(null);
   const [dlgOpen, setDlgOpen] = useState(false);
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState(null);
-  const [saving, setSaving] = useState(false);
   const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
+  const queryClient = useQueryClient();
   const classes = useStyles();
 
-  // TODO: when we add api, handle error here and use snackbar.
+  // result on useQuery doesn't change on re renders, thus can be used in memo or callbacks.
+  const projQuery = useQuery(
+    QueryKeys.PROJECTS,
+    async () => {
+      const response = await axios(Endpoints.PROJECTS);
+      const p = response.data;
+      p.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+      return p;
+    },
+    {
+      staleTime: 1000 * 60 * 5, // keep fetched caps in cache for atleast 5mins before refetching
+      // occurs on remount or win focus.
+    }
+  );
+
+  const showError = useCallback(
+    (msg) => {
+      setSnackbarErrorMsg(msg);
+    },
+    [setSnackbarErrorMsg]
+  );
+
   useEffect(() => {
-    setTimeout(() => {
-      setProjects([
-        {id: 4, name: 'Zylitics Docs Site'},
-        {id: 2, name: 'Zylitics Front End'},
-        {id: 1, name: 'Zylitics IDE'},
-        {id: 3, name: 'Zylitics Marketing Site'},
-      ]);
-    }, 1000);
-    // !! Sample data, load projects from db for the current user, sorted.
-  }, []);
+    if (projQuery.isError) {
+      handleApiError(projQuery.error, showError, 'Projects failed to load');
+    }
+  }, [projQuery.error, projQuery.isError, showError]);
+
+  const projects = projQuery.data;
 
   // when a project is changed, we first clear entire state to be on safe side
   // with any issue while resetting files before changing project which will
@@ -118,6 +141,35 @@ const ProjectSelector = React.memo(() => {
       ])
     );
   };
+
+  const closeDlg = () => {
+    setName('');
+    setNameError(null);
+    setDlgOpen(false);
+  };
+
+  const newProjectMutation = useMutation(
+    async (projectName) => {
+      const {data} = await axios.post(Endpoints.PROJECTS, {name: projectName});
+      return data;
+    },
+    {
+      onSuccess: (data) => {
+        queryClient.setQueryData(QueryKeys.PROJECTS, (old) =>
+          [...old, data].sort((a, b) => getNewIntlComparer()(a.name, b.name))
+        );
+        changeProject(data.id);
+        closeDlg();
+      },
+      onError: (err) => {
+        handleApiError(
+          err,
+          showError,
+          'An error occurred while saving project'
+        );
+      },
+    }
+  );
 
   const handleChange = (event) => {
     changeProject(event.target.value);
@@ -142,12 +194,6 @@ const ProjectSelector = React.memo(() => {
       input.focus();
     }
   }, []);
-
-  const closeDlg = () => {
-    setName('');
-    setNameError(null);
-    setDlgOpen(false);
-  };
 
   const openDlg = () => {
     setDlgOpen(true);
@@ -176,38 +222,17 @@ const ProjectSelector = React.memo(() => {
       setNameError('A project with the same name already exists');
       return;
     }
-    const onSuccess = (response) => {
-      const {data} = response;
-      const clone = [...projects, data];
-      clone.sort((a, b) => a.name.localeCompare(b.name));
-      setProjects(clone);
-      changeProject(data.id);
-      closeDlg();
-    };
-    const onError = (response) => {
-      setSnackbarErrorMsg(
-        `An error occurred while saving project, ${response.error.reason}`
-      );
-    };
-    setTimeout(() => {
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: {
-          id: random(1000, 10000),
-          name: projectName,
-        },
-      };
-      // const response = getApiError('Network error');
-      invokeOnApiCompletion(response, onSuccess, onError);
-      setSaving(false);
-    }, 500);
-    setSaving(true);
+    newProjectMutation.mutate(projectName);
   };
 
   const keyUpHandler = (e) => {
     if (e.key === 'Enter') {
       handleSave();
     }
+  };
+
+  const handleCancel = () => {
+    closeDlg();
   };
 
   return (
@@ -297,13 +322,21 @@ const ProjectSelector = React.memo(() => {
                 className={classes.textField}
               />
             </Box>
-            <Box>
+            <Box display="flex">
               <Button
                 variant="contained"
                 color="secondary"
-                disabled={saving}
+                disabled={newProjectMutation.isLoading}
+                className={classes.buttonSave}
                 onClick={handleSave}>
-                {saving ? 'Saving...' : 'Save'}
+                {newProjectMutation.isLoading ? 'Saving...' : 'Save'}
+              </Button>
+              <Button
+                variant="contained"
+                className={classes.buttonCancel}
+                disabled={newProjectMutation.isLoading}
+                onClick={handleCancel}>
+                Cancel
               </Button>
             </Box>
           </Box>

@@ -35,7 +35,7 @@ const SnackbarTypeError = ({error, errorOn, setErrorClose}) => {
           horizontal: 'right',
         }}
         open={errorOn}
-        autoHideDuration={10000}
+        autoHideDuration={15000}
         onClose={handleClose}>
         <SnackbarContent
           message={

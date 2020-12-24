@@ -2,6 +2,7 @@ import React, {useState, useCallback} from 'react';
 import IconButton from '@material-ui/core/IconButton';
 import HelpOutlineOutlinedIcon from '@material-ui/icons/HelpOutlineOutlined';
 import Menu from '@material-ui/core/Menu';
+import Button from '@material-ui/core/Button';
 import MenuItem from '@material-ui/core/MenuItem';
 import {makeStyles} from '@material-ui/core/styles';
 import Dialog from '@material-ui/core/Dialog';
@@ -33,6 +34,18 @@ const useStyles = makeStyles((theme) => ({
     right: theme.spacing(1),
     top: theme.spacing(1),
     color: theme.palette.grey[500],
+  },
+  linkMenu: {
+    padding: 0,
+  },
+  link: {
+    textTransform: 'none',
+    letterSpacing: 0,
+    fontWeight: 400,
+    width: '100%',
+    paddingLeft: theme.spacing(4),
+    paddingRight: theme.spacing(12),
+    justifyContent: 'flex-start',
   },
 }));
 
@@ -161,6 +174,16 @@ const HelpMenu = () => {
         </MenuItem>
         <MenuItem onClick={handleClickKeyShortcuts}>
           Keyboard shortcuts
+        </MenuItem>
+        <MenuItem className={classes.linkMenu}>
+          <Button
+            href="https://docs.zylitics.io"
+            rel="noopener"
+            target="_blank"
+            aria-label="Documentation"
+            className={classes.link}>
+            Documentation
+          </Button>
         </MenuItem>
       </Menu>
       <Dialog
