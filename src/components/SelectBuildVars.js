@@ -115,7 +115,7 @@ const SelectBuildVars = React.memo(
                   {Object.keys(groupedData).map((key) => {
                     const keyResolveTo = selectedBuildVarIdPerKey[key]
                       ? buildVars[selectedBuildVarIdPerKey[key]]
-                      : groupedData[key].find((buildVar) => buildVar.primary);
+                      : groupedData[key].find((buildVar) => buildVar.isPrimary);
                     return (
                       <Accordion
                         expanded={expanded === key}
@@ -141,7 +141,7 @@ const SelectBuildVars = React.memo(
                               classes.secondaryHeading
                             )}>
                             {getFormattedValue(keyResolveTo.value)}{' '}
-                            {keyResolveTo.primary ? (
+                            {keyResolveTo.isPrimary ? (
                               <span className={classes.primaryMark}>
                                 (primary)
                               </span>
@@ -183,7 +183,7 @@ const SelectBuildVars = React.memo(
                                       classes.groupVarsText
                                     )}>
                                     {getFormattedValue(buildVar.value)}{' '}
-                                    {buildVar.primary ? (
+                                    {buildVar.isPrimary ? (
                                       <span className={classes.primaryMark}>
                                         (primary)
                                       </span>

@@ -29,7 +29,7 @@ const deleteVar = (draft, payload) => {
     // more than one entries with entry's key, user should first make some other
     // entry in the key group primary before deleting this one. If the key
     // group has just one entry, deletion is allowed.
-    if (entry.primary) {
+    if (entry.isPrimary) {
       const {key} = entry;
       const matchingEntries = vars.build.result.filter(
         (r) => buildVars[r].key === key
@@ -52,7 +52,7 @@ const deleteVar = (draft, payload) => {
 export const getCurrentPrimaryBuildVar = (vars, key) => {
   const {buildVars} = vars.build.entities;
   const currentPrimary = vars.build.result.filter(
-    (id) => equalIgnoreCase(buildVars[id].key, key) && buildVars[id].primary
+    (id) => equalIgnoreCase(buildVars[id].key, key) && buildVars[id].isPrimary
   );
   const size = currentPrimary.length;
   if (size === 0 || size > 1) {
@@ -64,7 +64,7 @@ export const getCurrentPrimaryBuildVar = (vars, key) => {
 };
 
 const resetCurrentPrimary = (vars, key) => {
-  getCurrentPrimaryBuildVar(vars, key).primary = false;
+  getCurrentPrimaryBuildVar(vars, key).isPrimary = false;
 };
 
 const editVar = (draft, payload) => {
@@ -79,9 +79,9 @@ const editVar = (draft, payload) => {
     buildVars[entry.id].value = entry.value;
     // if user tries to un-primary a primary var, it won't happen.
     // if var is not primary and being turned to, reset previous primary.
-    if (entry.primary && !buildVars[entry.id].primary) {
+    if (entry.isPrimary && !buildVars[entry.id].isPrimary) {
       resetCurrentPrimary(vars, entry.key);
-      buildVars[entry.id].primary = true;
+      buildVars[entry.id].isPrimary = true;
     }
   } else if (payload.type === VarTypes.GLOBAL) {
     // only value can be edited
@@ -100,7 +100,7 @@ const newVar = (draft, payload) => {
   const value = {...payload.value};
   if (payload.type === VarTypes.BUILD) {
     if (vars.build === null) {
-      value.primary = true; // when it's first var, it should be primary
+      value.isPrimary = true; // when it's first var, it should be primary
       vars.build = {
         entities: {buildVars: {[value.id]: value}},
         result: [value.id],
@@ -113,9 +113,9 @@ const newVar = (draft, payload) => {
       );
       // if this new key doesn't yet exist, mark it primary.
       if (!existingBuildVarId) {
-        value.primary = true;
+        value.isPrimary = true;
       } else {
-        if (value.primary) {
+        if (value.isPrimary) {
           // if this key exists and new key needs to be primary, reset previous
           resetCurrentPrimary(vars, value.key);
         }

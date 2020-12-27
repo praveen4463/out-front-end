@@ -1,6 +1,15 @@
 import PropTypes from 'prop-types';
 import {truncate} from 'lodash-es';
-import {Os, Browsers, Platforms, ApiStatuses, TestStatus} from './Constants';
+import axios from 'axios';
+import {
+  Os,
+  Browsers,
+  Platforms,
+  ApiStatuses,
+  TestStatus,
+  PROJECT_ID_ENDPOINT_VAR_TEMPLATE,
+  Endpoints,
+} from './Constants';
 import chrome from './icons/chrome.png';
 import firefox from './icons/firefox.png';
 import ie from './icons/ie.png';
@@ -193,7 +202,7 @@ export const getNumberParamFromUrl = (param) => {
 };
 
 export const handleApiError = (error, showError, message) => {
-  console.log(JSON.parse(JSON.stringify(error)));
+  console.log('handleApiError', error.response, error.request);
   // TODO: send to sentry from here
   if (error.response) {
     showError(`${message}, ${error.response.data.message}`);
@@ -209,4 +218,31 @@ export const handleApiError = (error, showError, message) => {
     // throw so that error boundary could catch as this is unrecoverable error.
     throw new Error(error.message);
   }
+};
+
+export const prepareEndpoint = (endpoint, projectId, pathVar) => {
+  let formattedEndpoint = endpoint;
+  if (formattedEndpoint.includes(PROJECT_ID_ENDPOINT_VAR_TEMPLATE)) {
+    formattedEndpoint = formattedEndpoint.replace(
+      PROJECT_ID_ENDPOINT_VAR_TEMPLATE,
+      projectId
+    );
+  }
+  if (pathVar) {
+    formattedEndpoint = `${formattedEndpoint}/${pathVar}`;
+  }
+  return formattedEndpoint;
+};
+
+/**
+ * Fetches files with tests from api filtered by te given fileIds
+ * @param {fileIds} fileIds Must be comma separated string if multiple, otherwise integer
+ * @param {projectId} projectId The zl projectId
+ */
+export const getFilesWithTests = (fileIds, projectId) => {
+  return axios(prepareEndpoint(Endpoints.FILES_WITH_TESTS, projectId), {
+    params: {
+      fileIdsFilter: fileIds,
+    },
+  });
 };

@@ -1,7 +1,6 @@
 /* eslint-disable react/jsx-props-no-spreading */
 /* eslint-disable react/prop-types */
 import React, {useContext, useMemo, useState, useCallback} from 'react';
-import {random} from 'lodash-es';
 import TextField from '@material-ui/core/TextField';
 import {makeStyles} from '@material-ui/core/styles';
 import MaUTable from '@material-ui/core/Table';
@@ -16,11 +15,17 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import IconButton from '@material-ui/core/IconButton';
 import Typography from '@material-ui/core/Typography';
 import {useGlobalFilter, useSortBy, useTable} from 'react-table';
+import axios from 'axios';
 import TableToolbar from '../components/TableToolbar';
-import {IdeDispatchContext, IdeVarsContext} from '../../Contexts';
+import {
+  IdeDispatchContext,
+  IdeVarsContext,
+  IdeProjectIdContext,
+} from '../../Contexts';
 import useSnackbarTypeError from '../../../hooks/useSnackbarTypeError';
 import useConfirmationDialog from '../../../hooks/useConfirmationDialog';
-import {ApiStatuses, VarTypes, ErrorType} from '../../../Constants';
+import {VarTypes, ErrorType, Endpoints} from '../../../Constants';
+import {handleApiError, prepareEndpoint} from '../../../common';
 import {VAR_NEW, VAR_EDIT, VAR_DELETE} from '../../actionTypes';
 import {GlobalVars as GlobalVariables} from '../../../variables/model';
 import normalizeString, {equalIgnoreCase} from '../../../utils';
@@ -140,6 +145,7 @@ Actions.propTypes = {
 
 const GlobalVars = () => {
   const dispatch = useContext(IdeDispatchContext);
+  const projectId = useContext(IdeProjectIdContext);
   const vars = useContext(IdeVarsContext);
   const classes = useStyles();
   // console.log('vars', vars);
@@ -184,29 +190,23 @@ const GlobalVars = () => {
       },
     });
 
-    const onError = (response) => {
-      setSnackbarErrorMsg(`Couldn't update, ${response.error.reason}`);
-      // revert to original on error
-      dispatch({
-        type: VAR_EDIT,
-        payload: {type: VarTypes.GLOBAL, value: originalRow},
-      });
-    };
-    // send to api only column that is changed, i.e columnId
-    setTimeout(() => {
-      /* const response = {
-        status: ApiStatuses.FAILURE,
-        error: {
-          reason: 'Network error',
-        },
-      }; */
-      const response = {
-        status: ApiStatuses.SUCCESS,
-      };
-      if (response.status === ApiStatuses.FAILURE) {
-        onError(response);
+    async function sendUpdate() {
+      try {
+        await axios.patch(prepareEndpoint(Endpoints.GLOBAL_VARS, projectId), {
+          value: normalized,
+          globalVarId: originalRow.id,
+        });
+      } catch (error) {
+        handleApiError(error, setSnackbarErrorMsg, "Couldn't update");
+        // revert to original on error
+        dispatch({
+          type: VAR_EDIT,
+          payload: {type: VarTypes.GLOBAL, value: originalRow},
+        });
       }
-    }, 500);
+    }
+
+    sendUpdate();
   };
 
   const add = (globalVar) => {
@@ -225,42 +225,30 @@ const GlobalVars = () => {
         errorType: ErrorType.GLOBAL_VAR_DUPE_ERROR,
       };
     }
-    const onSuccess = (response) => {
-      dispatch({
-        type: VAR_NEW,
-        payload: {
-          type: VarTypes.GLOBAL,
-          value: new GlobalVariables(
-            response.data.id,
-            normalized.key,
-            normalized.value
-          ),
-        },
-      });
-    };
-    const onError = (response) => {
-      setSnackbarErrorMsg(`Couldn't save, ${response.error.reason}`);
-    };
-    setTimeout(() => {
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: {
-          id: random(1000, 10000),
-        },
-      };
-      /* const response = {
-        status: ApiStatuses.FAILURE,
-        error: {
-          reason: 'Network error',
-        },
-      }; */
-      if (response.status === ApiStatuses.FAILURE) {
-        onError(response);
+
+    async function save() {
+      try {
+        const response = await axios.post(
+          prepareEndpoint(Endpoints.GLOBAL_VARS, projectId),
+          normalized
+        );
+        dispatch({
+          type: VAR_NEW,
+          payload: {
+            type: VarTypes.GLOBAL,
+            value: new GlobalVariables(
+              response.data,
+              normalized.key,
+              normalized.value
+            ),
+          },
+        });
+      } catch (error) {
+        handleApiError(error, setSnackbarErrorMsg, "Couldn't save");
       }
-      if (response.status === ApiStatuses.SUCCESS) {
-        onSuccess(response);
-      }
-    }, 500);
+    }
+    save();
+
     return null;
   };
 
@@ -273,33 +261,27 @@ const GlobalVars = () => {
           id: originalRow.id,
         },
       });
-      const onError = (response) => {
-        setSnackbarErrorMsg(`Couldn't delete, ${response.error.reason}`);
-        // revert to original on error
-        dispatch({
-          type: VAR_NEW,
-          payload: {
-            type: VarTypes.GLOBAL,
-            value: originalRow,
-          },
-        });
-      };
-      setTimeout(() => {
-        /* const response = {
-        status: ApiStatuses.FAILURE,
-        error: {
-          reason: 'Network error',
-        },
-      }; */
-        const response = {
-          status: ApiStatuses.SUCCESS,
-        };
-        if (response.status === ApiStatuses.FAILURE) {
-          onError(response);
+
+      async function sendDelete() {
+        try {
+          await axios.delete(
+            prepareEndpoint(Endpoints.GLOBAL_VARS, projectId, originalRow.id)
+          );
+        } catch (error) {
+          handleApiError(error, setSnackbarErrorMsg, "Couldn't delete");
+          // revert to original on error
+          dispatch({
+            type: VAR_NEW,
+            payload: {
+              type: VarTypes.GLOBAL,
+              value: originalRow,
+            },
+          });
         }
-      }, 500);
+      }
+      sendDelete();
     },
-    [dispatch, setSnackbarErrorMsg]
+    [dispatch, setSnackbarErrorMsg, projectId]
   );
 
   // Set our editable cell renderer as the default Cell renderer

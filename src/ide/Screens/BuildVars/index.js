@@ -1,7 +1,7 @@
 /* eslint-disable react/jsx-props-no-spreading */
 /* eslint-disable react/prop-types */
 import React, {useContext, useMemo, useState, useCallback} from 'react';
-import {random, truncate} from 'lodash-es';
+import {truncate} from 'lodash-es';
 import TextField from '@material-ui/core/TextField';
 import {makeStyles} from '@material-ui/core/styles';
 import Radio from '@material-ui/core/Radio';
@@ -25,11 +25,17 @@ import {
   useTable,
   useExpanded,
 } from 'react-table';
+import axios from 'axios';
 import TableToolbar from '../components/TableToolbar';
-import {IdeDispatchContext, IdeVarsContext} from '../../Contexts';
+import {
+  IdeDispatchContext,
+  IdeVarsContext,
+  IdeProjectIdContext,
+} from '../../Contexts';
 import useSnackbarTypeError from '../../../hooks/useSnackbarTypeError';
 import useConfirmationDialog from '../../../hooks/useConfirmationDialog';
-import {ApiStatuses, VarTypes, ErrorType} from '../../../Constants';
+import {VarTypes, ErrorType, Endpoints} from '../../../Constants';
+import {handleApiError, prepareEndpoint} from '../../../common';
 import {
   VAR_NEW,
   VAR_EDIT,
@@ -97,7 +103,7 @@ const EditableCell = React.memo(({cell, row, column, update}) => {
     return null;
   }
 
-  if (id === 'primary') {
+  if (id === 'isPrimary') {
     return (
       <Radio
         value={value ? 'on' : 'off'}
@@ -163,7 +169,7 @@ const Actions = React.memo(({originalRow, onDelete}) => {
 
   const isDeleteDisabled = () => {
     return (
-      originalRow.primary &&
+      originalRow.isPrimary &&
       vars.build.result.filter(
         (b) => vars.build.entities.buildVars[b].key === originalRow.key
       ).length > 1
@@ -195,6 +201,7 @@ Actions.propTypes = {
 
 const BuildVars = () => {
   const dispatch = useContext(IdeDispatchContext);
+  const projectId = useContext(IdeProjectIdContext);
   const vars = useContext(IdeVarsContext);
   const classes = useStyle();
   // console.log('vars', vars);
@@ -211,7 +218,7 @@ const BuildVars = () => {
       },
       {
         Header: 'Is Primary',
-        accessor: 'primary',
+        accessor: 'isPrimary',
       },
     ],
     []
@@ -238,11 +245,10 @@ const BuildVars = () => {
         return;
       }
     }
-    // keep the entry that is currently primary before the current
-    // update makes it non primary (if value.primary === true). This
-    // will help reverting on error.
     let currentPrimary = null;
-    if (columnId === 'primary' && value.primary && !oldValue.primary) {
+    if (columnId === 'isPrimary' && value && !oldValue.isPrimary) {
+      // keep the entry that is currently primary before the current
+      // update makes it non primary. This will help reverting on error.
       currentPrimary = getCurrentPrimaryBuildVar(vars, originalRow.key);
     }
 
@@ -258,38 +264,33 @@ const BuildVars = () => {
       },
     });
 
-    const onError = (response) => {
-      setSnackbarErrorMsg(`Couldn't update, ${response.error.reason}`);
-      // revert to original on error
-      if (currentPrimary !== null) {
-        dispatch({
-          type: VAR_EDIT,
-          payload: {type: VarTypes.BUILD, value: currentPrimary}, // currentPrimary had primary = true
-          // so sending it now will make it primary again as it turned to non
-          // primary after this after.
+    async function sendUpdate() {
+      try {
+        await axios.patch(prepareEndpoint(Endpoints.BUILD_VARS, projectId), {
+          columnId,
+          value: normalized,
+          buildVarId: originalRow.id,
         });
-      } else {
-        dispatch({
-          type: VAR_EDIT,
-          payload: {type: VarTypes.BUILD, value: originalRow},
-        });
+      } catch (error) {
+        handleApiError(error, setSnackbarErrorMsg, "Couldn't update");
+        // revert to original on error
+        if (currentPrimary !== null) {
+          dispatch({
+            type: VAR_EDIT,
+            payload: {type: VarTypes.BUILD, value: currentPrimary}, // currentPrimary had isPrimary = true
+            // so sending it now will make it primary again as it turned to non
+            // primary after this after.
+          });
+        } else {
+          dispatch({
+            type: VAR_EDIT,
+            payload: {type: VarTypes.BUILD, value: originalRow},
+          });
+        }
       }
-    };
-    // send to api only column that is changed, i.e columnId
-    setTimeout(() => {
-      /* const response = {
-        status: ApiStatuses.FAILURE,
-        error: {
-          reason: 'Network error',
-        },
-      }; */
-      const response = {
-        status: ApiStatuses.SUCCESS,
-      };
-      if (response.status === ApiStatuses.FAILURE) {
-        onError(response);
-      }
-    }, 500);
+    }
+
+    sendUpdate();
   };
 
   const add = (buildVar) => {
@@ -304,11 +305,7 @@ const BuildVars = () => {
           equalIgnoreCase(
             vars.build.entities.buildVars[id].key,
             normalized.key
-          ) &&
-          equalIgnoreCase(
-            vars.build.entities.buildVars[id].value,
-            normalized.value
-          )
+          ) && vars.build.entities.buildVars[id].value === normalized.value
       )
     ) {
       return {
@@ -316,42 +313,29 @@ const BuildVars = () => {
         errorType: ErrorType.BUILD_VAR_DUPE_ERROR,
       };
     }
-    const onSuccess = (response) => {
-      dispatch({
-        type: VAR_NEW,
-        payload: {
-          type: VarTypes.BUILD,
-          value: new BuildVariables(
-            response.data.id,
-            normalized.key,
-            normalized.value,
-            normalized.primary
-          ),
-        },
-      });
-    };
-    const onError = (response) => {
-      setSnackbarErrorMsg(`Couldn't save, ${response.error.reason}`);
-    };
-    setTimeout(() => {
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: {
-          id: random(1000, 10000),
-        },
-      };
-      /* const response = {
-        status: ApiStatuses.FAILURE,
-        error: {
-          reason: 'Network error',
-        },
-      }; */
-      if (response.status === ApiStatuses.SUCCESS) {
-        onSuccess(response);
-      } else if (response.status === ApiStatuses.FAILURE) {
-        onError(response);
+    async function save() {
+      try {
+        const response = await axios.post(
+          prepareEndpoint(Endpoints.BUILD_VARS, projectId),
+          normalized
+        );
+        dispatch({
+          type: VAR_NEW,
+          payload: {
+            type: VarTypes.BUILD,
+            value: new BuildVariables(
+              response.data,
+              normalized.key,
+              normalized.value,
+              normalized.isPrimary
+            ),
+          },
+        });
+      } catch (error) {
+        handleApiError(error, setSnackbarErrorMsg, "Couldn't save");
       }
-    }, 500);
+    }
+    save();
     return null;
   };
 
@@ -364,46 +348,40 @@ const BuildVars = () => {
           id: originalRow.id,
         },
       });
-      const onSuccess = () => {
-        const payload = {
-          buildVar: originalRow,
-        };
-        dispatch(
-          batchActions([
-            {type: CONFIG_BUILD_ON_BUILD_VAR_DELETE, payload},
-            {type: CONFIG_DRY_ON_BUILD_VAR_DELETE, payload},
-          ])
-        );
-      };
-      const onError = (response) => {
-        setSnackbarErrorMsg(`Couldn't delete, ${response.error.reason}`);
-        // revert to original on error
-        dispatch({
-          type: VAR_NEW,
-          payload: {
-            type: VarTypes.BUILD,
-            value: originalRow,
-          },
-        });
-      };
-      setTimeout(() => {
-        /* const response = {
-        status: ApiStatuses.FAILURE,
-        error: {
-          reason: 'Network error',
-        },
-      }; */
-        const response = {
-          status: ApiStatuses.SUCCESS,
-        };
-        if (response.status === ApiStatuses.SUCCESS) {
-          onSuccess();
-        } else if (response.status === ApiStatuses.FAILURE) {
-          onError(response);
+      async function sendDelete() {
+        try {
+          await axios.delete(
+            prepareEndpoint(Endpoints.BUILD_VARS, projectId, originalRow.id),
+            {
+              params: {
+                isPrimary: originalRow.isPrimary,
+              },
+            }
+          );
+          const payload = {
+            buildVar: originalRow,
+          };
+          dispatch(
+            batchActions([
+              {type: CONFIG_BUILD_ON_BUILD_VAR_DELETE, payload},
+              {type: CONFIG_DRY_ON_BUILD_VAR_DELETE, payload},
+            ])
+          );
+        } catch (error) {
+          handleApiError(error, setSnackbarErrorMsg, "Couldn't delete");
+          // revert to original on error
+          dispatch({
+            type: VAR_NEW,
+            payload: {
+              type: VarTypes.BUILD,
+              value: originalRow,
+            },
+          });
         }
-      }, 500);
+      }
+      sendDelete();
     },
-    [dispatch, setSnackbarErrorMsg]
+    [dispatch, setSnackbarErrorMsg, projectId]
   );
 
   // This will hide the grouped column by adding it into hidden column list in

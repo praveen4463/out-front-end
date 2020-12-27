@@ -19,7 +19,7 @@ import {MaxLengths} from '../../Constants';
 
 const KEY = 'key';
 const VALUE = 'value';
-const PRIMARY = 'primary';
+const PRIMARY = 'isPrimary';
 
 const useStyle = makeStyles((theme) => ({
   root: {
@@ -44,7 +44,7 @@ const NewVariable = ({addHandler, varType}) => {
       [VALUE]: '',
     };
     if (varType === VarTypes.BUILD) {
-      initialVar.primary = false;
+      initialVar.isPrimary = false;
     }
     return initialVar;
   });

@@ -18,11 +18,17 @@ import {useSpring, animated} from 'react-spring/web.cjs'; // web.cjs is required
 import Loader from '../../components/Loader';
 import ColoredItemIcon from '../../components/ColoredItemIcon';
 import {ExplorerItemType} from '../Constants';
-import {ApiStatuses} from '../../Constants';
-import {invokeOnApiCompletion} from '../../common';
-import {IdeDispatchContext, IdeFilesContext} from '../Contexts';
+import {
+  handleApiError,
+  getNewIntlComparer,
+  getFilesWithTests,
+} from '../../common';
+import {
+  IdeDispatchContext,
+  IdeFilesContext,
+  IdeProjectIdContext,
+} from '../Contexts';
 import {filesSchema} from './model';
-import {fileToLoad as sampleFilesForOnLoad} from './sample';
 import TitleDialog from '../../components/TitleDialog';
 import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 import {EXP_LOAD_FILES} from '../actionTypes';
@@ -200,6 +206,7 @@ const cloneFiles = (files) => {
 
 const LoadFiles = React.memo(({showDialog, setShowDialog}) => {
   const dispatch = useContext(IdeDispatchContext);
+  const projectId = useContext(IdeProjectIdContext);
   const filesFromContext = useContext(IdeFilesContext);
   const files = useMemo(() => cloneFiles(filesFromContext), [filesFromContext]);
   const etFiles = files ? files.entities.files : null;
@@ -226,36 +233,44 @@ const LoadFiles = React.memo(({showDialog, setShowDialog}) => {
     if (!fileIdsNotLoaded.length) {
       return; // all files in editor, no data needs to be fetched.
     }
-    const onSuccess = (response) => {
-      if (!response.data.length) {
-        return;
-      }
-      const filesToLoad = normalize(response.data, filesSchema);
-      Object.assign(files.entities.files, filesToLoad.entities.files);
-      Object.assign(files.entities.tests, filesToLoad.entities.tests);
-      Object.assign(files.entities.versions, filesToLoad.entities.versions);
-    };
-    const onError = (response) => {
-      setSnackbarErrorMsg(`Couldn't fetch files, ${response.error.reason}`);
-    };
     // send fileIdsNotLoaded to api and load their tests, some files may not have any
     // tests and may still be in unloaded state, so we will show just their file
-    // names. Test and versions within files will be ordered, sorting done at
-    // api level. Note that api returns only files having tests, files with no
+    // names. Note that api returns only files having tests, files with no
     // tests are not returned, thus an empty array may be returned.
-    setTimeout(() => {
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        // sampleFilesForOnLoad are files having tests for testing purpose.
-        data: sampleFilesForOnLoad.filter(
-          (f) => fileIdsNotLoaded.indexOf(f.id) >= 0
-        ),
-      };
-      invokeOnApiCompletion(response, onSuccess, onError);
-      setLoading(false);
-    }, 1000);
     setLoading(true);
-  }, [anyFiles, files, setSnackbarErrorMsg]);
+
+    async function getFiles() {
+      try {
+        const {data} = await getFilesWithTests(
+          fileIdsNotLoaded.join(','),
+          projectId
+        );
+        if (!data.length) {
+          return;
+        }
+        // data is files
+        data.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+        data.forEach((f) => {
+          if (f.tests) {
+            f.tests.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+            f.tests.forEach((t) =>
+              t.versions.sort((a, b) => getNewIntlComparer()(a.name, b.name))
+            );
+          }
+        });
+
+        const filesToLoad = normalize(data, filesSchema);
+        Object.assign(files.entities.files, filesToLoad.entities.files);
+        Object.assign(files.entities.tests, filesToLoad.entities.tests);
+        Object.assign(files.entities.versions, filesToLoad.entities.versions);
+        setLoading(false);
+      } catch (error) {
+        handleApiError(error, setSnackbarErrorMsg, "Couldn't fetch files");
+      }
+    }
+
+    getFiles();
+  }, [anyFiles, files, projectId, setSnackbarErrorMsg]);
 
   const handleToggle = (e, nodeIds) => {
     if (e.target.getAttribute('type') !== 'checkbox') {

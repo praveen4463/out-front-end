@@ -91,8 +91,8 @@ const darkTheme = createMuiTheme({
         marginTop: '0px',
       },
       tooltip: {
-        fontSize: '0.75rem',
-        color: `rgba(255, 255, 255, ${highEmphasisOpacity})`,
+        fontSize: '0.875rem',
+        color: '#fff',
       },
       tooltipPlacementBottom: {
         [defTheme.breakpoints.down('xl')]: {

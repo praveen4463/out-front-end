@@ -12,17 +12,18 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import {normalize} from 'normalizr';
 import {ErrorBoundary} from 'react-error-boundary';
 import {random, intersection} from 'lodash-es';
+import axios from 'axios';
 import Application from '../config/application';
 import TopNavigation from './TopNavigation';
 import Content from './Content';
 import darkTheme from './Themes';
-import {files as sampleFiles} from './Explorer/sample';
-import {
-  globalVars as sampleGlobalVars,
-  buildVars as sampleBuildVars,
-} from '../variables/sample';
 import {filesSchema, LastRunError, File} from './Explorer/model';
-import {globalVarsSchema, buildVarsSchema} from '../variables/model';
+import {
+  globalVarsSchema,
+  buildVarsSchema,
+  BuildVars,
+  GlobalVars,
+} from '../variables/model';
 import {
   BATCH_ACTIONS,
   SET_FILES,
@@ -93,6 +94,7 @@ import {
   ApiStatuses,
   RunType,
   TestStatus,
+  Endpoints,
 } from '../Constants';
 import {TestProgress} from './Constants';
 import Browser, {BuildConfig} from '../model';
@@ -101,7 +103,14 @@ import {
   versionsHaveParseErrorWhenStatusAvailable,
   versionsHaveLastParseStatus,
 } from './common';
-import {invokeOnApiCompletion, getNumberParamFromUrl} from '../common';
+import {
+  getNumberParamFromUrl,
+  handleApiError,
+  prepareEndpoint,
+  getNewIntlComparer,
+  getFilesWithTests,
+} from '../common';
+
 import './index.css';
 
 const useStyles = makeStyles((theme) => ({
@@ -311,7 +320,6 @@ const Ide = () => {
     // Fetch all files of the project without their tests and fetch tests for only
     // file that in in qs (if any). Make sure files, tests within files, versions
     // within tests are ordered by name.
-    // fetch build and global variables of the project as well in same call.
 
     const url = new URL(document.location);
     const qsParams = url.searchParams;
@@ -328,66 +336,98 @@ const Ide = () => {
     const updatedUrl = `${url.origin}${url.pathname}?${qsParams}`;
     window.history.replaceState({url: updatedUrl}, null, updatedUrl);
 
-    const onSuccess = (response) => {
-      const {files, globals, build} = response.data;
-      const actions = [];
-      if (Array.isArray(files) && files.length) {
-        const normalizedFiles = normalize(files, filesSchema);
-        if (normalizedFiles.result.includes(fileId)) {
-          normalizedFiles.entities.files[fileId].loadToTree = true;
-        }
-        actions.push({type: SET_FILES, payload: {files: normalizedFiles}});
-      }
-      if (Array.isArray(globals) && globals.length) {
-        actions.push({
-          type: VAR_SET,
-          payload: {
-            type: VarTypes.GLOBAL,
-            value: normalize(globals, globalVarsSchema),
-          },
-        });
-      }
-      if (Array.isArray(build) && build.length) {
-        actions.push({
-          type: VAR_SET,
-          payload: {
-            type: VarTypes.BUILD,
-            value: normalize(build, buildVarsSchema),
-          },
-        });
-      }
-      dispatch(batchActions(actions));
-    };
-    const onError = (response) => {
-      setSnackbarErrorMsg(
-        `Couldn't fetch project files, ${response.error.reason}`
-      );
-    };
-    // make api call
-    setTimeout(() => {
-      // send projectId, fileId and expect files without tests, file with tests (if in
-      // qs) and variables in response. Note that fileId may not be in project (user
-      // selected a file from non ide page, came to ide, select different project
-      // making file irrelevant to the project.) so api will check if it exists in
-      // project and then only fetches it's tests.
-      const sampleFilesClone = sampleFiles.map(
-        (sf) => new File(sf.id, sf.name, sf.id !== fileId ? null : sf.tests)
-        // sample file may contain tests for some files by default, make it
-        // null for all files that are not requested via qs as not loaded files
-        // don't contain tests.
-      );
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: {
-          files: sampleFilesClone,
-          globals: sampleGlobalVars,
-          build: sampleBuildVars,
-        },
-      };
-      invokeOnApiCompletion(response, onSuccess, onError);
-      setLoading(false);
-    }, 1000);
     setLoading(true);
+
+    // get data from api via separate requests in parallel
+    const getFilesIdentifier = () => {
+      return axios(prepareEndpoint(Endpoints.FILES, pId));
+    };
+
+    const getBuildVars = () => {
+      return axios(prepareEndpoint(Endpoints.BUILD_VARS, pId));
+    };
+
+    const getGlobalVars = () => {
+      return axios(prepareEndpoint(Endpoints.GLOBAL_VARS, pId));
+    };
+
+    const apiCalls = [getFilesIdentifier(), getBuildVars(), getGlobalVars()];
+    if (fileId) {
+      apiCalls.push(getFilesWithTests(fileId, pId));
+    }
+    Promise.all(apiCalls)
+      .then((result) => {
+        const [filesIdentifier, varsBuild, varsGlobal, fileWithTest] = result;
+
+        // after receiving data, make sure to sort everything. For files with
+        // tests, sort tests and versions within tests.
+        const files = filesIdentifier.data.map((f) => {
+          if (f.id === fileId && fileWithTest && fileWithTest.data.length) {
+            // when fileId has no associated tests, fileWithTest is empty array
+            const withTests = fileWithTest.data[0];
+            withTests.tests.sort((a, b) =>
+              getNewIntlComparer()(a.name, b.name)
+            );
+            withTests.tests.forEach((t) =>
+              t.versions.sort((a, b) => getNewIntlComparer()(a.name, b.name))
+            );
+            // assign loadToTree = true to the incoming fileId
+            return new File(
+              withTests.id,
+              withTests.name,
+              withTests.tests,
+              undefined,
+              true
+            );
+          }
+          return new File(f.id, f.name);
+        });
+        files.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+
+        const buildVars = varsBuild.data.map(
+          (b) => new BuildVars(b.id, b.key, b.value, b.isPrimary)
+        );
+        buildVars.sort((a, b) => getNewIntlComparer()(a.key, b.key));
+
+        const globalVars = varsGlobal.data.map(
+          (g) => new GlobalVars(g.id, g.key, g.value)
+        );
+        globalVars.sort((a, b) => getNewIntlComparer()(a.key, b.key));
+
+        // data processed, set to state.
+        const actions = [];
+        if (files.length) {
+          const normalizedFiles = normalize(files, filesSchema);
+          actions.push({type: SET_FILES, payload: {files: normalizedFiles}});
+        }
+        if (globalVars.length) {
+          actions.push({
+            type: VAR_SET,
+            payload: {
+              type: VarTypes.GLOBAL,
+              value: normalize(globalVars, globalVarsSchema),
+            },
+          });
+        }
+        if (buildVars.length) {
+          actions.push({
+            type: VAR_SET,
+            payload: {
+              type: VarTypes.BUILD,
+              value: normalize(buildVars, buildVarsSchema),
+            },
+          });
+        }
+        dispatch(batchActions(actions));
+        setLoading(false);
+      })
+      .catch((error) => {
+        handleApiError(
+          error,
+          setSnackbarErrorMsg,
+          "Couldn't fetch project files"
+        );
+      });
   }, [state.projectId, setSnackbarErrorMsg]);
 
   brvsRef.current = useMemo(

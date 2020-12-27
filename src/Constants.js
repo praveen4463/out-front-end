@@ -344,11 +344,17 @@ export const QueryKeys = {
   BUILD_CAPABILITIES: 'buildCapabilities',
 };
 
+export const PROJECT_ID_ENDPOINT_VAR_TEMPLATE = '{projectId}';
+
 export const Endpoints = {
   PROJECTS: '/projects',
   TEST_FILES: '/testFiles',
   ISSUE: '/issue',
   BUILD_CAPABILITIES: '/buildCapabilities',
+  FILES: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/files`,
+  FILES_WITH_TESTS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/files/getWithTests`,
+  BUILD_VARS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/buildVars`,
+  GLOBAL_VARS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/globalVars`,
 };
 
 export const Timeouts = {

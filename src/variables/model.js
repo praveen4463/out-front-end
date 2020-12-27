@@ -10,11 +10,11 @@ function GlobalVars(id, key, value) {
 }
 
 // allows duplicate key/value
-function BuildVars(id, key, value, primary) {
+function BuildVars(id, key, value, isPrimary) {
   this.id = id;
   this.key = key;
   this.value = value;
-  this.primary = primary;
+  this.isPrimary = isPrimary;
   this[immerable] = true;
 }
 
