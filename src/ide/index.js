@@ -17,7 +17,7 @@ import Application from '../config/application';
 import TopNavigation from './TopNavigation';
 import Content from './Content';
 import darkTheme from './Themes';
-import {filesSchema, LastRunError, File} from './Explorer/model';
+import {filesSchema, LastRunError, File, Test, Version} from './Explorer/model';
 import {
   globalVarsSchema,
   buildVarsSchema,
@@ -109,6 +109,7 @@ import {
   prepareEndpoint,
   getNewIntlComparer,
   getFilesWithTests,
+  fromJson,
 } from '../common';
 
 import './index.css';
@@ -365,22 +366,20 @@ const Ide = () => {
           if (f.id === fileId && fileWithTest && fileWithTest.data.length) {
             // when fileId has no associated tests, fileWithTest is empty array
             const withTests = fileWithTest.data[0];
+            withTests.tests = withTests.tests.map((t) => fromJson(Test, t));
             withTests.tests.sort((a, b) =>
               getNewIntlComparer()(a.name, b.name)
             );
-            withTests.tests.forEach((t) =>
-              t.versions.sort((a, b) => getNewIntlComparer()(a.name, b.name))
-            );
+            withTests.tests.forEach((t) => {
+              // eslint-disable-next-line no-param-reassign
+              t.versions = t.versions.map((v) => fromJson(Version, v));
+              t.versions.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+            });
             // assign loadToTree = true to the incoming fileId
-            return new File(
-              withTests.id,
-              withTests.name,
-              withTests.tests,
-              undefined,
-              true
-            );
+            withTests.loadToTree = true;
+            return fromJson(File, withTests);
           }
-          return new File(f.id, f.name);
+          return fromJson(File, f);
         });
         files.sort((a, b) => getNewIntlComparer()(a.name, b.name));
 

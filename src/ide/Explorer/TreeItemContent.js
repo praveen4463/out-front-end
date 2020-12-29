@@ -11,9 +11,13 @@ import {ContextMenu, MenuItem, ContextMenuTrigger} from 'react-contextmenu';
 import TestIcon from '@material-ui/icons/Title';
 import Chip from '@material-ui/core/Chip';
 import clsx from 'clsx';
+import axios from 'axios';
 import VersionIcon from '../../components/newVersionIcon';
 import Tooltip from '../../TooltipCustom';
-import {ApiStatuses, RunType} from '../../Constants';
+import {RunType} from '../../Constants';
+import {getExplorerItemEndpoint} from '../common';
+import {handleApiError} from '../../common';
+import {File, Test, Version} from './model';
 import {ExplorerItemType, ExplorerEditOperationType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
 import ColoredItemIcon from '../../components/ColoredItemIcon';
@@ -22,6 +26,7 @@ import {
   IdeBuildRunOngoingContext,
   IdeDryRunOngoingContext,
   IdeParseRunOngoingContext,
+  IdeProjectIdContext,
 } from '../Contexts';
 import batchActions from '../actionCreators';
 import {
@@ -125,6 +130,7 @@ const TreeItemContent = React.memo(
     const buildOngoing = useContext(IdeBuildRunOngoingContext);
     const dryOngoing = useContext(IdeDryRunOngoingContext);
     const parseOngoing = useContext(IdeParseRunOngoingContext);
+    const projectId = useContext(IdeProjectIdContext);
     const [editing, setEditing] = useState(false);
     const [hovering, setHovering] = useState(false);
     const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
@@ -156,40 +162,38 @@ const TreeItemContent = React.memo(
       // state change and render will start after the current function's
       // completion (as this one already in stack), so the api request goes
       // before any re render.
-
-      // eslint-disable-next-line no-unused-vars
-      const onError = (response) => {
-        setSnackbarErrorMsg(`Couldn't rename, ${response.error.reason}`);
-        dispatch({
-          type: EXP_RENAME_ITEM,
-          payload: {
-            itemNewName: itemName, // if error, send original name
-            itemType: type,
-            itemId,
-            itemParentId,
-          },
-        });
-      };
-      /*
-      Send api request, send itemType, itemId, newName.
-      if request fails, invoke onError, if passes do nothing.
-      For now simulate the error situation using a setTimeout, hide once test
-      done. setTimeout(onError, 500);
-      */
-      setTimeout(() => {
-        /* const response = {
-          status: ApiStatuses.FAILURE,
-          error: {
-            reason: 'Network error',
-          },
-        }; */
-        const response = {
-          status: ApiStatuses.SUCCESS,
-        };
-        if (response.status === ApiStatuses.FAILURE) {
-          onError(response);
+      async function rename() {
+        let body;
+        switch (type) {
+          case FILE:
+            body = new File(itemId, newName);
+            break;
+          case TEST:
+            body = new Test(itemId, newName, itemParentId);
+            break;
+          case VERSION:
+            body = new Version(itemId, newName, itemParentId);
+            break;
+          default:
+            throw new Error(`Can't recognize ${type}`);
         }
-      }, 500);
+        try {
+          await axios.patch(getExplorerItemEndpoint(type, projectId), body);
+        } catch (error) {
+          handleApiError(error, setSnackbarErrorMsg, "Couldn't rename");
+          dispatch({
+            type: EXP_RENAME_ITEM,
+            payload: {
+              itemNewName: itemName, // if error, send original name
+              itemType: type,
+              itemId,
+              itemParentId,
+            },
+          });
+        }
+      }
+
+      rename();
       setEditing(false);
       /*
         Note on the re render react functionality.
@@ -409,32 +413,22 @@ const TreeItemContent = React.memo(
       // send a dispatch now
       dispatch(batchActions(actions));
 
-      const onSuccess = () => {
-        dispatch({
-          type: CONFIG_BUILD_ON_VERSIONS_DELETE,
-          payload: {versionIds: versionsDeleting},
-        });
-      };
-      const onError = (response) => {
-        setSnackbarErrorMsg(`Couldn't delete, ${response.error.reason}`);
-        dispatch({type: EXP_DELETE_REVERT, payload: {revertFunc: revert}});
-      };
-      /*
-      Send api request, send itemType, itemId.
-      if request fails, invoke onError, if passes do nothing.
-      For now simulate the error situation using a setTimeout, hide once test
-      done.
-      */
-      setTimeout(() => {
-        const response = {
-          status: ApiStatuses.SUCCESS,
-        };
-        if (response.status === ApiStatuses.SUCCESS) {
-          onSuccess();
-        } else if (response.status === ApiStatuses.FAILURE) {
-          onError(response);
+      async function sendDelete() {
+        try {
+          await axios.delete(
+            getExplorerItemEndpoint(itemType, projectId, itemId)
+          );
+          dispatch({
+            type: CONFIG_BUILD_ON_VERSIONS_DELETE,
+            payload: {versionIds: versionsDeleting},
+          });
+        } catch (error) {
+          handleApiError(error, setSnackbarErrorMsg, "Couldn't delete");
+          dispatch({type: EXP_DELETE_REVERT, payload: {revertFunc: revert}});
         }
-      }, 500);
+      }
+
+      sendDelete();
     };
 
     const [setShowDeleteDialog, deleteDialog] = useConfirmationDialog(

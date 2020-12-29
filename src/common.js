@@ -246,3 +246,7 @@ export const getFilesWithTests = (fileIds, projectId) => {
     },
   });
 };
+
+export const fromJson = (Ctor, json) => {
+  return Object.assign(new Ctor(), json);
+};

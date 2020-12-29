@@ -584,6 +584,9 @@ const BuildCapability = React.memo(
     );
 
     useEffect(() => {
+      if (!buildCapsQuery.data) {
+        return;
+      }
       const o = {};
       const ids = [];
       buildCapsQuery.data.forEach((d) => {

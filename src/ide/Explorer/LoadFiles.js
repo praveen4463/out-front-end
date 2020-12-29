@@ -22,13 +22,14 @@ import {
   handleApiError,
   getNewIntlComparer,
   getFilesWithTests,
+  fromJson,
 } from '../../common';
 import {
   IdeDispatchContext,
   IdeFilesContext,
   IdeProjectIdContext,
 } from '../Contexts';
-import {filesSchema} from './model';
+import {filesSchema, File, Test, Version} from './model';
 import TitleDialog from '../../components/TitleDialog';
 import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 import {EXP_LOAD_FILES} from '../actionTypes';
@@ -249,17 +250,20 @@ const LoadFiles = React.memo(({showDialog, setShowDialog}) => {
           return;
         }
         // data is files
-        data.sort((a, b) => getNewIntlComparer()(a.name, b.name));
-        data.forEach((f) => {
-          if (f.tests) {
-            f.tests.sort((a, b) => getNewIntlComparer()(a.name, b.name));
-            f.tests.forEach((t) =>
-              t.versions.sort((a, b) => getNewIntlComparer()(a.name, b.name))
-            );
-          }
+        const filesWithTests = data.map((f) => fromJson(File, f));
+        filesWithTests.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+        filesWithTests.forEach((f) => {
+          // eslint-disable-next-line no-param-reassign
+          f.tests = f.tests.map((t) => fromJson(Test, t));
+          f.tests.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+          f.tests.forEach((t) => {
+            // eslint-disable-next-line no-param-reassign
+            t.versions = t.versions.map((v) => fromJson(Version, v));
+            t.versions.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+          });
         });
 
-        const filesToLoad = normalize(data, filesSchema);
+        const filesToLoad = normalize(filesWithTests, filesSchema);
         Object.assign(files.entities.files, filesToLoad.entities.files);
         Object.assign(files.entities.tests, filesToLoad.entities.tests);
         Object.assign(files.entities.versions, filesToLoad.entities.versions);

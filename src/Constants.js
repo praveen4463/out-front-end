@@ -353,6 +353,8 @@ export const Endpoints = {
   BUILD_CAPABILITIES: '/buildCapabilities',
   FILES: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/files`,
   FILES_WITH_TESTS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/files/getWithTests`,
+  TESTS: '/tests',
+  VERSIONS: '/versions',
   BUILD_VARS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/buildVars`,
   GLOBAL_VARS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/globalVars`,
 };

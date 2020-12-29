@@ -13,7 +13,8 @@ const useStyle = makeStyles((theme) => ({
   root: {
     backgroundColor: theme.palette.background.paper,
     color: theme.palette.background.contrastText,
-    border: `1px solid ${theme.palette.border.light}`,
+    borderTop: `2px solid ${theme.palette.error.dark}`,
+    borderBottom: `1px solid ${theme.palette.border.light}`,
   },
 }));
 

@@ -19,9 +19,11 @@ import FileIcon from '@material-ui/icons/InsertDriveFile';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ArrowRightIcon from '@material-ui/icons/ArrowRight';
-import {random} from 'lodash-es';
 import produce, {immerable} from 'immer';
+import axios from 'axios';
 import {ExplorerItemType, ExplorerEditOperationType} from '../Constants';
+import {handleApiError, fromJson} from '../../common';
+import {getExplorerItemEndpoint} from '../common';
 import TreeItemEditor from './TreeItemEditor';
 import TreeItemContent from './TreeItemContent';
 import Tooltip from '../../TooltipCustom';
@@ -37,6 +39,7 @@ import {Version, Test, File} from './model';
 import ColoredItemIcon from '../../components/ColoredItemIcon';
 import {getNodeId, getBrokenNodeId} from './internal';
 import LoadFiles from './LoadFiles';
+import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 
 const useStyles = makeStyles((theme) => ({
   explorer: {
@@ -308,6 +311,7 @@ const Explorer = React.memo(({closeButton}) => {
   // ref object doesn't change thus safe to use in pure components. It's mutable
   // current property will give us latest set value without a re render of
   // component that uses it.
+  const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
   const classes = useStyles();
 
   // Sets state changes into various refs
@@ -414,103 +418,72 @@ const Explorer = React.memo(({closeButton}) => {
 
   // TODO: see if we need to put this in useCallback
   const newItemCommitCallback = (newItemName, newItemType) => {
-    /*
-      We need to first create the new item before updating it locally based on
-      the returned data.see https://medium.com/@audisho.sada/using-react-hooks-to-asynchronously-make-api-requests-1fdf52f797ce
-      and https://stackoverflow.com/questions/53845595/wrong-react-hooks-behaviour-with-event-listener
-      Invoke api and expect new item based on itemType. When a response is
-      received, dispatch to update the state and if failed, show some error
-      in some way like snackbar/alert etc.
-      For now, simulate this and create data baed on random Ids, Use the same
-      functions and similar functionality with exception that data will come
-      from api.
-      */
-
-    // data is null while simulating
-    // eslint-disable-next-line no-unused-vars
-    const onSuccess = (data) => {
-      // generate random ids while simulating
-      const newRandom = () => {
-        return random(1000, 10000);
-      };
-      let newItem;
-      switch (newItemType) {
-        case ExplorerItemType.FILE:
-          // validate data: should have fileId, name (name is taken what is returned
-          // from api, possible that api sanitize the name)
-          newItem = new File(newRandom(), newItemName); // !!!This is sample
-          break;
-        case ExplorerItemType.TEST: {
-          // validate data: should have testId, name, versions, versionId, versionName, code,
-          // isCurrent.
-          const newTestId = newRandom();
-          newItem = new Test(
-            newTestId,
-            newItemName,
-            state.addNewItem.parentId,
-            [new Version(newRandom(), 'v1', newTestId, '', true)]
-          ); // !!!This is sample
-          break;
+    async function save() {
+      try {
+        let body;
+        let ctor;
+        switch (newItemType) {
+          case ExplorerItemType.FILE:
+            body = new File(null, newItemName);
+            ctor = File;
+            break;
+          case ExplorerItemType.TEST:
+            body = new Test(null, newItemName, state.addNewItem.parentId);
+            ctor = Test;
+            break;
+          case ExplorerItemType.VERSION:
+            body = new Version(null, newItemName, state.addNewItem.parentId);
+            ctor = Version;
+            break;
+          default:
+            throw new Error(`Can't recognize ${newItemType}`);
         }
-        case ExplorerItemType.VERSION:
-          // Version rules for new item: a new version will always contain code of
-          // latest version (if some version exists) and will be marked 'latest', the
-          // last latest version will no longer be latest.
-          // A latest version can't be deleted and api should return
-          // error if a call tries to do so.
-          // validate data: should have versionId, name, code, isCurrent
-          newItem = new Version(
-            newRandom(),
-            newItemName,
-            state.addNewItem.parentId,
-            'openUrl("https://twitter.com")', // This code will actually be latest version's code.
-            true
-          ); // !!!This is sample
-          break;
-        default:
-          throw new Error(`Couldn't add new item of type ${newItemType}`);
-      }
-      const actions = [
-        {
-          type: EXP_NEW_ITEM,
-          payload: {
-            item: newItem,
-            itemType: newItemType,
-            itemParentId: state.addNewItem.parentId,
+        const {data} = await axios.post(
+          getExplorerItemEndpoint(newItemType, projectId),
+          body
+        );
+        const newItem = fromJson(ctor, data);
+        if (newItem instanceof Test) {
+          // convert any nested instances as well, only a new test contain single
+          // nested version.
+          newItem.versions = newItem.versions.map((v) => fromJson(Version, v));
+        }
+        const actions = [
+          {
+            type: EXP_NEW_ITEM,
+            payload: {
+              item: newItem,
+              itemType: newItemType,
+              itemParentId: state.addNewItem.parentId,
+            },
           },
-        },
-      ];
-      // if new item was version or test, select the new version
-      if (
-        newItemType === ExplorerItemType.TEST ||
-        newItemType === ExplorerItemType.VERSION
-      ) {
-        const newVersion =
-          newItemType === ExplorerItemType.TEST ? newItem.versions[0] : newItem;
-        // dispatch a version select when an implicit selection of a version
-        // occurs. Don't update local selected state, it will be updated after
-        // the dispatch due to editor.tabs's selectedVersion change.
-        actions.push({
-          type: EDR_EXP_VERSION_CLICK,
-          payload: {versionId: newVersion.id},
-        });
+        ];
+        // if new item was version or test, select the new version
+        if (
+          newItemType === ExplorerItemType.TEST ||
+          newItemType === ExplorerItemType.VERSION
+        ) {
+          const newVersion =
+            newItemType === ExplorerItemType.TEST
+              ? newItem.versions[0]
+              : newItem;
+          // dispatch a version select when an implicit selection of a version
+          // occurs. Don't update local selected state, it will be updated after
+          // the dispatch due to editor.tabs's selectedVersion change.
+          actions.push({
+            type: EDR_EXP_VERSION_CLICK,
+            payload: {versionId: newVersion.id},
+          });
+        }
+        dispatchGlobal(batchActions(actions));
+      } catch (error) {
+        handleApiError(error, setSnackbarErrorMsg, "Couldn't save");
+      } finally {
+        dispatchLocal({type: actionTypes.NEW_ITEM_SET_NULL});
       }
-      dispatchGlobal(batchActions(actions));
-      dispatchLocal({type: actionTypes.NEW_ITEM_SET_NULL});
-    };
+    }
 
-    // eslint-disable-next-line no-unused-vars
-    const onError = (error) => {
-      dispatchLocal({type: actionTypes.NEW_ITEM_SET_NULL});
-      // show error in form of snackbar etc.
-    };
-    // Assume that following setTimeout is api request and it's function is
-    // the callback needs to run on completion.
-    // Things that need to be sent to api:
-    // newItemType, newItemName, (parentType = TEST/VERSION,
-    // state.addNewItem.parentId) only when newItemType !== FILE
-    setTimeout(onSuccess, 500);
-    // hide the input box and let api return in sometime and change state.
+    save();
     dispatchLocal({type: actionTypes.NEW_ITEM_SUBMITTED});
   };
 
@@ -773,6 +746,7 @@ const Explorer = React.memo(({closeButton}) => {
           setShowDialog={setShowLoadFiles}
         />
       )}
+      {snackbarTypeError}
     </>
   );
 });

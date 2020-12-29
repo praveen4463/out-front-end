@@ -1,7 +1,8 @@
 import batchActions, {getLastRunAction} from './actionCreators';
 import {LastRunError} from './Explorer/model';
-import {RunType, ApiStatuses} from '../Constants';
-import {PARSE_SUCCESS_MSG} from './Constants';
+import {RunType, ApiStatuses, Endpoints} from '../Constants';
+import {PARSE_SUCCESS_MSG, ExplorerItemType} from './Constants';
+import {prepareEndpoint} from '../common';
 
 const versionsHaveLastParseStatus = (etVersions, versionIds) => {
   return versionIds.every((vid) => etVersions[vid].lastParseRun);
@@ -146,6 +147,24 @@ const convertMillisIntoTimeText = (millis) => {
   return text.join(' ');
 };
 
+const getExplorerItemEndpoint = (itemType, projectId, pathVar) => {
+  let endpoint;
+  switch (itemType) {
+    case ExplorerItemType.FILE:
+      endpoint = Endpoints.FILES;
+      break;
+    case ExplorerItemType.TEST:
+      endpoint = Endpoints.TESTS;
+      break;
+    case ExplorerItemType.VERSION:
+      endpoint = Endpoints.VERSIONS;
+      break;
+    default:
+      throw new Error(`Can't recognize ${itemType}`);
+  }
+  return prepareEndpoint(endpoint, projectId, pathVar);
+};
+
 export {
   getVersionsNoParseStatus,
   versionsHaveParseErrorWhenStatusAvailable,
@@ -154,4 +173,5 @@ export {
   filterCurrentVersions,
   getVersionsWithParseErrorWhenStatusAvailable,
   convertMillisIntoTimeText,
+  getExplorerItemEndpoint,
 };

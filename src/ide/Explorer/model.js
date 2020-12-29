@@ -2,14 +2,6 @@ import {schema} from 'normalizr';
 // https://immerjs.github.io/immer/docs/complex-objects Details of immerable
 import {immerable} from 'immer';
 
-// These models aren't of much use other than defining what fields are
-// possibly available to use/write rather than just setting any arbitrary
-// fields in json, I'm trying to keep in a place what data we could've in a
-// particular part of application.
-
-// Files model and schema, note that fields those don't belong to db may or may
-// not be in data/normalized data.
-
 function LastRunError(msg, fromPos, toPos) {
   this.msg = msg;
   this.fromPos = fromPos;
