@@ -234,7 +234,7 @@ const Parse = ({closeHandler}) => {
     };
   }, [versionIds, completed, etVersions, etTests]);
 
-  // This will recalculate on every change in dryRun, this can't be avoided
+  // This will recalculate on every change in parse, this can't be avoided
   // without introducing bugs.
   const {fileIds, testIds, versionIdsInError} = useMemo(() => {
     return getTreeFilterData();
@@ -316,7 +316,6 @@ const Parse = ({closeHandler}) => {
     fillLastParseStatusAndGetFailed(versionIdsNoParseStatus, dispatch)
       .then() // no action when parsed, other code will check results.
       .catch((error) => {
-        const msg = `Can't parse, ${error.message}`;
         dispatch(
           batchActions([
             {
@@ -325,12 +324,12 @@ const Parse = ({closeHandler}) => {
             {
               type: RUN_PARSE_COMPLETE_ON_ERROR,
               payload: {
-                error: msg,
+                error: error.message,
               },
             },
           ])
         );
-        setStatusMsg(getErrorTypeStatusMsg(msg));
+        setStatusMsg(getErrorTypeStatusMsg(error.message));
       });
     setStatusMsg(getInfoTypeStatusMsg('Parsing...'));
   }, [

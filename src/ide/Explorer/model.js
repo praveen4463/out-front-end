@@ -49,6 +49,7 @@ function Version(
   this.code = code;
   this.isCurrent = isCurrent;
   this.lastRun = lastRun;
+  this.lastParseRun = lastParseRun;
   this.showAsErrorInExplorer = showAsErrorInExplorer;
   // showAsErrorInExplorer should be assigned to a version and it's test and file only when
   // we want to mark them as 'Error' in explorer. For example usually a parse

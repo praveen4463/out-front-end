@@ -5,6 +5,7 @@ import {
   RUN_DRY_ON_COMPLETED,
   RUN_DRY_COMPLETE_ON_ERROR,
   RUN_DRY_UPDATE_VERSION,
+  RUN_DRY_RESET_VERSION,
   RUN_DRY_MARK_VERSION_STATUS,
 } from '../actionTypes';
 import {DryRun, DryRunVersion} from '../model';
@@ -61,20 +62,19 @@ const updateVersion = (draft, payload) => {
   const dryRunVersion = draft.dryRun.dryRunVersions[versionId];
   dryRunVersion.status = data.status;
   dryRunVersion.output = data.output; // entire dry run output comes at once.
-  switch (data.status) {
-    case TestStatus.SUCCESS:
-    case TestStatus.STOPPED:
-      dryRunVersion.timeTaken = data.timeTaken;
-      break;
-    case TestStatus.ERROR: {
-      dryRunVersion.timeTaken = data.timeTaken;
-      const {error} = data;
-      dryRunVersion.error = new LastRunError(error.msg, error.from, error.to);
-      break;
-    }
-    default:
-      throw new Error(`Can't recognize TestStatus ${data.status}`);
+  dryRunVersion.timeTaken = data.timeTaken;
+  if (data.status === TestStatus.ERROR) {
+    const {error} = data;
+    dryRunVersion.error = new LastRunError(error.msg, error.from, error.to);
   }
+};
+
+const resetVersion = (draft, payload) => {
+  if (payload.versionId === undefined) {
+    throw new Error('Insufficient arguments passed to resetVersion.');
+  }
+  const {versionId} = payload;
+  draft.dryRun.dryRunVersions[versionId] = new DryRunVersion(versionId);
 };
 
 const markVersionStatus = (draft, payload) => {
@@ -101,6 +101,9 @@ const dryRunReducer = produce((draft, action) => {
       break;
     case RUN_DRY_UPDATE_VERSION:
       updateVersion(draft, action.payload);
+      break;
+    case RUN_DRY_RESET_VERSION:
+      resetVersion(draft, action.payload);
       break;
     case RUN_DRY_MARK_VERSION_STATUS:
       markVersionStatus(draft, action.payload);

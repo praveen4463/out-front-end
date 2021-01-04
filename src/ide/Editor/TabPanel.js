@@ -20,6 +20,7 @@ import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import BuildIcon from '@material-ui/icons/Build';
 import Portal from '@material-ui/core/Portal';
+import axios from 'axios';
 import {debounce, uniq} from 'lodash-es';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/addon/dialog/dialog.css';
@@ -43,7 +44,8 @@ import allHints from './addons/all-hints';
 import {
   BATCH_ACTIONS,
   EDR_VERSION_CODE_UPDATED,
-  CLEAR_VERSION_LAST_RUN,
+  CLEAR_VERSIONS_LAST_RUN,
+  CLEAR_VERSION_LAST_RUN_BY_RUN_TYPE,
   VERSION_CODE_SAVE_IN_PROGRESS,
   VERSION_CODE_SAVE_COMPLETED,
 } from '../actionTypes';
@@ -55,14 +57,21 @@ import {
   IdeDryRunOngoingContext,
   IdeParseRunOngoingContext,
   IdeVersionIdsCodeSaveInProgressContext,
+  IdeDryRunConfigContext,
+  IdeProjectIdContext,
 } from '../Contexts';
 import Tooltip from '../../TooltipCustom';
 import {LastRun, LastRunError} from '../Explorer/model';
-import {ApiStatuses, RunType, TestStatus} from '../../Constants';
+import {RunType} from '../../Constants';
 import {ZwlLexer, PARSE_SUCCESS_MSG} from '../Constants';
 
 import batchActions, {getLastRunAction} from '../actionCreators';
-import {fillLastParseStatusAndGetFailed} from '../common';
+import {
+  fillLastParseStatusAndGetFailed,
+  getVersionCodeUpdateAndParseEndpoint,
+  getDryRunEndpoint,
+} from '../common';
+import {handleApiError, isBlank} from '../../common';
 import './material-darker.css';
 import './modes/zwl';
 
@@ -281,6 +290,9 @@ const TabPanel = React.memo(
     const versionIdsCodeSaveProgress = useContext(
       IdeVersionIdsCodeSaveInProgressContext
     );
+    const dryConfig = useContext(IdeDryRunConfigContext);
+    const projectId = useContext(IdeProjectIdContext);
+
     const hasRunInvokedPostSaveProgressRef = useRef(false);
     const unmounted = useRef(false);
 
@@ -404,6 +416,7 @@ const TabPanel = React.memo(
      */
     const writeOutput = useCallback(
       (msg, outputType = OutputType.NORMAL) => {
+        // console.log(msg);
         const payloadWrite = {versionId: version.id};
         if (outputType === OutputType.NORMAL) {
           payloadWrite.outputNormal = msg;
@@ -461,29 +474,20 @@ const TabPanel = React.memo(
           type: EDR_VERSION_CODE_UPDATED,
           payload: {versionId: version.id, versionCode: value},
         };
+        const actions = [codeUpdateAction, actionCompleted];
 
-        const onSuccess = (response) => {
-          const actions = [codeUpdateAction, actionCompleted];
-          const parseRes = response.parseResult;
-          if (parseRes && parseRes.status === ApiStatuses.FAILURE) {
-            // Parsing failed means api couldn't parse due to some internal error
-            // when parsing failed, clear last run status if there is any parse
-            // status already so that runs don't take into account the invalid
-            // last run information and trigger a new parse.
-            actions.push({
-              type: CLEAR_VERSION_LAST_RUN,
-              payload: {versionId: version.id, runType: RunType.PARSE_RUN},
-            });
-            dispatchGlobal(batchActions(actions));
-            writeStatusMessage(
-              `Changes saved but there was a problem in parsing, ${parseRes.error.reason}`,
-              StatusMessageType.ERROR
+        async function sendUpdateAndParse() {
+          try {
+            const {
+              data,
+            } = await axios.patch(
+              getVersionCodeUpdateAndParseEndpoint(version.id),
+              {code: value}
             );
-            return;
-          }
-          const parseError =
-            parseRes && parseRes.data ? parseRes.data.error : null;
-          if (parseRes) {
+            // console.log('going to save code', changeObj);
+            // if we get non-error response, this tells that update was done but
+            // parsing may have failed (but completed).
+            const parseError = data.error; // when parsing failed there will be error else none
             const lastRunAction = getLastRunAction(
               version.id,
               RunType.PARSE_RUN,
@@ -498,90 +502,53 @@ const TabPanel = React.memo(
               false
             );
             actions.push(lastRunAction);
-          }
-          dispatchGlobal(batchActions(actions));
-          writeStatusMessage(SAVE_MSG);
-          // When changes saved messages is printed, we want it to disappear
-          // after sometime so that user know exactly when their code is getting
-          // saved rather than showing it forever.
-          if (!parseRes || !parseError) {
-            setTimeout(() => {
-              const statusMsgRef = editorStatusMessageRef.current;
-              if (
-                statusMsgRef &&
-                statusMsgRef.textContent &&
-                statusMsgRef.textContent.trim() === SAVE_MSG
-              ) {
-                writeStatusMessage('');
-              }
-            }, 5000);
-          }
-        };
-
-        const onError = (response) => {
-          const actions = [codeUpdateAction, actionCompleted];
-          // when version couldn't save, no parsing is done.
-          // save the code in state even if it's not saved to db.
-          dispatchGlobal(batchActions(actions));
-          writeStatusMessage(
-            `Couldn't save changes, ${response.error.reason}`,
-            StatusMessageType.ERROR
-          );
-        };
-        // TODO: Replace following timeout and sample values with real api call
-        // and results.
-        setTimeout(() => {
-          const response = value.includes('FAIL_TEST')
-            ? {
-                status: ApiStatuses.SUCCESS, // api status for save, success means saved.
-                parseResult: {
-                  status: ApiStatuses.SUCCESS, // api status for parse, success means parsed.
-                  // failure means problem in parsing.
-                  data: {
-                    // when parse errors, data is there, otherwise no data
-                    error: {
-                      msg: "no viable alternative at input 'a+' line 2:2",
-                      from: {line: 2, ch: 1},
-                      to: {line: 2, ch: 2}, // !!Note: api should always send the 'to' column that is after the 'to' char
-                    },
-                  },
+            dispatchGlobal(batchActions(actions));
+            writeStatusMessage(SAVE_MSG);
+            // When changes saved messages is printed, we want it to disappear
+            // after sometime so that user know exactly when their code is getting
+            // saved rather than showing it forever.
+            if (!parseError) {
+              setTimeout(() => {
+                const statusMsgRef = editorStatusMessageRef.current;
+                if (
+                  statusMsgRef &&
+                  statusMsgRef.textContent &&
+                  statusMsgRef.textContent.trim() === SAVE_MSG
+                ) {
+                  writeStatusMessage('');
+                }
+              }, 5000);
+            }
+          } catch (error) {
+            // An error has occurred during update, it may be error during update
+            // or parse. I'm going to think it's always update and not parse since
+            // parse is local resource and has minimal chances of an uncaught
+            // exception.
+            // TODO: keep a watch on it and if you see parse exceptions, think about
+            // optimizing this call.
+            // I'm removing code that handles parse exceptions and clears lastRunState
+            // but if needed, get it from commit.
+            // don't save code locally when it's an error, and clear last status if
+            // it's parse and lastParseStatus so that runs those are running this
+            // version will parse it again in case save was succeeded.
+            dispatchGlobal(
+              batchActions([
+                actionCompleted,
+                {
+                  type: CLEAR_VERSION_LAST_RUN_BY_RUN_TYPE,
+                  payload: {versionId: version.id, runType: RunType.PARSE_RUN},
                 },
-              }
-            : {
-                status: ApiStatuses.SUCCESS,
-                parseResult:
-                  value && value.replace(/[\s\n\r\t]*/, '').length
-                    ? {
-                        status: ApiStatuses.SUCCESS, // no data means parse succeeded.
-                      }
-                    : null, // TODO: !!if there was no real code, api shouldn't do any parsing
-                // Don't assume we don't run change function when no code, because user may
-                // delete all code form version and want to save.
-              };
-          /* Save failure, no parsing is done
-          const response = {
-            status: ApiStatuses.FAILURE,
-            error: {
-              reason: 'Network error',
-            },
-          }; */
-          /* Parse failure
-          const response = {
-            status: ApiStatuses.SUCCESS,
-            parseResult: {
-              status: ApiStatuses.FAILURE,
-              error: {
-                reason: 'Network error',
-              },
-            },
-          }; */
-          // console.log('going to save code', changeObj);
-          if (response.status === ApiStatuses.SUCCESS) {
-            onSuccess(response);
-          } else if (response.status === ApiStatuses.FAILURE) {
-            onError(response);
+              ])
+            );
+            handleApiError(
+              error,
+              (errorMsg) =>
+                writeStatusMessage(errorMsg, StatusMessageType.ERROR),
+              "Couldn't save changes"
+            );
           }
-        }, 2000);
+        }
+        sendUpdateAndParse();
       },
       [version.id, dispatchGlobal, writeStatusMessage]
     );
@@ -794,7 +761,7 @@ const TabPanel = React.memo(
     /*
     TODO: write following in site docs
     The output panel with editor is meant to show recent run information and won't
-    keep previous runs expect the most recent. For example if you dry run from within
+    keep previous runs except the most recent. For example if you dry run from within
     the tab, it's result will show up in tab's own panel, but as soon as you edit
     something, the auto parser runs, overwrite the result of dry run and show result
     of parsing. This is intentional to keep tab's output panel focused on the most
@@ -817,9 +784,7 @@ const TabPanel = React.memo(
       };
 
       const getStatusMsg = (runType, success = false) => {
-        return `${getRunTypeShort(runType)} ${
-          success ? 'passed' : 'failed'
-        }, expand for ${success ? 'output' : 'error'}`;
+        return `${getRunTypeShort(runType)} ${success ? 'passed' : 'failed'}`;
       };
 
       if (!version.lastRun || runOngoing) {
@@ -881,9 +846,10 @@ const TabPanel = React.memo(
           type: actionTypes.SET_OUTPUT_ERROR,
           payload: {versionId: version.id, outputError: error.msg},
         });
-        // markText requires 0 index based line:ch and api returns the same.
-        const from = error.fromPos;
-        const to = error.toPos;
+        // markText requires 0 index based line:ch but api's line is not index
+        // based and starts from 1, thus -1 to it.
+        const from = {...error.fromPos, line: error.fromPos.line - 1};
+        const to = {...error.toPos, line: error.toPos.line - 1};
         doc.markText(from, to, {
           className: 'cm-errorText',
         });
@@ -968,7 +934,7 @@ const TabPanel = React.memo(
     const stopRunWhenNoCode = () => {
       const error = 'Want to write some code before trying to run it?';
       const code = editorRef.current.getValue();
-      if (!(code && code.replace(/[\s\n\r\t]*/, '').length)) {
+      if (isBlank(code)) {
         writeOutput(error, OutputType.ERROR);
         writeStatusMessage('');
         return true;
@@ -1030,26 +996,6 @@ const TabPanel = React.memo(
       toggleRunOngoing(true, RunType.BUILD_RUN);
     };
 
-    // TODO: delete it once api is there
-    const getParseResponseData = useCallback(
-      (isError) => {
-        return isError
-          ? [
-              {
-                versionId: version.id,
-                error: {
-                  msg: "token recognition error at: '@' line 3:12",
-                  from: {line: 3, ch: 12},
-                  // !!Note: api should always send the 'to' column that is after the 'to' char
-                  to: {line: 3, ch: 13},
-                },
-              },
-            ]
-          : null;
-      },
-      [version.id]
-    );
-
     const triggerParseOnSave = useCallback(() => {
       if (version.lastParseRun) {
         // when last parse status is error, lastRun is error too as we don't allow
@@ -1058,7 +1004,7 @@ const TabPanel = React.memo(
         // Otherwise if last run is parse, we're already showing the result, no action.
         if (
           version.lastParseRun.error ||
-          version.lastRun.runType === RunType.PARSE_RUN
+          (version.lastRun && version.lastRun.runType === RunType.PARSE_RUN)
         ) {
           toggleRunOngoing(false);
           return;
@@ -1075,25 +1021,22 @@ const TabPanel = React.memo(
         return;
       }
       // send api request as either code has changed or no last parse available.
-      fillLastParseStatusAndGetFailed(
-        [version.id],
-        dispatchGlobal,
-        getParseResponseData(editorRef.current.getValue().includes('FAIL_TEST'))
-      )
+      fillLastParseStatusAndGetFailed([version.id], dispatchGlobal)
         .then() // no action when parsed, effect will read global state change.
         .catch((error) => {
-          writeOutput(`Can't parse, ${error.message}`, OutputType.ERROR);
+          writeOutput(error.message, OutputType.ERROR);
+          writeStatusMessage('');
         })
         .finally(() => toggleRunOngoing(false));
       writeOutput('Parsing...');
     }, [
       dispatchGlobal,
-      getParseResponseData,
       toggleRunOngoing,
       version.id,
       version.lastParseRun,
       version.lastRun,
       writeOutput,
+      writeStatusMessage,
     ]);
 
     const handleParse = (event) => {
@@ -1114,72 +1057,66 @@ const TabPanel = React.memo(
     };
 
     const dryRun = useCallback(() => {
-      const onSuccess = (response) => {
-        const {data} = response;
-        let lastRunError = null;
-        if (data.status === TestStatus.ERROR) {
-          const {error} = data;
-          lastRunError = new LastRunError(error.msg, error.from, error.to);
+      async function sendDryRun() {
+        try {
+          const {data} = await axios.post(
+            getDryRunEndpoint(projectId, version.id),
+            dryConfig
+          );
+          let lastRunError = null;
+          if (data.error) {
+            const {error} = data;
+            lastRunError = new LastRunError(error.msg, error.from, error.to);
+          }
+          dispatchGlobal(
+            getLastRunAction(
+              version.id,
+              RunType.DRY_RUN,
+              data.output,
+              lastRunError
+            )
+          );
+        } catch (error) {
+          handleApiError(
+            error,
+            (errorMsg) => {
+              writeOutput(errorMsg, OutputType.ERROR);
+              writeStatusMessage('');
+            },
+            "Can't complete dry run"
+          );
+          // clear lastRun of this version, irrespective to what it was before.
+          // The rationale is: When a run encounters exception it tells that we
+          // tried running but couldn't and thus the lastRun status is null. It
+          // shouldn't be marked as an error because a run error indicates a bug
+          // in code. Exception while trying to run is application specific error
+          // that can't be marked as run error. I feel it's safe to clear lastRun
+          // so that user knows this version hasn't yet completed any run. If we
+          // keep lastRun there may be problems such as: imagine user runs a dryRun
+          // that succeeds, they run it again and app got error this time. If we don't
+          // clear lastRun, we will show in status 'dry run succeeded' which is wrong
+          // because it didn't, it wasn't completed. We should just say nothing about
+          // it's lastRun status and only show an error when an error is there.
+          dispatchGlobal({
+            type: CLEAR_VERSIONS_LAST_RUN,
+            payload: {versionIds: [version.id], runType: RunType.DRY_RUN},
+          });
+        } finally {
+          toggleRunOngoing(false);
         }
-        dispatchGlobal(
-          getLastRunAction(
-            version.id,
-            RunType.DRY_RUN,
-            data.output,
-            lastRunError
-          )
-        );
-      };
-      const onError = (response) => {
-        writeOutput(
-          `Can't complete dry run, ${response.error.reason}.`,
-          OutputType.ERROR
-        );
-      };
-      setTimeout(() => {
-        // send version.id and dry config to api and expect results in following format
-        const response = editorRef.current.getValue().includes('FAIL_DRY')
-          ? {
-              status: ApiStatuses.SUCCESS,
-              data: {
-                status: TestStatus.ERROR,
-                timeTaken: 1000,
-                output: `Starting dry run...
-Executing function findElement with arguments .some-selector, Push Me, TEXT, true at line 2:1 to line 7:2`,
-                error: {
-                  msg:
-                    "function: findElement with parameters count: 4 isn't defined. at line 2:1 to 7:2",
-                  from: {line: 2, ch: 1},
-                  to: {line: 7, ch: 2}, // api should send the to column that is after the char
-                },
-              },
-            }
-          : {
-              status: ApiStatuses.SUCCESS,
-              data: {
-                status: TestStatus.SUCCESS,
-                timeTaken: 1000, // timeTaken will be in millis
-                output: `Starting dry run...
-Everything run just fine`,
-              },
-            };
-        /*
-        const response = {
-          status: ApiStatuses.ERROR,
-          error: {
-            reason: 'Network error',
-          },
-        };
-        */
-        if (response.status === ApiStatuses.SUCCESS) {
-          onSuccess(response);
-        } else if (response.status === ApiStatuses.ERROR) {
-          onError(response);
-        }
-        toggleRunOngoing(false);
-      }, 3000);
+      }
+
+      sendDryRun();
       writeOutput('Dry running, output will appear post completion...');
-    }, [dispatchGlobal, toggleRunOngoing, version.id, writeOutput]);
+    }, [
+      dispatchGlobal,
+      dryConfig,
+      projectId,
+      toggleRunOngoing,
+      version.id,
+      writeOutput,
+      writeStatusMessage,
+    ]);
 
     const triggerDryRunOnSave = useCallback(() => {
       // check parse status
@@ -1192,11 +1129,7 @@ Everything run just fine`,
         return;
       }
       // send api request as either code has changed or no last parse available.
-      fillLastParseStatusAndGetFailed(
-        [version.id],
-        dispatchGlobal,
-        getParseResponseData(editorRef.current.getValue().includes('FAIL_TEST'))
-      )
+      fillLastParseStatusAndGetFailed([version.id], dispatchGlobal)
         .then((errorVersions) => {
           if (!errorVersions.length) {
             dryRun();
@@ -1205,14 +1138,13 @@ Everything run just fine`,
           toggleRunOngoing(false);
         })
         .catch((error) => {
-          writeOutput(`Couldn't parse, ${error.message}`, OutputType.ERROR);
+          writeOutput(error.message, OutputType.ERROR);
           toggleRunOngoing(false); // don't use finally as when dryRun start, this shouldn't reset.
         });
       writeOutput('Parsing...');
     }, [
       dispatchGlobal,
       dryRun,
-      getParseResponseData,
       toggleRunOngoing,
       version.id,
       version.lastParseRun,

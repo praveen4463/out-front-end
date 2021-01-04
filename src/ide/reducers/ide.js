@@ -3,7 +3,8 @@ import {
   SET_FILES,
   SET_PROJECT,
   SET_VERSION_LAST_RUN,
-  CLEAR_VERSION_LAST_RUN,
+  CLEAR_VERSIONS_LAST_RUN,
+  CLEAR_VERSION_LAST_RUN_BY_RUN_TYPE,
   PUSH_COMPLETED_BUILDS,
   VERSION_CODE_SAVE_IN_PROGRESS,
   VERSION_CODE_SAVE_COMPLETED,
@@ -73,9 +74,30 @@ const setVersionLastRun = (draft, payload) => {
   }
 };
 
-const clearVersionLastRun = (draft, payload) => {
+const clearVersionsLastRun = (draft, payload) => {
+  if (payload.versionIds === undefined || payload.runType === undefined) {
+    throw new Error('Insufficient arguments passed to clearVersionsLastRun.');
+  }
+  const {versionIds, runType} = payload;
+  const et = draft.files.entities;
+  versionIds.forEach((vId) => {
+    const version = et.versions[vId];
+    // clear last run irrespective of the provided run type
+    if (version.lastRun) {
+      version.lastRun = null;
+    }
+    // clear last parse only if it's a parse
+    if (runType === RunType.PARSE_RUN) {
+      version.lastParseRun = null;
+    }
+  });
+};
+
+const clearVersionLastRunByRunType = (draft, payload) => {
   if (payload.versionId === undefined || payload.runType === undefined) {
-    throw new Error('Insufficient arguments passed to clearVersionLastRun.');
+    throw new Error(
+      'Insufficient arguments passed to clearVersionLastRunByRunType.'
+    );
   }
   const {versionId, runType} = payload;
   const et = draft.files.entities;
@@ -159,8 +181,11 @@ const ideReducer = produce((draft, action) => {
     case SET_VERSION_LAST_RUN:
       setVersionLastRun(draft, payload);
       break;
-    case CLEAR_VERSION_LAST_RUN:
-      clearVersionLastRun(draft, payload);
+    case CLEAR_VERSIONS_LAST_RUN:
+      clearVersionsLastRun(draft, payload);
+      break;
+    case CLEAR_VERSION_LAST_RUN_BY_RUN_TYPE:
+      clearVersionLastRunByRunType(draft, payload);
       break;
     case PUSH_COMPLETED_BUILDS:
       pushCompletedBuilds(draft, payload);

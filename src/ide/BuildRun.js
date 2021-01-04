@@ -392,7 +392,7 @@ const BuildRun = ({closeHandler}) => {
     fillLastParseStatusAndGetFailed(versionIdsNoParseStatus, dispatch)
       .then() // no action when parsed, next effect will check results.
       .catch((error) => {
-        completeOnError(`Can't start build, ${error.message}`);
+        completeOnError(error.message);
       });
     setStatusMsg(getInfoTypeStatusMsg('Parsing...')); // next effect will overwrite this
     // once all are parsed.

@@ -119,6 +119,9 @@ const EditMenu = ({editIconClasses, openBuildConfig, anyFiles}) => {
   }, []);
 
   const handleClickBuildConfig = useCallback(() => {
+    if (!anyFiles) {
+      return;
+    }
     setState(
       new EditMenuState(
         null,
@@ -128,9 +131,12 @@ const EditMenu = ({editIconClasses, openBuildConfig, anyFiles}) => {
         MenuItems.BUILD_CONFIG
       )
     );
-  }, []);
+  }, [anyFiles]);
 
   const handleClickDryConfig = useCallback(() => {
+    if (!anyFiles) {
+      return;
+    }
     setState(
       new EditMenuState(
         null,
@@ -140,7 +146,7 @@ const EditMenu = ({editIconClasses, openBuildConfig, anyFiles}) => {
         MenuItems.DRY_CONFIG
       )
     );
-  }, []);
+  }, [anyFiles]);
 
   const handleClickGlobalVarEdit = useCallback(() => {
     setState(

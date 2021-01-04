@@ -15,9 +15,14 @@ import axios from 'axios';
 import VersionIcon from '../../components/newVersionIcon';
 import Tooltip from '../../TooltipCustom';
 import {RunType} from '../../Constants';
-import {getExplorerItemEndpoint} from '../common';
+import {
+  getExplorerItemEndpoint,
+  getFilesEndpoint,
+  getTestsEndpoint,
+  getVersionRenameEndpoint,
+} from '../common';
 import {handleApiError} from '../../common';
-import {File, Test, Version} from './model';
+import {File, Test} from './model';
 import {ExplorerItemType, ExplorerEditOperationType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
 import ColoredItemIcon from '../../components/ColoredItemIcon';
@@ -164,21 +169,25 @@ const TreeItemContent = React.memo(
       // before any re render.
       async function rename() {
         let body;
+        let endpoint;
         switch (type) {
           case FILE:
             body = new File(itemId, newName);
+            endpoint = getFilesEndpoint(projectId);
             break;
           case TEST:
             body = new Test(itemId, newName, itemParentId);
+            endpoint = getTestsEndpoint();
             break;
           case VERSION:
-            body = new Version(itemId, newName, itemParentId);
+            body = {name: newName, testId: itemParentId};
+            endpoint = getVersionRenameEndpoint(itemId);
             break;
           default:
             throw new Error(`Can't recognize ${type}`);
         }
         try {
-          await axios.patch(getExplorerItemEndpoint(type, projectId), body);
+          await axios.patch(endpoint, body);
         } catch (error) {
           handleApiError(error, setSnackbarErrorMsg, "Couldn't rename");
           dispatch({

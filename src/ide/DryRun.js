@@ -385,7 +385,7 @@ const DryRun = ({closeHandler}) => {
     fillLastParseStatusAndGetFailed(versionIdsNoParseStatus, dispatch)
       .then() // no action when parsed, next effect will check results.
       .catch((error) => {
-        completeOnError(`Can't start dry run, ${error.message}`);
+        completeOnError(error.message);
       });
     setStatusMsg(getInfoTypeStatusMsg('Parsing...')); // next effect will overwrite this
     // once all are parsed.
@@ -415,8 +415,6 @@ const DryRun = ({closeHandler}) => {
       return;
     }
     // console.log('check parse errors');
-    // !! This is checked in IDE's effect too when proceeding to create new
-    // session, session request doesn't begin if this is true.
     if (versionsHaveParseErrorWhenStatusAvailable(etVersions, versionIds)) {
       completeOnError(
         "Can't start dry run, there are parse errors in some of selected test(s)"
@@ -650,6 +648,9 @@ const DryRun = ({closeHandler}) => {
       if (itemType === TOP_NODE && !completed) {
         return TestStatus.RUNNING;
       }
+      if (itemType === TOP_NODE && completed && dryRunError) {
+        return TestStatus.ERROR;
+      }
       if (itemType === VERSION) {
         const {status} = dryRunVersions[itemId];
         if (!status) {
@@ -663,6 +664,7 @@ const DryRun = ({closeHandler}) => {
     },
     [
       dryRun,
+      dryRunError,
       completed,
       getAllVersionIdsByType,
       getDeducedStatusOfVersionGroup,

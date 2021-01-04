@@ -345,6 +345,8 @@ export const QueryKeys = {
 };
 
 export const PROJECT_ID_ENDPOINT_VAR_TEMPLATE = '{projectId}';
+export const VERSION_ID_ENDPOINT_VAR_TEMPLATE = '{versionId}';
+export const VERSION_IDS_ENDPOINT_VAR_TEMPLATE = '{versionIds}';
 
 export const Endpoints = {
   PROJECTS: '/projects',
@@ -355,6 +357,10 @@ export const Endpoints = {
   FILES_WITH_TESTS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/files/getWithTests`,
   TESTS: '/tests',
   VERSIONS: '/versions',
+  VERSION_RENAME: `/versions/${VERSION_ID_ENDPOINT_VAR_TEMPLATE}/renameVersion`,
+  VERSION_CODE_UPDATE_PARSE: `/versions/${VERSION_ID_ENDPOINT_VAR_TEMPLATE}/updateCodeAndParse`,
+  PARSE: `/versions/${VERSION_IDS_ENDPOINT_VAR_TEMPLATE}/parse`,
+  DRY_RUN: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/versions/${VERSION_ID_ENDPOINT_VAR_TEMPLATE}/dryRun`,
   BUILD_VARS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/buildVars`,
   GLOBAL_VARS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/globalVars`,
 };

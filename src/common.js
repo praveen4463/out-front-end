@@ -205,7 +205,11 @@ export const handleApiError = (error, showError, message) => {
   console.log('handleApiError', error.response, error.request);
   // TODO: send to sentry from here
   if (error.response) {
-    showError(`${message}, ${error.response.data.message}`);
+    const errorMsg = error.response.data.message;
+    if (!errorMsg || !errorMsg.trim().length) {
+      throw new Error('Got blank error message in response');
+    }
+    showError(`${message}, ${errorMsg}`);
   } else if (error.request) {
     // !NOTE: Any error thrown within axios, like timeout error will land up here as well,
     // but we're shown server unreachable error. This may be fine for now but keep
@@ -220,7 +224,7 @@ export const handleApiError = (error, showError, message) => {
   }
 };
 
-export const prepareEndpoint = (endpoint, projectId, pathVar) => {
+export const prepareEndpoint = (endpoint, projectId, ...pathVar) => {
   let formattedEndpoint = endpoint;
   if (formattedEndpoint.includes(PROJECT_ID_ENDPOINT_VAR_TEMPLATE)) {
     formattedEndpoint = formattedEndpoint.replace(
@@ -228,9 +232,9 @@ export const prepareEndpoint = (endpoint, projectId, pathVar) => {
       projectId
     );
   }
-  if (pathVar) {
-    formattedEndpoint = `${formattedEndpoint}/${pathVar}`;
-  }
+  pathVar.forEach((v) => {
+    formattedEndpoint = `${formattedEndpoint}/${v}`;
+  });
   return formattedEndpoint;
 };
 
@@ -249,4 +253,8 @@ export const getFilesWithTests = (fileIds, projectId) => {
 
 export const fromJson = (Ctor, json) => {
   return Object.assign(new Ctor(), json);
+};
+
+export const isBlank = (text) => {
+  return !text || !text.replace(/[\s\n\r\t]*/, '').length;
 };

@@ -40,6 +40,8 @@ import {
   RUN_DRY_ON_COMPLETED,
   RUN_DRY_MARK_VERSION_STATUS,
   RUN_DRY_UPDATE_BY_PROP,
+  CLEAR_VERSIONS_LAST_RUN,
+  RUN_DRY_RESET_VERSION,
 } from './actionTypes';
 import {
   BUILD_UPDATE_BY_PROP,
@@ -102,6 +104,7 @@ import useSnackbarTypeError from '../hooks/useSnackbarTypeError';
 import {
   versionsHaveParseErrorWhenStatusAvailable,
   versionsHaveLastParseStatus,
+  getDryRunEndpoint,
 } from './common';
 import {
   getNumberParamFromUrl,
@@ -418,7 +421,6 @@ const Ide = () => {
           });
         }
         dispatch(batchActions(actions));
-        setLoading(false);
       })
       .catch((error) => {
         handleApiError(
@@ -426,7 +428,8 @@ const Ide = () => {
           setSnackbarErrorMsg,
           "Couldn't fetch project files"
         );
-      });
+      })
+      .finally(() => setLoading(false));
   }, [state.projectId, setSnackbarErrorMsg]);
 
   brvsRef.current = useMemo(
@@ -861,21 +864,30 @@ const Ide = () => {
       runDry();
       return;
     }
-    const onSuccess = (response) => {
-      const {data} = response;
-      const actions = [
-        {
-          type: RUN_DRY_UPDATE_VERSION,
-          payload: {versionId, data},
-        },
-      ];
-      // update lastRun state of version when it completed execution (not when stopped)
-      if (
-        data.status === TestStatus.SUCCESS ||
-        data.status === TestStatus.ERROR
-      ) {
+
+    async function sendDryRun() {
+      try {
+        const {data} = await axios.post(
+          getDryRunEndpoint(state.projectId, versionId),
+          state.config.dry
+        );
+        // as response is received, check if component is unmounted, if so, return
+        if (unmounted.current) {
+          return;
+        }
+        if (!data.status) {
+          // api doesn't set a status, set it here based on error
+          data.status = data.error ? TestStatus.ERROR : TestStatus.SUCCESS;
+        }
+        const actions = [
+          {
+            type: RUN_DRY_UPDATE_VERSION,
+            payload: {versionId, data},
+          },
+        ];
+        // update lastRun state of version when it completed execution (not when stopped)
         let lastRunError = null;
-        if (data.status === TestStatus.ERROR) {
+        if (data.error) {
           const {error} = data;
           lastRunError = new LastRunError(error.msg, error.from, error.to);
         }
@@ -887,71 +899,49 @@ const Ide = () => {
             lastRunError
           )
         );
+        dispatch(batchActions(actions));
+        runDry();
+      } catch (error) {
+        // We get an exception while running dryRun, we must clear lastRun of
+        // all versionIds that are pending or in running state (current one).
+        const versionIdsPending = drvsRef.current
+          .filter((v) => !v.status || v.status === TestStatus.RUNNING)
+          .map((v) => v.versionId);
+        handleApiError(
+          error,
+          (errorMsg) =>
+            dispatch(
+              batchActions([
+                {type: DRY_COMPLETE_RUN},
+                {
+                  type: RUN_DRY_COMPLETE_ON_ERROR,
+                  payload: {
+                    error: errorMsg,
+                  },
+                },
+                // clear current version's status so that it won't remain in running
+                // state.
+                {
+                  type: RUN_DRY_RESET_VERSION,
+                  payload: {
+                    versionId,
+                  },
+                },
+                {
+                  type: CLEAR_VERSIONS_LAST_RUN,
+                  payload: {
+                    versionIds: versionIdsPending,
+                    runType: RunType.DRY_RUN,
+                  },
+                },
+              ])
+            ),
+          "Can't complete dry run"
+        );
       }
-      dispatch(batchActions(actions));
-      runDry();
-    };
-    const onError = (response) => {
-      dispatch(
-        batchActions([
-          {type: DRY_COMPLETE_RUN},
-          {
-            type: RUN_DRY_COMPLETE_ON_ERROR,
-            payload: {
-              error: `Can't complete dry run, ${response.error.reason}.`,
-            },
-          },
-        ])
-      );
-    };
-    setTimeout(() => {
-      // send versionId, dry run config to api and expect success or failure.
-      const whichResponse = random(1, 9);
-      // enable following for checking api error situation.
-      // const whichResponse = random(1, 10);
-      let response;
-      if (whichResponse <= 7) {
-        response = {
-          status: ApiStatuses.SUCCESS,
-          data: {
-            status: TestStatus.SUCCESS,
-            timeTaken: random(1000, 1500), // timeTaken will be in millis
-            output: 'This output came in the end on success',
-          },
-        };
-      } else if (whichResponse <= 9) {
-        response = {
-          status: ApiStatuses.SUCCESS,
-          data: {
-            status: TestStatus.ERROR,
-            timeTaken: random(100, 500),
-            output: 'This output came in the end on error',
-            error: {
-              msg: 'Array index out of range line 3:12',
-              from: {line: 3, ch: 12},
-              // !!Note: api should always send the 'to' column that is after the 'to' char
-              to: {line: 3, ch: 13},
-            },
-          },
-        };
-      } else if (whichResponse === 10) {
-        response = {
-          status: ApiStatuses.ERROR,
-          error: {
-            reason: 'Network error',
-          },
-        };
-      }
-      // as response is received, check if component is unmounted, if so, return
-      if (unmounted.current) {
-        return;
-      }
-      if (response.status === ApiStatuses.SUCCESS) {
-        onSuccess(response);
-      } else if (response.status === ApiStatuses.ERROR) {
-        onError(response);
-      }
-    }, 2000);
+    }
+
+    sendDryRun();
     // when a version is submitted for dry run, mark it running so that we can
     // show it in running status (dry run has no running state in api, we submit
     // dry run and receive it's final result)
@@ -959,7 +949,7 @@ const Ide = () => {
       type: RUN_DRY_MARK_VERSION_STATUS,
       payload: {versionId, status: TestStatus.RUNNING},
     });
-  }, []);
+  }, [state.config.dry, state.projectId]);
 
   useEffect(() => {
     if (

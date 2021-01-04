@@ -1,8 +1,16 @@
+import axios from 'axios';
+import {CLEAR_VERSIONS_LAST_RUN} from './actionTypes';
 import batchActions, {getLastRunAction} from './actionCreators';
 import {LastRunError} from './Explorer/model';
-import {RunType, ApiStatuses, Endpoints} from '../Constants';
+import {
+  RunType,
+  Endpoints,
+  VERSION_IDS_ENDPOINT_VAR_TEMPLATE,
+  VERSION_ID_ENDPOINT_VAR_TEMPLATE,
+  PROJECT_ID_ENDPOINT_VAR_TEMPLATE,
+} from '../Constants';
 import {PARSE_SUCCESS_MSG, ExplorerItemType} from './Constants';
-import {prepareEndpoint} from '../common';
+import {prepareEndpoint, handleApiError} from '../common';
 
 const versionsHaveLastParseStatus = (etVersions, versionIds) => {
   return versionIds.every((vid) => etVersions[vid].lastParseRun);
@@ -29,89 +37,6 @@ const getVersionsWithParseErrorWhenStatusAvailable = (
     throw new Error('All versions should have lastParseRun status available');
   }
   return versionIds.filter((vid) => etVersions[vid].lastParseRun.error);
-};
-
-/**
-  used to populate last parse status to versionIds having no parse status, it
-  returns the versionIds that failed parsing.
-*/
-// TODO: responseData is for testing only until api implemented. Remove once api is there.
-const fillLastParseStatusAndGetFailed = (
-  versionIds,
-  dispatch,
-  responseData = null
-) => {
-  const onSuccess = (response, resolve) => {
-    const actions = [];
-    const parseErrorVersionIds = [];
-    if (response.data) {
-      // we've parse errors in some versions
-      response.data.forEach((d) => {
-        const {versionId} = d;
-        parseErrorVersionIds.push(versionId);
-        const lastRunAction = getLastRunAction(
-          versionId,
-          RunType.PARSE_RUN,
-          null,
-          new LastRunError(d.error.msg, d.error.from, d.error.to)
-        );
-        actions.push(lastRunAction);
-      });
-    }
-    // versions that have no parse errors should also have lastRun
-    const filteredVersionIds = parseErrorVersionIds.length
-      ? versionIds.filter((vid) => parseErrorVersionIds.indexOf(vid) < 0)
-      : versionIds;
-    filteredVersionIds.forEach((vid) => {
-      const lastRunAction = getLastRunAction(
-        vid,
-        RunType.PARSE_RUN,
-        PARSE_SUCCESS_MSG,
-        null
-      );
-      actions.push(lastRunAction);
-    });
-    dispatch(batchActions(actions));
-    resolve(parseErrorVersionIds);
-  };
-  const onError = (response, reject) => {
-    reject(new Error(response.error.reason));
-  };
-  return new Promise((resolve, reject) => {
-    // send versionIds for parsing to api and expect only the failed ones with error.
-    // when all succeeded, there will be no data. When api couldn't parse for any
-    // reason, status will be failure with reason of error.
-    setTimeout(() => {
-      /* const response = {
-        status: ApiStatuses.SUCCESS,
-        data: [
-          {
-            versionId: versionIds[0],
-            error: {
-              msg: "no viable alternative at input 'a+' line 2:2",
-              from: {line: 2, ch: 1},
-              to: {line: 2, ch: 2},
-            },
-          },
-        ],
-      }; */
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: responseData,
-      };
-      /* const response = {
-        status: ApiStatuses.FAILURE,
-        error: {
-          reason: 'Internal exception occurred while parsing',
-        },
-      }; */
-      if (response.status === ApiStatuses.SUCCESS) {
-        onSuccess(response, resolve);
-      } else if (response.status === ApiStatuses.FAILURE) {
-        onError(response, reject);
-      }
-    }, 2000);
-  });
 };
 
 const filterCurrentVersions = (versionIds, etVersions) => {
@@ -165,6 +90,96 @@ const getExplorerItemEndpoint = (itemType, projectId, pathVar) => {
   return prepareEndpoint(endpoint, projectId, pathVar);
 };
 
+const getFilesEndpoint = (projectId) => {
+  return Endpoints.FILES.replace(PROJECT_ID_ENDPOINT_VAR_TEMPLATE, projectId);
+};
+
+const getTestsEndpoint = () => {
+  return Endpoints.TESTS;
+};
+
+const getVersionRenameEndpoint = (versionId) => {
+  return Endpoints.VERSION_RENAME.replace(
+    VERSION_ID_ENDPOINT_VAR_TEMPLATE,
+    versionId
+  );
+};
+
+const getVersionCodeUpdateAndParseEndpoint = (versionId) => {
+  return Endpoints.VERSION_CODE_UPDATE_PARSE.replace(
+    VERSION_ID_ENDPOINT_VAR_TEMPLATE,
+    versionId
+  );
+};
+
+const getParseEndpoint = (versionIds) => {
+  return Endpoints.PARSE.replace(VERSION_IDS_ENDPOINT_VAR_TEMPLATE, versionIds);
+};
+
+const getDryRunEndpoint = (projectId, versionId) => {
+  return Endpoints.DRY_RUN.replace(
+    VERSION_ID_ENDPOINT_VAR_TEMPLATE,
+    versionId
+  ).replace(PROJECT_ID_ENDPOINT_VAR_TEMPLATE, projectId);
+};
+
+/**
+  used to populate last parse status to versionIds having no parse status, it
+  returns the versionIds that failed parsing.
+*/
+const fillLastParseStatusAndGetFailed = (versionIds, dispatch) => {
+  async function sendParse(resolve, reject) {
+    try {
+      const {data} = await axios.get(getParseEndpoint(versionIds.join(',')));
+      const actions = [];
+      const parseErrorVersionIds = [];
+      if (data.length) {
+        // we've parse errors in some versions
+        data.forEach((d) => {
+          const {versionId, error} = d;
+          parseErrorVersionIds.push(versionId);
+          const lastRunAction = getLastRunAction(
+            versionId,
+            RunType.PARSE_RUN,
+            null,
+            new LastRunError(error.msg, error.from, error.to)
+          );
+          actions.push(lastRunAction);
+        });
+      }
+      // versions that have no parse errors should also have lastRun
+      const filteredVersionIds = parseErrorVersionIds.length
+        ? versionIds.filter((vid) => parseErrorVersionIds.indexOf(vid) < 0)
+        : versionIds;
+      filteredVersionIds.forEach((vid) => {
+        const lastRunAction = getLastRunAction(
+          vid,
+          RunType.PARSE_RUN,
+          PARSE_SUCCESS_MSG,
+          null
+        );
+        actions.push(lastRunAction);
+      });
+      dispatch(batchActions(actions));
+      resolve(parseErrorVersionIds);
+    } catch (error) {
+      handleApiError(
+        error,
+        (errorMsg) => reject(new Error(errorMsg)),
+        "Couldn't parse"
+      );
+      // when parse has exceptions, clear lastRun of all versions.
+      dispatch({
+        type: CLEAR_VERSIONS_LAST_RUN,
+        payload: {versionIds, runType: RunType.PARSE_RUN},
+      });
+    }
+  }
+  return new Promise((resolve, reject) => {
+    sendParse(resolve, reject);
+  });
+};
+
 export {
   getVersionsNoParseStatus,
   versionsHaveParseErrorWhenStatusAvailable,
@@ -174,4 +189,10 @@ export {
   getVersionsWithParseErrorWhenStatusAvailable,
   convertMillisIntoTimeText,
   getExplorerItemEndpoint,
+  getVersionRenameEndpoint,
+  getVersionCodeUpdateAndParseEndpoint,
+  getParseEndpoint,
+  getDryRunEndpoint,
+  getFilesEndpoint,
+  getTestsEndpoint,
 };
