@@ -140,6 +140,7 @@ const initialState = {
     buildKey: null,
     sessionId: null,
     sessionError: null,
+    filteredNoCodeVersions: false,
     /* Either explicit or implicit versionIds selected for build. When user initiates
     new build by telling what need tested beforehand (for instance using context
     menu in explorer, editor panel's run button, re-run and run-failed), this

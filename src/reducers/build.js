@@ -10,6 +10,7 @@ import {
   BUILD_NEW_SESSION_ERROR,
 } from '../actions/actionTypes';
 import {getOrderedVersionsFromFiles} from './common';
+import {isBlank} from '../common';
 
 const updateByProp = (draft, payload) => {
   if (payload.prop === undefined || payload.value === undefined) {
@@ -36,7 +37,7 @@ const newRun = (draft, payload) => {
     );
   }
   if (payload.noBuildConfigIfValid) {
-    build.noBuildConfigIfValid = payload.noBuildConfigIfValid;
+    build.noBuildConfigIfValid = true;
   }
 };
 
@@ -56,6 +57,14 @@ const startRun = (draft) => {
       Array.from(draft.config.build.selectedVersions)
     );
   }
+  const versionIdsLength = build.versionIds.length;
+  // filter out versionIds that have blank code
+  build.versionIds = build.versionIds.filter(
+    (vId) => !isBlank(draft.files.entities.versions[vId].code)
+  );
+  if (build.versionIds.length < versionIdsLength) {
+    build.filteredNoCodeVersions = true;
+  }
   build.runId = random(111111, 999999);
 };
 
@@ -71,6 +80,7 @@ const resetCommon = (draft) => {
   const {build} = draft;
   build.runOngoing = false;
   build.sessionRequestTime = null;
+  build.filteredNoCodeVersions = false;
   build.versionIds = null;
   build.runId = null;
 };

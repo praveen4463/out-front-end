@@ -1,7 +1,7 @@
 import React, {useState, useCallback} from 'react';
 import SnackbarTypeError from '../components/SnackbarTypeError';
 
-const useSnackbarTypeError = () => {
+const useSnackbarTypeError = (key) => {
   const [snackbarErrorMsg, setSnackbarErrorMsg] = useState(null);
 
   const setSnackbarErrorClose = useCallback(() => {
@@ -10,7 +10,7 @@ const useSnackbarTypeError = () => {
 
   const snackbarTypeError = (
     <SnackbarTypeError
-      key={snackbarErrorMsg ?? ''}
+      key={key ?? snackbarErrorMsg ?? ''}
       error={snackbarErrorMsg}
       errorOn={Boolean(snackbarErrorMsg)}
       setErrorClose={setSnackbarErrorClose}

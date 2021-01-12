@@ -10,7 +10,7 @@ export default function Browser(name, version) {
 
 function BuildConfig(
   buildCapabilityId = null,
-  selectedVersions = new Set(),
+  selectedVersions = new Set(), // set of versionIds, name should be changed to selectedVersionIds
   displayResolution,
   timezone = Defaults.TIMEZONE,
   selectedBuildVarIdPerKey = {},

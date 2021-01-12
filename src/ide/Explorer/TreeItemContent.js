@@ -490,7 +490,7 @@ const TreeItemContent = React.memo(
       setShowUnloadDialog(true);
     };
 
-    const getBuildRunTextPerExplorerItem = (runType) => {
+    const getRunTextPerExplorerItem = (runType) => {
       let runText;
       switch (runType) {
         case RunType.BUILD_RUN:
@@ -673,19 +673,19 @@ const TreeItemContent = React.memo(
               onClick={runBuildHandler}
               disabled={runDisabled()}
               className={classes.contextMenuItem}>
-              {getBuildRunTextPerExplorerItem(RunType.BUILD_RUN)}
+              {getRunTextPerExplorerItem(RunType.BUILD_RUN)}
             </MenuItem>
             <MenuItem
               onClick={runDryHandler}
               disabled={runDisabled()}
               className={classes.contextMenuItem}>
-              {getBuildRunTextPerExplorerItem(RunType.DRY_RUN)}
+              {getRunTextPerExplorerItem(RunType.DRY_RUN)}
             </MenuItem>
             <MenuItem
               onClick={runParseHandler}
               disabled={runDisabled()}
               className={classes.contextMenuItem}>
-              {getBuildRunTextPerExplorerItem(RunType.PARSE_RUN)}
+              {getRunTextPerExplorerItem(RunType.PARSE_RUN)}
             </MenuItem>
             {itemType === FILE && (
               <>

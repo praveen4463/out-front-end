@@ -53,6 +53,8 @@ import {
   fillLastParseStatusAndGetFailed,
   convertMillisIntoTimeText,
 } from './common';
+import useSnackbarTypeInfo from '../hooks/useSnackbarTypeInfo';
+import useSnackbarTypeError from '../hooks/useSnackbarTypeError';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -231,6 +233,12 @@ const BuildRun = ({closeHandler}) => {
   const buildRunError = buildRun === null ? null : buildRun.error;
   const buildRunInterval =
     buildRun === null ? null : buildRun.testProgressIntervalId;
+  const [setSnackbarInfoMsg, snackbarTypeInfo] = useSnackbarTypeInfo(
+    'buildRun-info'
+  );
+  const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError(
+    'buildRun-error'
+  );
   const classes = useStyles();
   const theme = useTheme();
 
@@ -302,26 +310,6 @@ const BuildRun = ({closeHandler}) => {
     [classes.error, classes.statusMsg, classes.testStatusIcon]
   );
 
-  // assign to buildRun on new build
-  useEffect(() => {
-    if (!buildRunOngoing) {
-      return;
-    }
-    if (buildRun && build.runId === buildRun.runId) {
-      return; // already created buildRun instance for this run
-    }
-    // console.log('assign to buildRun on new build: inside');
-    // reset refs as this runs on new builds only (before dispatching)
-    didUserSelectNodeRef.current = false;
-    expandNodesBeginningRef.current = false;
-    sessionRequestTimeRef.current = null;
-    setVersionsParseSucceeded(false);
-    versionsParseOngoingRef.current = false;
-    dispatch({
-      type: RUN_BUILD_ON_NEW_RUN,
-    });
-  }, [build.runId, buildRun, buildRunOngoing, dispatch]);
-
   const completeOnError = useCallback(
     (error) => {
       dispatch(
@@ -340,6 +328,69 @@ const BuildRun = ({closeHandler}) => {
     },
     [dispatch]
   );
+
+  // assign to buildRun on new build
+  useEffect(() => {
+    if (!buildRunOngoing) {
+      return;
+    }
+    if (buildRun && build.runId === buildRun.runId) {
+      return; // already created buildRun instance for this run
+    }
+    // console.log('assign to buildRun on new build: inside');
+    // reset refs as this runs on new builds only (before dispatching)
+    didUserSelectNodeRef.current = false;
+    expandNodesBeginningRef.current = false;
+    sessionRequestTimeRef.current = null;
+    setVersionsParseSucceeded(false);
+    versionsParseOngoingRef.current = false;
+    // if we've filtered no-code version, tell user in a snackbar only when there
+    // are some tests left after filtering else we're not running new build and not
+    // showing it's file tree.
+    if (build.filteredNoCodeVersions && build.versionIds.length) {
+      setSnackbarInfoMsg(
+        "Test(s) with empty code have been filtered out. File tree of this build won't show them!"
+      );
+    }
+    // if there was no version as a result of filtering no-code test, complete build
+    // and show error as snackbar. This is not shown as status because if a previous
+    // buildRun is in panel, it may confuse user as new has no connection with previous.
+    // Since we've not created buildRun for this new build, no need to dispatch buildRun
+    // specific completion, this new run doesn't exist anywhere, we're just resetting build
+    // in global state.
+    if (!build.versionIds.length) {
+      setSnackbarErrorMsg(
+        "Can't run new build, there is no test with non empty code"
+      );
+      dispatch({type: BUILD_COMPLETE_RUN});
+      if (!buildRun) {
+        // if there was no existing buildRun, close this panel as it opened only
+        // for running this build.
+        // Otherwise don't close as it might have already opened.
+        setTimeout(closeHandler, 3000); // small time, since I'm not handling
+        // the edge case when user starts another valid build before this is closed
+        // and when this run, it closes down the run window. TODO: for later, handling
+        // inside timeout as separate function.
+      }
+      return;
+    }
+    // reset any error messages if shown.
+    setSnackbarErrorMsg(null);
+    dispatch({
+      type: RUN_BUILD_ON_NEW_RUN,
+    });
+  }, [
+    build.runId,
+    buildRun,
+    buildRunOngoing,
+    build.versionIds,
+    completeOnError,
+    setSnackbarInfoMsg,
+    setSnackbarErrorMsg,
+    build.filteredNoCodeVersions,
+    dispatch,
+    closeHandler,
+  ]);
 
   useEffect(() => {
     if (
@@ -1006,240 +1057,252 @@ const BuildRun = ({closeHandler}) => {
   };
 
   return (
-    <SplitPane
-      split="vertical"
-      defaultSize="30%"
-      style={{position: 'relative'}}
-      pane1Style={{minWidth: '10%', maxWidth: '40%'}}>
-      <Box display="flex" flexDirection="column" className={classes.root}>
-        <Box
-          display="flex"
-          alignItems="center"
-          className={classes.header}
-          boxShadow={1}>
-          {buildRun && completed ? (
-            <>
-              <Tooltip title="Rerun">
-                <span>
-                  <IconButton
-                    aria-label="Rerun"
-                    className={classes.iconBuildActions}
-                    onClick={handleRerun}>
-                    <PlayArrowIcon fontSize="small" className={classes.rerun} />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              {versionIds.some(
-                (vid) =>
-                  buildRun.buildRunVersions[vid].status === TestStatus.ERROR
-              ) ? (
-                <Tooltip title="Run Failed">
+    <>
+      <SplitPane
+        split="vertical"
+        defaultSize="30%"
+        style={{position: 'relative'}}
+        pane1Style={{minWidth: '10%', maxWidth: '40%'}}>
+        <Box display="flex" flexDirection="column" className={classes.root}>
+          <Box
+            display="flex"
+            alignItems="center"
+            className={classes.header}
+            boxShadow={1}>
+            {buildRun && completed ? (
+              <>
+                <Tooltip title="Rerun">
                   <span>
                     <IconButton
-                      aria-label="Run Failed"
+                      aria-label="Rerun"
                       className={classes.iconBuildActions}
-                      onClick={handleRunFailed}>
-                      <PlayCircleFilledIcon
-                        color="error"
+                      onClick={handleRerun}>
+                      <PlayArrowIcon
                         fontSize="small"
-                        classes={{fontSizeSmall: classes.fontSizeSmall}}
+                        className={classes.rerun}
                       />
                     </IconButton>
                   </span>
                 </Tooltip>
-              ) : null}
-            </>
-          ) : null}
-          {buildRun && !completed && buildRunInterval ? (
-            <Tooltip title="Stop">
-              <span>
-                <IconButton
-                  aria-label="Stop"
-                  className={classes.iconBuildActions}
-                  onClick={handleStop}
-                  disabled={build.stopping}>
-                  <StopIcon
-                    color={build.stopping ? 'disabled' : 'error'}
-                    fontSize="small"
-                  />
-                </IconButton>
-              </span>
-            </Tooltip>
-          ) : null}
-        </Box>
-        <Box px={1} my={1} flex={1} className={classes.statusPanelContent}>
-          {buildRun && fileIds.length ? (
-            <TreeView
-              className={classes.tree}
-              expanded={expanded}
-              selected={selected}
-              onNodeToggle={handleToggle}
-              onNodeSelect={handleSelect}
-              defaultCollapseIcon={<ExpandMoreIcon />}
-              defaultExpandIcon={<ChevronRightIcon />}
-              id="buildRun">
-              <StyledTreeItem
-                nodeId={getNodeId(TOP_NODE, TOP_NODE_ID)}
-                label={
-                  <Box className={classes.itemContainer}>
-                    {getStatusIcon(TOP_NODE, TOP_NODE_ID)}
-                    <Box className={classes.itemTextContainer}>
-                      <Typography variant="body2" className={classes.itemFont}>
-                        {getTopNodeText()}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" className={classes.timeText}>
-                        {getTimeSpentText(TOP_NODE, TOP_NODE_ID)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                }>
-                {fileIds.map((fid) => (
-                  <StyledTreeItem
-                    nodeId={getNodeId(FILE, fid)}
-                    key={fid}
-                    label={
-                      <Box className={classes.itemContainer}>
-                        {getStatusIcon(FILE, fid)}
-                        <Box className={classes.itemTextContainer}>
-                          <Typography
-                            variant="body2"
-                            className={clsx(
-                              classes.itemFont,
-                              etFiles[fid].showAsErrorInExplorer &&
-                                classes.errorText
-                            )}>
-                            {etFiles[fid].name}
-                          </Typography>
-                        </Box>
-                        <Box>
-                          <Typography
-                            variant="body2"
-                            className={classes.timeText}>
-                            {getTimeSpentText(FILE, fid)}
-                          </Typography>
-                        </Box>
+                {versionIds.some(
+                  (vid) =>
+                    buildRun.buildRunVersions[vid].status === TestStatus.ERROR
+                ) ? (
+                  <Tooltip title="Run Failed">
+                    <span>
+                      <IconButton
+                        aria-label="Run Failed"
+                        className={classes.iconBuildActions}
+                        onClick={handleRunFailed}>
+                        <PlayCircleFilledIcon
+                          color="error"
+                          fontSize="small"
+                          classes={{fontSizeSmall: classes.fontSizeSmall}}
+                        />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                ) : null}
+              </>
+            ) : null}
+            {buildRun && !completed && buildRunInterval ? (
+              <Tooltip title="Stop">
+                <span>
+                  <IconButton
+                    aria-label="Stop"
+                    className={classes.iconBuildActions}
+                    onClick={handleStop}
+                    disabled={build.stopping}>
+                    <StopIcon
+                      color={build.stopping ? 'disabled' : 'error'}
+                      fontSize="small"
+                    />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            ) : null}
+          </Box>
+          <Box px={1} my={1} flex={1} className={classes.statusPanelContent}>
+            {buildRun && fileIds.length ? (
+              <TreeView
+                className={classes.tree}
+                expanded={expanded}
+                selected={selected}
+                onNodeToggle={handleToggle}
+                onNodeSelect={handleSelect}
+                defaultCollapseIcon={<ExpandMoreIcon />}
+                defaultExpandIcon={<ChevronRightIcon />}
+                id="buildRun">
+                <StyledTreeItem
+                  nodeId={getNodeId(TOP_NODE, TOP_NODE_ID)}
+                  label={
+                    <Box className={classes.itemContainer}>
+                      {getStatusIcon(TOP_NODE, TOP_NODE_ID)}
+                      <Box className={classes.itemTextContainer}>
+                        <Typography
+                          variant="body2"
+                          className={classes.itemFont}>
+                          {getTopNodeText()}
+                        </Typography>
                       </Box>
-                    }>
-                    {etFiles[fid].tests
-                      .filter((tid) => testIds.indexOf(tid) >= 0)
-                      .map((tid) => (
-                        <StyledTreeItem
-                          nodeId={getNodeId(TEST, tid)}
-                          key={tid}
-                          label={
-                            <Box className={classes.itemContainer}>
-                              {getStatusIcon(TEST, tid)}
-                              <Box className={classes.itemTextContainer}>
-                                <Typography
-                                  variant="body2"
-                                  className={clsx(
-                                    classes.itemFont,
-                                    etTests[tid].showAsErrorInExplorer &&
-                                      classes.errorText
-                                  )}>
-                                  {etTests[tid].name}
-                                </Typography>
+                      <Box>
+                        <Typography
+                          variant="body2"
+                          className={classes.timeText}>
+                          {getTimeSpentText(TOP_NODE, TOP_NODE_ID)}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  }>
+                  {fileIds.map((fid) => (
+                    <StyledTreeItem
+                      nodeId={getNodeId(FILE, fid)}
+                      key={fid}
+                      label={
+                        <Box className={classes.itemContainer}>
+                          {getStatusIcon(FILE, fid)}
+                          <Box className={classes.itemTextContainer}>
+                            <Typography
+                              variant="body2"
+                              className={clsx(
+                                classes.itemFont,
+                                etFiles[fid].showAsErrorInExplorer &&
+                                  classes.errorText
+                              )}>
+                              {etFiles[fid].name}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography
+                              variant="body2"
+                              className={classes.timeText}>
+                              {getTimeSpentText(FILE, fid)}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      }>
+                      {etFiles[fid].tests
+                        .filter((tid) => testIds.indexOf(tid) >= 0)
+                        .map((tid) => (
+                          <StyledTreeItem
+                            nodeId={getNodeId(TEST, tid)}
+                            key={tid}
+                            label={
+                              <Box className={classes.itemContainer}>
+                                {getStatusIcon(TEST, tid)}
+                                <Box className={classes.itemTextContainer}>
+                                  <Typography
+                                    variant="body2"
+                                    className={clsx(
+                                      classes.itemFont,
+                                      etTests[tid].showAsErrorInExplorer &&
+                                        classes.errorText
+                                    )}>
+                                    {etTests[tid].name}
+                                  </Typography>
+                                </Box>
+                                <Box>
+                                  <Typography
+                                    variant="body2"
+                                    className={classes.timeText}>
+                                    {getTimeSpentText(TEST, tid)}
+                                  </Typography>
+                                </Box>
                               </Box>
-                              <Box>
-                                <Typography
-                                  variant="body2"
-                                  className={classes.timeText}>
-                                  {getTimeSpentText(TEST, tid)}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          }>
-                          {etTests[tid].versions
-                            .filter((vid) => versionIds.indexOf(vid) >= 0)
-                            .map((vid) => (
-                              <StyledTreeItem
-                                nodeId={getNodeId(VERSION, vid)}
-                                key={vid}
-                                label={
-                                  <Box className={classes.itemContainer}>
-                                    {getStatusIcon(VERSION, vid)}
-                                    <Box className={classes.itemTextContainer}>
-                                      <Typography
-                                        variant="body2"
-                                        className={clsx(
-                                          classes.itemFont,
-                                          etVersions[vid]
-                                            .showAsErrorInExplorer &&
-                                            classes.errorText
-                                        )}>
-                                        {etVersions[vid].name}
-                                      </Typography>
+                            }>
+                            {etTests[tid].versions
+                              .filter((vid) => versionIds.indexOf(vid) >= 0)
+                              .map((vid) => (
+                                <StyledTreeItem
+                                  nodeId={getNodeId(VERSION, vid)}
+                                  key={vid}
+                                  label={
+                                    <Box className={classes.itemContainer}>
+                                      {getStatusIcon(VERSION, vid)}
+                                      <Box
+                                        className={classes.itemTextContainer}>
+                                        <Typography
+                                          variant="body2"
+                                          className={clsx(
+                                            classes.itemFont,
+                                            etVersions[vid]
+                                              .showAsErrorInExplorer &&
+                                              classes.errorText
+                                          )}>
+                                          {etVersions[vid].name}
+                                        </Typography>
+                                      </Box>
+                                      <Box>
+                                        <Typography
+                                          variant="body2"
+                                          className={classes.timeText}>
+                                          {getTimeSpentText(VERSION, vid)}
+                                        </Typography>
+                                      </Box>
                                     </Box>
-                                    <Box>
-                                      <Typography
-                                        variant="body2"
-                                        className={classes.timeText}>
-                                        {getTimeSpentText(VERSION, vid)}
-                                      </Typography>
-                                    </Box>
-                                  </Box>
-                                }
-                              />
-                            ))}
-                        </StyledTreeItem>
-                      ))}
-                  </StyledTreeItem>
-                ))}
-              </StyledTreeItem>
-            </TreeView>
-          ) : null}
-        </Box>
-      </Box>
-      <Box display="flex" flexDirection="column" className={classes.root}>
-        <Box
-          display="flex"
-          alignItems="center"
-          className={classes.header}
-          boxShadow={1}
-          pl={1}>
-          <Box flex={1} display="flex" alignItems="center">
-            {statusMsg}
-          </Box>
-          <Box>
-            <IconButton
-              aria-label="Close Panel"
-              onClick={closeHandler}
-              title="Close Panel"
-              style={{
-                padding: theme.spacing(0.25),
-                opacity: theme.textOpacity.highEmphasis,
-              }}>
-              <CloseIcon fontSize="small" />
-            </IconButton>
+                                  }
+                                />
+                              ))}
+                          </StyledTreeItem>
+                        ))}
+                    </StyledTreeItem>
+                  ))}
+                </StyledTreeItem>
+              </TreeView>
+            ) : null}
           </Box>
         </Box>
-        {buildRunInterval && executingVersionId && !completed ? (
-          <Box width="100%">
-            <LinearProgress
-              color="secondary"
-              variant="determinate"
-              value={getRunProgress()}
-            />
-          </Box>
-        ) : null}
-        <Box className={classes.outputPanelContent} flex={1}>
-          {getSelectedNodeVersionIds().map((vid) => (
-            <Box display="flex" flexDirection="column" px={1} key={vid}>
-              <pre className={classes.output}>
-                {buildRun.buildRunVersions[vid].output}
-              </pre>
-              <pre className={clsx(classes.output, classes.outputError)}>
-                {buildRun.buildRunVersions[vid].error
-                  ? buildRun.buildRunVersions[vid].error.msg
-                  : ''}
-              </pre>
+        <Box display="flex" flexDirection="column" className={classes.root}>
+          <Box
+            display="flex"
+            alignItems="center"
+            className={classes.header}
+            boxShadow={1}
+            pl={1}>
+            <Box flex={1} display="flex" alignItems="center">
+              {statusMsg}
             </Box>
-          ))}
+            <Box>
+              <IconButton
+                aria-label="Close Panel"
+                onClick={closeHandler}
+                title="Close Panel"
+                style={{
+                  padding: theme.spacing(0.25),
+                  opacity: theme.textOpacity.highEmphasis,
+                }}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          </Box>
+          {buildRunInterval && executingVersionId && !completed ? (
+            <Box width="100%">
+              <LinearProgress
+                color="secondary"
+                variant="determinate"
+                value={getRunProgress()}
+              />
+            </Box>
+          ) : null}
+          <Box className={classes.outputPanelContent} flex={1}>
+            {getSelectedNodeVersionIds().map((vid) => (
+              <Box display="flex" flexDirection="column" px={1} key={vid}>
+                <pre className={classes.output}>
+                  {buildRun.buildRunVersions[vid].output}
+                </pre>
+                <pre className={clsx(classes.output, classes.outputError)}>
+                  {buildRun.buildRunVersions[vid].error
+                    ? buildRun.buildRunVersions[vid].error.msg
+                    : ''}
+                </pre>
+              </Box>
+            ))}
+          </Box>
         </Box>
-      </Box>
-    </SplitPane>
+      </SplitPane>
+      {snackbarTypeInfo}
+      {snackbarTypeError}
+    </>
   );
 };
 

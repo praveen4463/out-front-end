@@ -5,7 +5,7 @@ import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import PropTypes from 'prop-types';
 import {makeStyles} from '@material-ui/core/styles';
-import ErrorIcon from '@material-ui/icons/Error';
+import InfoIcon from '@material-ui/icons/Info';
 import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
 
@@ -13,19 +13,18 @@ const useStyle = makeStyles((theme) => ({
   root: {
     backgroundColor: theme.palette.background.paper,
     color: theme.palette.background.contrastText,
-    borderTop: `2px solid ${theme.palette.error.dark}`,
-    borderBottom: `1px solid ${theme.palette.border.light}`,
+    border: `1px solid ${theme.palette.border.light}`,
   },
 }));
 
-const SnackbarTypeError = ({error, errorOn, setErrorClose}) => {
+const SnackbarTypeInfo = ({message, open, onClose}) => {
   const classes = useStyle();
 
   const handleClose = (event, reason) => {
     if (reason === 'clickaway') {
       return;
     }
-    setErrorClose();
+    onClose();
   };
 
   return (
@@ -35,19 +34,19 @@ const SnackbarTypeError = ({error, errorOn, setErrorClose}) => {
           vertical: 'bottom',
           horizontal: 'right',
         }}
-        open={errorOn}
-        autoHideDuration={30000}
+        open={open}
+        autoHideDuration={15000}
         onClose={handleClose}>
         <SnackbarContent
           message={
             <>
               <Box display="flex">
-                <ErrorIcon
+                <InfoIcon
                   fontSize="small"
                   color="error"
                   style={{paddingRight: '8px'}}
                 />
-                <Typography variant="body2">{error}</Typography>
+                <Typography variant="body2">{message}</Typography>
               </Box>
             </>
           }
@@ -69,14 +68,14 @@ const SnackbarTypeError = ({error, errorOn, setErrorClose}) => {
   );
 };
 
-SnackbarTypeError.propTypes = {
-  error: PropTypes.string,
-  errorOn: PropTypes.bool.isRequired,
-  setErrorClose: PropTypes.func.isRequired,
+SnackbarTypeInfo.propTypes = {
+  message: PropTypes.string,
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
 };
 
-SnackbarTypeError.defaultProps = {
-  error: null,
+SnackbarTypeInfo.defaultProps = {
+  message: null,
 };
 
-export default SnackbarTypeError;
+export default SnackbarTypeInfo;
