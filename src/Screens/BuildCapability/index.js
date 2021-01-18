@@ -572,16 +572,10 @@ const BuildCapability = React.memo(
       );
     };
 
-    const buildCapsQuery = useQuery(
-      QueryKeys.BUILD_CAPABILITIES,
-      async () => {
-        const {data} = await axios(Endpoints.BUILD_CAPABILITIES);
-        return data;
-      },
-      {
-        staleTime: 1000 * 60 * 5,
-      }
-    );
+    const buildCapsQuery = useQuery(QueryKeys.BUILD_CAPABILITIES, async () => {
+      const {data} = await axios(Endpoints.BUILD_CAPABILITIES);
+      return data;
+    });
 
     useEffect(() => {
       if (!buildCapsQuery.data) {

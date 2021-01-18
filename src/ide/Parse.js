@@ -519,7 +519,8 @@ const Parse = ({closeHandler}) => {
       split="vertical"
       defaultSize="30%"
       style={{position: 'relative'}}
-      pane1Style={{minWidth: '10%', maxWidth: '40%'}}>
+      pane1Style={{minWidth: '10%', maxWidth: '40%'}}
+      pane2Style={{overflow: 'auto'}}>
       <Box display="flex" flexDirection="column" className={classes.root}>
         <Box
           display="flex"

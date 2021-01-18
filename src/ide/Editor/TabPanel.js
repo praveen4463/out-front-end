@@ -171,10 +171,17 @@ const actionTypes = {
   SCROLL_POS_CHANGED: 'SCROLL_POS_CHANGED',
   OUTPUT_PANEL_TOGGLED: 'OUTPUT_PANEL_TOGGLED',
   UPDATE_STATUS_MESSAGE: 'UPDATE_STATUS_MESSAGE',
+  PUSH_SAVE_MESSAGE: 'PUSH_SAVE_MESSAGE',
+  CLEAR_SAVE_MESSAGE: 'CLEAR_SAVE_MESSAGE',
   SET_OUTPUT_NORMAL: 'SET_OUTPUT_NORMAL',
   SET_OUTPUT_ERROR: 'SET_OUTPUT_ERROR',
   CLEAR_OUTPUT: 'CLEAR_OUTPUT',
 };
+
+function StatusMessage(message = null, messageType = null) {
+  this.message = message;
+  this.messageType = messageType;
+}
 
 // keeps version wise state used in uncontrolled components here, saved in a ref
 // not in state.
@@ -193,15 +200,17 @@ function VersionLocalStateUncontrolled(
 function VersionLocalStateControlled(
   versionId,
   outputPanelExpanded = false,
-  statusMessage = {message: null, messageType: null},
+  statusMessage = new StatusMessage(),
   outputNormal = null,
-  outputError = null
+  outputError = null,
+  saveMsgTimeoutId = null
 ) {
   this.versionId = versionId;
   this.outputPanelExpanded = outputPanelExpanded;
   this.statusMessage = statusMessage;
   this.outputNormal = outputNormal;
   this.outputError = outputError;
+  this.saveMsgTimeoutId = saveMsgTimeoutId;
   this[immerable] = true;
 }
 
@@ -226,12 +235,13 @@ const reducerInner = produce((draft, action) => {
   if (draft[versionId] === undefined) {
     draft[versionId] = new VersionLocalStateControlled(versionId);
   }
+  const state = draft[versionId];
   switch (type) {
     case actionTypes.OUTPUT_PANEL_TOGGLED:
       if (payload.outputPanelExpanded === undefined) {
         throw new Error(`Insufficient arguments to ${type}`);
       }
-      draft[versionId].outputPanelExpanded = payload.outputPanelExpanded;
+      state.outputPanelExpanded = payload.outputPanelExpanded;
       break;
     case actionTypes.UPDATE_STATUS_MESSAGE: {
       if (payload.statusMessage === undefined) {
@@ -241,24 +251,43 @@ const reducerInner = produce((draft, action) => {
       if (msg.message === undefined || msg.messageType === undefined) {
         throw new Error(`Invalid arguments to ${type}`);
       }
-      draft[versionId].statusMessage = msg;
+      state.statusMessage = msg;
       break;
     }
+    case actionTypes.PUSH_SAVE_MESSAGE:
+      if (payload.clearSaveMsg === undefined) {
+        throw new Error(`Insufficient arguments to ${type}`);
+      }
+      state.statusMessage = new StatusMessage(
+        SAVE_MSG,
+        StatusMessageType.NORMAL
+      );
+      clearTimeout(state.saveMsgTimeoutId);
+      state.saveMsgTimeoutId = setTimeout(payload.clearSaveMsg, 3000);
+      break;
+    case actionTypes.CLEAR_SAVE_MESSAGE:
+      if (
+        state.statusMessage.message === SAVE_MSG &&
+        state.statusMessage.messageType === StatusMessageType.NORMAL
+      ) {
+        state.statusMessage = new StatusMessage();
+      }
+      break;
     case actionTypes.SET_OUTPUT_NORMAL:
       if (payload.outputNormal === undefined) {
         throw new Error(`Insufficient arguments to ${type}`);
       }
-      draft[versionId].outputNormal = payload.outputNormal;
+      state.outputNormal = payload.outputNormal;
       break;
     case actionTypes.SET_OUTPUT_ERROR:
       if (payload.outputError === undefined) {
         throw new Error(`Insufficient arguments to ${type}`);
       }
-      draft[versionId].outputError = payload.outputError;
+      state.outputError = payload.outputError;
       break;
     case actionTypes.CLEAR_OUTPUT:
-      draft[versionId].outputNormal = null;
-      draft[versionId].outputError = null;
+      state.outputNormal = null;
+      state.outputError = null;
       break;
     default:
       break;
@@ -350,7 +379,6 @@ const TabPanel = React.memo(
     const editorRef = useRef();
     const editorVersionIdRef = useRef();
     const lineColTextRef = useRef();
-    const editorStatusMessageRef = useRef(); // used in checking the current message in status
     const afterChangeDebounceRef = useRef(); // used in flushing or cancelling changes from anywhere
     const classes = useStyle();
     const summary = useSummaryStyle();
@@ -402,7 +430,7 @@ const TabPanel = React.memo(
           type: actionTypes.UPDATE_STATUS_MESSAGE,
           payload: {
             versionId: version.id,
-            statusMessage: {message, messageType},
+            statusMessage: new StatusMessage(message, messageType),
           },
         });
       },
@@ -503,21 +531,21 @@ const TabPanel = React.memo(
             );
             actions.push(lastRunAction);
             dispatchGlobal(batchActions(actions));
-            writeStatusMessage(SAVE_MSG);
-            // When changes saved messages is printed, we want it to disappear
-            // after sometime so that user know exactly when their code is getting
-            // saved rather than showing it forever.
             if (!parseError) {
-              setTimeout(() => {
-                const statusMsgRef = editorStatusMessageRef.current;
-                if (
-                  statusMsgRef &&
-                  statusMsgRef.textContent &&
-                  statusMsgRef.textContent.trim() === SAVE_MSG
-                ) {
-                  writeStatusMessage('');
-                }
-              }, 5000);
+              dispatchControlled({
+                type: actionTypes.PUSH_SAVE_MESSAGE,
+                payload: {
+                  versionId: version.id,
+                  // save msg should disappear after sometime
+                  clearSaveMsg: () =>
+                    dispatchControlled({
+                      type: actionTypes.CLEAR_SAVE_MESSAGE,
+                      payload: {
+                        versionId: version.id,
+                      },
+                    }),
+                },
+              });
             }
           } catch (error) {
             // An error has occurred during update, it may be error during update
@@ -829,12 +857,10 @@ const TabPanel = React.memo(
           type: actionTypes.UPDATE_STATUS_MESSAGE,
           payload: {
             versionId: version.id,
-            statusMessage: {
-              message: getStatusMsg(run.runType, !error),
-              messageType: error
-                ? StatusMessageType.ERROR
-                : StatusMessageType.SUCCESS,
-            },
+            statusMessage: new StatusMessage(
+              getStatusMsg(run.runType, !error),
+              error ? StatusMessageType.ERROR : StatusMessageType.SUCCESS
+            ),
           },
         });
       }
@@ -986,11 +1012,20 @@ const TabPanel = React.memo(
       // with saving, we don't open.). We want to open only when explicitly some
       // action is triggered.
       // So if user clicks on an opened panel, don't close it.
-      if (isOutputPanelOpened()) {
-        event.stopPropagation();
-      }
+      // When there is no code, don't do anything but if panel is opened don't
+      // close it. If it's not opened, let it open.
       if (stopRunWhenNoCode()) {
+        if (isOutputPanelOpened()) {
+          event.stopPropagation();
+        }
         return;
+      }
+      // while running build, it is handled by build run component that opens
+      // in bottom, that's why we don't want editor panel to remain open when
+      // running build otherwise when build finishes output etc appears on both
+      // panels.
+      if (!isOutputPanelOpened()) {
+        event.stopPropagation();
       }
       afterChangeDebounceRef.current.flush();
       toggleRunOngoing(true, RunType.BUILD_RUN);
@@ -1315,8 +1350,7 @@ const TabPanel = React.memo(
                   variant="caption"
                   aria-label="Status"
                   className={clsx(classes.statusMessage, getStatusMsgStyle())}
-                  data-testid="editorStatusMessage"
-                  ref={editorStatusMessageRef}>
+                  data-testid="editorStatusMessage">
                   {versionsStateControlled[version.id]
                     ? versionsStateControlled[version.id].statusMessage.message
                     : null}

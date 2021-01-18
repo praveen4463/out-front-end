@@ -69,6 +69,7 @@ const useStyles = makeStyles((theme) => ({
     display: 'flex',
     flexDirection: 'column',
     overflowY: 'scroll',
+    overflowX: 'scroll',
   },
   statusPanelContent: {
     overflowY: 'scroll',
@@ -560,17 +561,17 @@ const BuildRun = ({closeHandler}) => {
         ) {
           msg =
             'Searching and connecting to a running machine for this build. It may' +
-            ' take a few seconds...';
+            ' take several seconds...';
         } else if (
           Date.now() - sessionRequestTimeRef.current <
           MaxLengths.IDE_TEST_HOST_ACQUIRE_TIME_STAGE2
         ) {
           msg =
-            "Hmm, it's taking more than expected. Machine should be up in a few more seconds...";
+            "Hmm, it's taking more than expected. Please wait for a few more seconds...";
         } else {
           msg =
             'A new machine is getting up as no running machine was available. It' +
-            " doesn't always happen. Please bear with us for a few more seconds...";
+            " doesn't always happen. Please bear with us for several more seconds...";
         }
         setStatusMsg(getInfoTypeStatusMsg(msg)); // when msg is same as previous, state won't update.
       }, 1000);
@@ -1062,7 +1063,8 @@ const BuildRun = ({closeHandler}) => {
         split="vertical"
         defaultSize="30%"
         style={{position: 'relative'}}
-        pane1Style={{minWidth: '10%', maxWidth: '40%'}}>
+        pane1Style={{minWidth: '10%', maxWidth: '40%'}}
+        pane2Style={{overflow: 'auto'}}>
         <Box display="flex" flexDirection="column" className={classes.root}>
           <Box
             display="flex"

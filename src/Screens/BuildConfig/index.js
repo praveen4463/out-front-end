@@ -243,18 +243,11 @@ const BuildConfig = ({
   const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
   const classes = useStyles();
 
-  const buildCapsQuery = useQuery(
-    QueryKeys.BUILD_CAPABILITIES,
-    async () => {
-      const {data} = await axios(Endpoints.BUILD_CAPABILITIES);
-      data.sort((a, b) => getNewIntlComparer()(a.name, b.name));
-      return data;
-    },
-    {
-      staleTime: 1000 * 60 * 10, // keep fetched caps in cache for atleast 10mins before refetching
-      // occurs on remount or win focus.
-    }
-  );
+  const buildCapsQuery = useQuery(QueryKeys.BUILD_CAPABILITIES, async () => {
+    const {data} = await axios(Endpoints.BUILD_CAPABILITIES);
+    data.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+    return data;
+  });
 
   const buildCaps = buildCapsQuery.data;
 

@@ -347,6 +347,7 @@ export const QueryKeys = {
 export const PROJECT_ID_ENDPOINT_VAR_TEMPLATE = '{projectId}';
 export const VERSION_ID_ENDPOINT_VAR_TEMPLATE = '{versionId}';
 export const VERSION_IDS_ENDPOINT_VAR_TEMPLATE = '{versionIds}';
+export const BUILD_ID_ENDPOINT_VAR_TEMPLATE = '{buildId}';
 
 export const Endpoints = {
   PROJECTS: '/projects',
@@ -363,8 +364,22 @@ export const Endpoints = {
   DRY_RUN: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/versions/${VERSION_ID_ENDPOINT_VAR_TEMPLATE}/dryRun`,
   BUILD_VARS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/buildVars`,
   GLOBAL_VARS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/globalVars`,
+  NEW_BUILD: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/builds`,
+  STOP_BUILD: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}`,
+  BUILD_STATUS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/versions/${VERSION_ID_ENDPOINT_VAR_TEMPLATE}/getBuildStatusOutput`,
 };
 
 export const Timeouts = {
+  API_TIMEOUT_SMALL: 60000,
   API_TIMEOUT_LONG: 300000,
+  API_TIMEOUT_X_LONG: 600000,
 };
+
+export const BuildSourceType = {
+  IDE: 'IDE',
+  CI: 'CI',
+  NOT_IDE: 'NOT_IDE',
+};
+
+export const OFFLINE_MSG = "You're offline, waiting for network...";
+export const OFFLINE_RECOVERY_TIME = 60000;

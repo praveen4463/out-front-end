@@ -19,7 +19,7 @@ import clsx from 'clsx';
 import Cookies from 'js-cookie';
 import {IdeBuildContext, IdeDispatchContext, IdeLPContext} from './Contexts';
 import {LP_START, LP_END} from './actionTypes';
-import {ShotIdentifiers, ApiStatuses} from '../Constants';
+import {ShotIdentifiers, ApiStatuses, OFFLINE_MSG} from '../Constants';
 import {LivePreviewConstants} from './Constants';
 import Application from '../config/application';
 import {getShotName} from '../common';
@@ -69,7 +69,6 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const SHOT_ID_TMPL = '##ID##';
-const OFFLINE_MSG = "You're offline, waiting for network...";
 
 // !! TODO: for now even when fullscreen, there are close and exit button that
 // take up top space, change this to buttons over image just like in shotsviewer
@@ -174,7 +173,7 @@ const LivePreview = ({closeHandler}) => {
           data: {
             shotName: shotNameTemplate.replace(SHOT_ID_TMPL, 6),
             // change identifier per test requirement
-            // such as ShotIdentifiers.EOS, ShotIdentifiers.ERROR or any other number
+            // such as ShotIdentifiers.EOS or any other number
           },
         };
         /* // no data means no shot found
@@ -199,15 +198,8 @@ const LivePreview = ({closeHandler}) => {
 
   const endIfLastShot = useCallback(
     (stringShotId) => {
-      if (
-        stringShotId === ShotIdentifiers.EOS ||
-        stringShotId === ShotIdentifiers.ERROR
-      ) {
-        onPreviewEnd(
-          stringShotId === ShotIdentifiers.ERROR
-            ? LivePreviewConstants.ERROR_SHOT_FOUND_TEXT
-            : ''
-        );
+      if (stringShotId === ShotIdentifiers.EOS) {
+        onPreviewEnd();
         return true;
       }
       return false;
@@ -257,18 +249,13 @@ const LivePreview = ({closeHandler}) => {
           }
           setImageSrc(src);
           numberShotId += 1;
-          // !! TODO: Lets keep the following timeout and test with real api, see
-          // how fast or slow the preview is and the errors and optimize based on
-          // the data. I am thinking we wait on each shot before moving to next
-          // so that the next is readily available without having to poll it. Let's
-          // evaluate this and decide later whether to keep timeout, remove it
-          // or increase/decrease the time.
           if (unmounted.current) {
             return;
           }
-          setTimeout(() => {
-            show();
-          }, 500);
+          show(); // move to next immediately, no wait because all shots are taken
+          // and uploaded within the runtime of the test. When we try one shot,
+          // client take sometime downloading it and at the same time server is
+          // uploading next ones.
         };
         img.src = src;
         img.onerror = () => {
@@ -306,35 +293,41 @@ const LivePreview = ({closeHandler}) => {
           // error occurred when online, don't show any message as it may be an
           // end of shots.
 
-          // if we couldn't find error or eos in storage, that indicate of some
+          // if we couldn't find eos in storage, that indicate of some
           // storage or server error, let's just show generic error and fix that.
           // don't look into db for error shot, even if it's there we're going to
           // tell use the same error message.
           if (
             totalPollsNotFound === LivePreviewConstants.MAX_POLL_AFTER_NOT_FOUND
           ) {
+            // TODO: log error with sentry that we couldn't get current shot within
+            // the specified poll time, log current shot url too.
             onPreviewEnd(LivePreviewConstants.ERROR_SHOT_FOUND_TEXT);
             return;
           }
-          // let's try finding 'actual shot' > eos > error sequentially for
+          // let's try finding 'actual shot' > eos sequentially for
           // MAX_POLL_AFTER_NOT_FOUND times waiting for POLL_TIME_WHEN_NOT_FOUND
           // in between reattempts.
+          // console.log('stringShotId', stringShotId);
           if (!stringShotId) {
+            // console.log(`${ShotIdentifiers.EOS} will be tried`);
             // current shot is an actual shot, try if an eos shot is there
             show(ShotIdentifiers.EOS);
             return;
           }
           if (stringShotId === ShotIdentifiers.EOS) {
-            // current shot is an eos, try if an error shot is there
-            show(ShotIdentifiers.ERROR);
-            return;
-          }
-          if (stringShotId === ShotIdentifiers.ERROR) {
+            // console.log('actual shot will be tried after waiting');
             // current shot is an error, wait and try if the actual shot is now there
             setTimeout(() => {
               totalPollsNotFound += 1;
               return show();
-            }, LivePreviewConstants.POLL_TIME_WHEN_NOT_FOUND);
+            }, LivePreviewConstants.POLL_TIME_WHEN_NOT_FOUND); // I don't want to
+            // wait exponentially, because most of times next shot should be found
+            // in 1-2 reattempts of the same poll duration. Take a short poll time
+            // as I don't want to wait long if it's a little network blockage at
+            // server. If there is really very slow network speed at server, we
+            // are better off not showing live preview, I am sure this won't happen
+            // many times.
           }
         };
       };

@@ -11,7 +11,7 @@ import Backdrop from '@material-ui/core/Backdrop';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import {normalize} from 'normalizr';
 import {ErrorBoundary} from 'react-error-boundary';
-import {random, intersection} from 'lodash-es';
+import {intersection} from 'lodash-es';
 import axios from 'axios';
 import Application from '../config/application';
 import TopNavigation from './TopNavigation';
@@ -52,7 +52,6 @@ import {
 } from '../actions/actionTypes';
 import batchActions, {getLastRunAction} from './actionCreators';
 import {getBuildStoppingAction} from '../actions/actionCreators';
-import stopBuildRunning from '../api/stopBuildRunning';
 import {
   IdeDispatchContext,
   IdeStateContext,
@@ -93,10 +92,13 @@ import {
   VarTypes,
   Browsers,
   Platforms,
-  ApiStatuses,
   RunType,
   TestStatus,
   Endpoints,
+  Timeouts,
+  BuildSourceType,
+  OFFLINE_MSG,
+  OFFLINE_RECOVERY_TIME,
 } from '../Constants';
 import {TestProgress} from './Constants';
 import Browser, {BuildConfig} from '../model';
@@ -113,6 +115,9 @@ import {
   getNewIntlComparer,
   getFilesWithTests,
   fromJson,
+  getNewBuildEndpoint,
+  getStopBuildEndpoint,
+  getBuildStatusEndpoint,
 } from '../common';
 
 import './index.css';
@@ -122,6 +127,8 @@ const useStyles = makeStyles((theme) => ({
     zIndex: theme.zIndex.drawer + 1,
   },
 }));
+
+const EXP_WAIT_MAX = 15000;
 
 // This is the root state of IDE
 const initialState = {
@@ -265,11 +272,9 @@ const Ide = () => {
   const pendingNewSessionRequest = useRef(false);
   const brvsRef = useRef(null);
   const buildIdRef = useRef(null);
-  const buildStoppingRef = useRef(null);
   const testProgressIntervalIdRef = useRef(null);
   const unmounted = useRef(false);
   buildIdRef.current = state.build.buildId;
-  buildStoppingRef.current = state.build.stopping;
   testProgressIntervalIdRef.current =
     state.buildRun === null ? null : state.buildRun.testProgressIntervalId;
   const etVersions = state.files ? state.files.entities.versions : null;
@@ -485,11 +490,21 @@ const Ide = () => {
   ]);
 
   const checkTestProgress = useCallback(() => {
-    // reset variables
+    // state variables
     let pendingTestProgressApiResponse = false;
-    let testProgressApiErrorCount = 0;
+    let waitingInternallyForErrorRecovery = false;
+    let serverUnreachableErrorCount = 0;
+    const getSetErrorAction = (errorMsg) => {
+      return {
+        type: RUN_BUILD_UPDATE_BY_PROP,
+        payload: {
+          prop: 'error',
+          value: errorMsg,
+        },
+      };
+    };
     // invoke function every one second but send api request only after last
-    // request is completed.
+    // request is completed or wait for error recovery.
     return setInterval(() => {
       if (unmounted.current) {
         clearInterval(testProgressIntervalIdRef.current);
@@ -498,7 +513,7 @@ const Ide = () => {
       // brvsRef.current will always be there as it gets created
       // upon new build request accepted, and this function is started when
       // session is received.
-      if (pendingTestProgressApiResponse) {
+      if (pendingTestProgressApiResponse || waitingInternallyForErrorRecovery) {
         return;
       }
       // we've put brv into a ref otherwise updates to it won't be seen inside
@@ -521,182 +536,152 @@ const Ide = () => {
         );
         return;
       }
-      const onSuccess = (response) => {
-        const {data} = response;
-        const actions = [
-          {
-            type: RUN_BUILD_UPDATE_VERSION,
-            payload: {versionId: buildRunVersion.versionId, data},
-          },
-        ];
-        if (testProgressApiErrorCount > 0) {
-          actions.push({
-            type: RUN_BUILD_UPDATE_BY_PROP,
-            payload: {
-              prop: 'error',
-              value: null,
-            },
-          });
-          testProgressApiErrorCount = 0; // reset api error count on success
-        }
-        // update lastRun state of version when it completed execution (not when it aborted or stopped)
-        if (
-          data.status === TestStatus.SUCCESS ||
-          data.status === TestStatus.ERROR
-        ) {
-          let lastRunError = null;
-          if (data.status === TestStatus.ERROR) {
-            const {error} = data;
-            lastRunError = new LastRunError(error.msg, error.from, error.to);
-          }
-          let allOutput = buildRunVersion.output ?? '';
-          if (allOutput) {
-            allOutput += '\n';
-          }
-          allOutput += data.output;
-          actions.push(
-            getLastRunAction(
-              buildRunVersion.versionId,
-              RunType.BUILD_RUN,
-              allOutput,
-              lastRunError
-            )
-          );
-        }
-        dispatch(batchActions(actions));
+
+      const setError = (errorMsg) => {
+        dispatch(getSetErrorAction(errorMsg));
       };
-      const onError = (response) => {
-        // TODO: check the reasons and try not to reattempt on certain errors from
-        // which we can't recover.
-        // TODO: wait exponentially, setInterval interval can't be set so use
-        // setTimeout, invoke repeatedly after each process. Will have to track
-        // state using a ref so that timeout can't be cancelled as a new timeout
-        // is created every time and it's id not updated to state.
-        testProgressApiErrorCount += 1;
-        if (
-          testProgressApiErrorCount === TestProgress.API_ERRORS_BEFORE_BAIL_OUT
-        ) {
-          // we've got api error several times in a row, let's bail out.
-          dispatch(
-            batchActions([
-              {type: BUILD_COMPLETE_RUN},
-              {
-                type: RUN_BUILD_COMPLETE_ON_ERROR,
-                payload: {
-                  error: `There was a problem during build, ${response.error.reason}. Try rerunning in sometime.`,
-                },
-              },
-            ])
-          );
-          return;
-        }
-        dispatch({
-          type: RUN_BUILD_UPDATE_BY_PROP,
-          payload: {
-            prop: 'error',
-            value: `${response.error.reason}. Retry attempt ${testProgressApiErrorCount}...`,
-          },
-        });
-      };
-      setTimeout(() => {
-        // send build.buildId, buildRunVersion.versionId, and
-        // buildRunVersion.nextOutputToken (if not null)
-        // to api for build status and output. Api will create nextOutputToken
-        // using date and append it to the params received. So the date of
-        // last returned record is kept in condition of token and when token is
-        // received, we fetch records post that date that.
-        let whichResponse = random(1, 9);
-        // enable following for checking api error situation.
-        // let whichResponse = random(1, 10);
-        // !! TODO: When this is replaced with api calls, remove stopping ref.
-        if (buildStoppingRef.current) {
-          whichResponse = 8;
-        }
-        let response;
-        const shouldOutput = random(1, 10) <= 5;
-        if (whichResponse <= 5) {
-          response = {
-            status: ApiStatuses.SUCCESS,
-            data: {
-              status: TestStatus.RUNNING,
-              currentLine: random(1, 5),
-              output: shouldOutput
-                ? null
-                : `This is an output from api with id ${random(1, 10)}`,
-              // when there is no new output, api sends a null
-              nextOutputToken: shouldOutput
-                ? null
-                : `Some token ${random(1, 10)}`, // when api doesn't have new
-              // output it sends back the same token it received
-            },
-          };
-        } else if (whichResponse === 6) {
-          response = {
-            status: ApiStatuses.SUCCESS,
-            data: {
-              status: TestStatus.SUCCESS,
-              currentLine: 200,
-              timeTaken: random(1000, 10000), // timeTaken will be in millis
-              output: 'This output came in the end on success',
-            },
-          };
-        } else if (whichResponse === 7) {
-          response = {
-            status: ApiStatuses.SUCCESS,
-            data: {
-              status: TestStatus.ERROR,
-              currentLine: 150,
-              timeTaken: random(1000, 10000),
-              output: 'This output came in the end on error',
-              error: {
-                msg:
-                  'ElementClickNotIntercepted Exception occurred while clicking on element line 3:12',
-                from: {line: 3, ch: 12},
-                // !!Note: api should always send the 'to' column that is after the 'to' char
-                to: {line: 3, ch: 13},
+      const halt = (errorMsg) => {
+        dispatch(
+          batchActions([
+            {type: BUILD_COMPLETE_RUN},
+            {
+              type: RUN_BUILD_COMPLETE_ON_ERROR,
+              payload: {
+                error: errorMsg,
               },
             },
-          };
-        } else if (whichResponse === 8) {
-          response = {
-            status: ApiStatuses.SUCCESS,
-            data: {
-              status: TestStatus.STOPPED,
-              currentLine: 110,
-              timeTaken: random(1000, 10000),
-              output: 'This output came in the end on stop',
+          ])
+        );
+      };
+      async function getBuildStatus() {
+        try {
+          const {data} = await axios(
+            getBuildStatusEndpoint(
+              buildIdRef.current,
+              buildRunVersion.versionId
+            ),
+            {
+              params: {
+                nextOutputToken: buildRunVersion.nextOutputToken,
+              },
+            }
+          );
+          if (!data.status) {
+            // no status returned.
+            // TODO: for now leave it as is but we need to put a check here that
+            // if this happens more than a few times in row (anytime during the progress)
+            // check, there may be some serious problem that must be checked asap.
+            return; // continue to next call
+          }
+          // return if component is unmounted
+          if (unmounted.current) {
+            clearInterval(testProgressIntervalIdRef.current);
+            return;
+          }
+          const actions = [
+            {
+              type: RUN_BUILD_UPDATE_VERSION,
+              payload: {versionId: buildRunVersion.versionId, data},
             },
-          };
-        } else if (whichResponse === 9) {
-          response = {
-            status: ApiStatuses.SUCCESS,
-            data: {
-              status: TestStatus.ABORTED,
-              currentLine: 101,
-              timeTaken: random(1000, 10000),
-              output: 'This output came in the end on aborted',
-            },
-          };
-        } else if (whichResponse === 10) {
-          response = {
-            status: ApiStatuses.ERROR,
-            error: {
-              reason: 'Network error',
-            },
-          };
+          ];
+          if (serverUnreachableErrorCount > 0) {
+            actions.push(getSetErrorAction(null)); // reset the error shown
+            serverUnreachableErrorCount = 0; // reset error count on success
+          }
+          const {status, output, error} = data;
+          // update lastRun state of version when it completed execution (not when it aborted or stopped)
+          if (status === TestStatus.SUCCESS || status === TestStatus.ERROR) {
+            let lastRunError = null;
+            if (status === TestStatus.ERROR) {
+              lastRunError = new LastRunError(error.msg, error.from, error.to);
+            }
+            let allOutput = buildRunVersion.output;
+            if (allOutput) {
+              allOutput += '\n';
+            } else {
+              allOutput = '';
+            }
+            allOutput += output;
+            actions.push(
+              getLastRunAction(
+                buildRunVersion.versionId,
+                RunType.BUILD_RUN,
+                allOutput,
+                lastRunError
+              )
+            );
+          }
+          dispatch(batchActions(actions));
+        } catch (error) {
+          // check if there is no network, wait until it's there
+          if (!navigator.onLine) {
+            waitingInternallyForErrorRecovery = true;
+            const offlineStart = Date.now();
+            setError(OFFLINE_MSG);
+            const offlineCheckInterval = setInterval(() => {
+              if (navigator.onLine) {
+                setError(null);
+                clearInterval(offlineCheckInterval);
+                waitingInternallyForErrorRecovery = false;
+                return; // continue to progress check
+              }
+              if (Date.now() - offlineStart > OFFLINE_RECOVERY_TIME) {
+                clearInterval(offlineCheckInterval);
+                halt(
+                  "Can't get build progress as you're offline. Build progress" +
+                    " can be viewed from dashboard once you're connected to network"
+                );
+              }
+            }, 500);
+            return;
+          }
+          if (!error.response && error.request) {
+            // no response received, server unreachable.
+            waitingInternallyForErrorRecovery = true;
+            serverUnreachableErrorCount += 1;
+            if (serverUnreachableErrorCount > 10) {
+              halt(
+                "Can't fetch build progress as the server is unreachable," +
+                  " however the build is unaffected. We've been notified and are" +
+                  ' looking into the problem. You can try viewing build progress' +
+                  ' from dashboard in sometime'
+              );
+              return;
+            }
+            setError(
+              `Server is unreachable. Retry attempt ${serverUnreachableErrorCount}...`
+            );
+            const wait = 2000 * serverUnreachableErrorCount;
+            setTimeout(
+              () => {
+                waitingInternallyForErrorRecovery = false;
+              },
+              wait > EXP_WAIT_MAX ? EXP_WAIT_MAX : wait
+            );
+            return;
+          }
+          // we've an api error, give up.
+          // TODO: later api can identify which errors could be retried, so that
+          // we can save the process and retry from here.
+          // don't use the error message produced by handleApiError, as we want
+          // custom made function and know that api returns a similar one cause
+          // it's an apis unexpected exception.
+          handleApiError(
+            error,
+            () =>
+              halt(
+                "Can't fetch build progress as an exception occurred at server," +
+                  " however the build is running. We've been notified and are" +
+                  ' fixing it. You can try viewing build progress' +
+                  ' from dashboard in sometime or contact us if you see similar error'
+              ),
+            ''
+          );
+        } finally {
+          pendingTestProgressApiResponse = false;
         }
-        // as response is received, check if component is unmounted, if so, return
-        if (unmounted.current) {
-          clearInterval(testProgressIntervalIdRef.current);
-          return;
-        }
-        if (response.status === ApiStatuses.SUCCESS) {
-          onSuccess(response);
-        } else if (response.status === ApiStatuses.ERROR) {
-          onError(response);
-        }
-        pendingTestProgressApiResponse = false;
-      }, 2000);
+      }
+      getBuildStatus();
       pendingTestProgressApiResponse = true;
     }, TestProgress.POLL_TIME);
   }, [state.build.runId]);
@@ -749,63 +734,85 @@ const Ide = () => {
       type: BUILD_UPDATE_BY_PROP,
       payload: {prop: 'sessionRequestTime', value: Date.now()},
     });
-    const onSuccess = (response) => {
-      // setup test progress interval
-      const intervalId = checkTestProgress();
-      const {buildId, buildKey, sessionId} = response.data;
-      dispatch(
-        batchActions([
+    async function sendSessionRequest() {
+      const {
+        buildCapabilityId,
+        displayResolution,
+        timezone,
+        selectedBuildVarIdPerKey,
+        abortOnFailure,
+        aetKeepSingleWindow,
+        aetUpdateUrlBlank,
+        aetResetTimeouts,
+        aetDeleteAllCookies,
+      } = state.config.build;
+      try {
+        const {data} = await axios.post(
+          getNewBuildEndpoint(state.projectId),
           {
-            type: BUILD_NEW_SESSION_SUCCESS,
-            payload: {buildId, buildKey, sessionId},
+            buildCapabilityId,
+            displayResolution,
+            timezone,
+            selectedBuildVarIdPerKey,
+            runnerPreferences: {
+              abortOnFailure,
+              aetKeepSingleWindow,
+              aetUpdateUrlBlank,
+              aetResetTimeouts,
+              aetDeleteAllCookies,
+            },
+            buildSourceType: BuildSourceType.IDE,
+            versionIds: state.buildRun.versionIds,
           },
           {
-            type: RUN_BUILD_UPDATE_BY_PROP,
-            payload: {prop: 'testProgressIntervalId', value: intervalId},
+            timeout: Timeouts.API_TIMEOUT_X_LONG,
+          }
+        );
+        // setup test progress interval
+        const intervalId = checkTestProgress();
+        const {
+          sessionId,
+          buildIdentifier: {buildId, buildKey},
+        } = data;
+        dispatch(
+          batchActions([
+            {
+              type: BUILD_NEW_SESSION_SUCCESS,
+              payload: {buildId, buildKey, sessionId},
+            },
+            {
+              type: RUN_BUILD_UPDATE_BY_PROP,
+              payload: {prop: 'testProgressIntervalId', value: intervalId},
+            },
+          ])
+        );
+      } catch (e) {
+        handleApiError(
+          e,
+          (errorMsg) => {
+            const payload = {
+              error: errorMsg,
+            };
+            dispatch(
+              batchActions([
+                {
+                  type: BUILD_NEW_SESSION_ERROR,
+                  payload,
+                },
+                {
+                  type: RUN_BUILD_COMPLETE_ON_ERROR,
+                  payload,
+                },
+              ])
+            );
           },
-        ])
-      );
-    };
-    const onError = (response) => {
-      const payload = {
-        error: `Couldn't start build, ${response.error.reason}`,
-      };
-      dispatch(
-        batchActions([
-          {
-            type: BUILD_NEW_SESSION_ERROR,
-            payload,
-          },
-          {
-            type: RUN_BUILD_COMPLETE_ON_ERROR,
-            payload,
-          },
-        ])
-      );
-    };
-    setTimeout(() => {
-      // send buildConfig, buildRun.versionIds and expect new session data
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: {
-          buildId: random(1000, 10000),
-          buildKey: `${random(1000, 10000)}`,
-          sessionId: `${random(1000, 10000)}`,
-        },
-      };
-      /* const response = {
-        status: ApiStatuses.FAILURE,
-        error: {
-          reason: 'internal error occurred while starting build machine',
-        },
-      }; */
-      if (response.status === ApiStatuses.SUCCESS) {
-        onSuccess(response);
-      } else if (response.status === ApiStatuses.FAILURE) {
-        onError(response);
+          "Couldn't start build"
+        );
+      } finally {
+        pendingNewSessionRequest.current = false;
       }
-      pendingNewSessionRequest.current = false;
-    }, 2000);
+    }
+    sendSessionRequest();
     pendingNewSessionRequest.current = true;
   }, [
     state.build.runOngoing,
@@ -814,6 +821,8 @@ const Ide = () => {
     etVersions,
     checkTestProgress,
     buildVersionIdsInSaveProgress,
+    state.config.build,
+    state.projectId,
   ]);
 
   // check stopping and send api request
@@ -823,11 +832,23 @@ const Ide = () => {
     if (!(state.build.stopping && state.build.sessionId)) {
       return;
     }
-    const onError = (response) => {
-      setSnackbarErrorMsg(`Couldn't stop build, ${response.error.reason}`);
-      dispatch(getBuildStoppingAction(false));
-    };
-    stopBuildRunning(state.build.buildId, () => null, onError);
+    async function sendStop() {
+      try {
+        await axios.delete(getStopBuildEndpoint(state.build.buildId), {
+          timeout: Timeouts.API_TIMEOUT_SMALL,
+        });
+      } catch (error) {
+        handleApiError(
+          error,
+          (errorMsg) => {
+            setSnackbarErrorMsg(errorMsg);
+            dispatch(getBuildStoppingAction(false));
+          },
+          "Couldn't stop build"
+        );
+      }
+    }
+    sendStop();
     // after stop is sent to api, it will attempt to stop any pending tests and
     // the progress interval will get stopped states for those tests.
   }, [

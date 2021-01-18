@@ -105,6 +105,8 @@ const BrowserSelect = React.memo(
               '83',
               '84',
               '85',
+              '86',
+              '87',
               '90',
             ],
             [Browsers.FIREFOX.VALUE]: [

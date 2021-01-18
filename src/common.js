@@ -8,6 +8,8 @@ import {
   ApiStatuses,
   TestStatus,
   PROJECT_ID_ENDPOINT_VAR_TEMPLATE,
+  VERSION_ID_ENDPOINT_VAR_TEMPLATE,
+  BUILD_ID_ENDPOINT_VAR_TEMPLATE,
   Endpoints,
 } from './Constants';
 import chrome from './icons/chrome.png';
@@ -224,7 +226,7 @@ export const handleApiError = (error, showError, message) => {
   }
 };
 
-export const prepareEndpoint = (endpoint, projectId, ...pathVar) => {
+export const prepareEndpoint = (endpoint, projectId, pathVar) => {
   let formattedEndpoint = endpoint;
   if (formattedEndpoint.includes(PROJECT_ID_ENDPOINT_VAR_TEMPLATE)) {
     formattedEndpoint = formattedEndpoint.replace(
@@ -232,10 +234,28 @@ export const prepareEndpoint = (endpoint, projectId, ...pathVar) => {
       projectId
     );
   }
-  pathVar.forEach((v) => {
-    formattedEndpoint = `${formattedEndpoint}/${v}`;
-  });
+  if (pathVar) {
+    formattedEndpoint = `${formattedEndpoint}/${pathVar}`;
+  }
   return formattedEndpoint;
+};
+
+export const getNewBuildEndpoint = (projectId) => {
+  return Endpoints.NEW_BUILD.replace(
+    PROJECT_ID_ENDPOINT_VAR_TEMPLATE,
+    projectId
+  );
+};
+
+export const getStopBuildEndpoint = (buildId) => {
+  return Endpoints.STOP_BUILD.replace(BUILD_ID_ENDPOINT_VAR_TEMPLATE, buildId);
+};
+
+export const getBuildStatusEndpoint = (buildId, versionId) => {
+  return Endpoints.BUILD_STATUS.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  ).replace(VERSION_ID_ENDPOINT_VAR_TEMPLATE, versionId);
 };
 
 /**

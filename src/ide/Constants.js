@@ -26,8 +26,8 @@ const MaxLengths = {
   [ExplorerItemType.TEST]: 200,
   [ExplorerItemType.VERSION]: 50,
   VAR_KEY: 100,
-  IDE_TEST_HOST_ACQUIRE_TIME_STAGE1: 10000,
-  IDE_TEST_HOST_ACQUIRE_TIME_STAGE2: 20000,
+  IDE_TEST_HOST_ACQUIRE_TIME_STAGE1: 30000,
+  IDE_TEST_HOST_ACQUIRE_TIME_STAGE2: 50000,
 };
 
 const ExplorerEditOperationType = {
@@ -46,8 +46,10 @@ const TestProgress = {
 };
 
 const LivePreviewConstants = {
-  POLL_TIME_WHEN_NOT_FOUND: 1000,
-  MAX_POLL_AFTER_NOT_FOUND: 5,
+  POLL_TIME_WHEN_NOT_FOUND: 500,
+  MAX_POLL_AFTER_NOT_FOUND: 20, // precisely set to large value, sometimes the
+  // first shot takes time to come, delays such as opening browser, maximizing
+  // window etc, slow connection
   OFFLINE_RECOVERY_TIME: 30000,
   ERROR_SHOT_FOUND_TEXT:
     "There was an error generating live preview. We've been notified and working on getting it fixed.",
