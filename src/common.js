@@ -5,12 +5,12 @@ import {
   Os,
   Browsers,
   Platforms,
-  ApiStatuses,
   TestStatus,
   PROJECT_ID_ENDPOINT_VAR_TEMPLATE,
   VERSION_ID_ENDPOINT_VAR_TEMPLATE,
   BUILD_ID_ENDPOINT_VAR_TEMPLATE,
   Endpoints,
+  PLATFORM_ENDPOINT_VAR_TEMPLATE,
 } from './Constants';
 import chrome from './icons/chrome.png';
 import firefox from './icons/firefox.png';
@@ -112,23 +112,6 @@ export const getNoOfLines = (text) => {
     return 1;
   }
   return lines.length + 1; // the last line doesn't have a new line char so adding that
-};
-
-export const invokeOnApiCompletion = (response, onSuccess, onError) => {
-  if (response.status === ApiStatuses.SUCCESS) {
-    onSuccess(response);
-  } else if (response.status === ApiStatuses.FAILURE) {
-    onError(response);
-  }
-};
-
-export const getApiError = (error) => {
-  return {
-    status: ApiStatuses.FAILURE,
-    error: {
-      reason: error,
-    },
-  };
 };
 
 export const getShotName = (sessionId, buildKey, id) => {
@@ -256,6 +239,74 @@ export const getBuildStatusEndpoint = (buildId, versionId) => {
     BUILD_ID_ENDPOINT_VAR_TEMPLATE,
     buildId
   ).replace(VERSION_ID_ENDPOINT_VAR_TEMPLATE, versionId);
+};
+
+export const getLatestShotEndpoint = (buildId) => {
+  return Endpoints.LATEST_SHOT.replace(BUILD_ID_ENDPOINT_VAR_TEMPLATE, buildId);
+};
+
+export const getShotBasicDetailsEndpoint = (buildId) => {
+  return Endpoints.SHOT_BASIC_DETAILS.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  );
+};
+
+export const getBrowsersEndpoint = (platform) => {
+  return Endpoints.BROWSERS.replace(PLATFORM_ENDPOINT_VAR_TEMPLATE, platform);
+};
+
+export const getBuildBasicDetailsEndpoint = (buildId) => {
+  return Endpoints.BASIC_BUILD_DETAILS.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  );
+};
+
+export const getCapturedBuildCapabilityEndpoint = (buildId) => {
+  return Endpoints.CAPTURED_BUILD_CAPABILITY.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  );
+};
+
+export const getCapturedBuildVarsEndpoint = (buildId) => {
+  return Endpoints.CAPTURED_BUILD_VARS.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  );
+};
+
+export const getCapturedGlobalVarsEndpoint = (buildId) => {
+  return Endpoints.CAPTURED_GLOBAL_VARS.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  );
+};
+
+export const getRunnerPreferencesEndpoint = (buildId) => {
+  return Endpoints.RUNNER_PREFERENCES.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  );
+};
+
+export const getDriverLogsEndpoint = (buildId) => {
+  return Endpoints.DRIVER_LOGS.replace(BUILD_ID_ENDPOINT_VAR_TEMPLATE, buildId);
+};
+
+export const getPerformanceLogsEndpoint = (buildId) => {
+  return Endpoints.PERFORMANCE_LOGS.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  );
+};
+
+export const getElementShotNamesEndpoint = (buildId) => {
+  return Endpoints.ELEMENT_SHOT_NAMES.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  );
 };
 
 /**

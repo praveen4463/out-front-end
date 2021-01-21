@@ -17,12 +17,13 @@ import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import Cookies from 'js-cookie';
+import axios from 'axios';
 import {IdeBuildContext, IdeDispatchContext, IdeLPContext} from './Contexts';
 import {LP_START, LP_END} from './actionTypes';
-import {ShotIdentifiers, ApiStatuses, OFFLINE_MSG} from '../Constants';
+import {ShotIdentifiers, OFFLINE_MSG} from '../Constants';
 import {LivePreviewConstants} from './Constants';
 import Application from '../config/application';
-import {getShotName} from '../common';
+import {getLatestShotEndpoint, getShotName, handleApiError} from '../common';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -149,52 +150,6 @@ const LivePreview = ({closeHandler}) => {
     },
     [closeHandler, dispatch, getErrorTypeStatusMsg, unmounted]
   );
-
-  const fetchLatestShotId = useCallback(() => {
-    const onSuccess = (response, resolve) => {
-      let shotId = null;
-      if (response.data) {
-        shotId = getShotIdFromName(response.data.shotName);
-      }
-      resolve(shotId);
-    };
-    const onError = (response, reject) => {
-      const error = `Unable to deliver live preview, ${response.error.reason}`;
-      // For now just reject if error occurs on latest processed shot check.
-      // TODO: later see if we need to retry based on logs.
-      reject(new Error(error));
-    };
-    // panel is reopened while preview running, get latest shot from api (esdb)
-    // send buildId and expect either a shotName or nothing (if no shot saved yet)
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const response = {
-          status: ApiStatuses.SUCCESS,
-          data: {
-            shotName: shotNameTemplate.replace(SHOT_ID_TMPL, 6),
-            // change identifier per test requirement
-            // such as ShotIdentifiers.EOS or any other number
-          },
-        };
-        /* // no data means no shot found
-        const response = {
-          status: ApiStatuses.SUCCESS,
-        }; */
-        /* const response = {
-          status: ApiStatuses.FAILURE,
-          error: {
-            reason: 'Network error',
-          },
-        }; */
-
-        if (response.status === ApiStatuses.SUCCESS) {
-          onSuccess(response, resolve);
-        } else if (response.status === ApiStatuses.FAILURE) {
-          onError(response, reject);
-        }
-      }, 1000);
-    });
-  }, [getShotIdFromName, shotNameTemplate]);
 
   const endIfLastShot = useCallback(
     (stringShotId) => {
@@ -445,6 +400,21 @@ const LivePreview = ({closeHandler}) => {
     // panel session and return if so. This is required because the dependency
     // on startPreview changes whenever image src or status state changes leading
     // to rerun of this effect, starting preview again.
+    async function getLatestShot() {
+      try {
+        const {data} = await axios(getLatestShotEndpoint(build.buildId));
+        // console.log('preview will start, data is ', data);
+        startPreview(data.shotName ? getShotIdFromName(data.shotName) : null);
+      } catch (error) {
+        // For now just reject if error occurs on latest processed shot check.
+        // TODO: later see if we need to retry based on logs.
+        handleApiError(
+          error,
+          (errorMsg) => onPreviewEnd(errorMsg),
+          'Unable to deliver live preview'
+        );
+      }
+    }
     if (
       !(
         build.runOngoing &&
@@ -457,14 +427,7 @@ const LivePreview = ({closeHandler}) => {
     }
     previewBegunRef.current = true;
     if (previewExistedRef.current) {
-      fetchLatestShotId()
-        .then((latestShotId) => {
-          // console.log('preview will start, latest shot is', latestShotId);
-          startPreview(latestShotId);
-        })
-        .catch((error) => {
-          onPreviewEnd(error.message);
-        });
+      getLatestShot();
       setStatusMsg(getInfoTypeStatusMsg('Connecting live preview...'));
       return;
     }
@@ -472,11 +435,12 @@ const LivePreview = ({closeHandler}) => {
     startPreview();
   }, [
     build.runOngoing,
-    fetchLatestShotId,
     livePreview.completed,
     livePreview.runId,
     startPreview,
     onPreviewEnd,
+    build.buildId,
+    getShotIdFromName,
   ]);
 
   const handleEnterFull = () => {

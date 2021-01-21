@@ -34,13 +34,6 @@ export const Os = {
   },
 };
 
-export const ApiStatuses = {
-  SUCCESS: 'SUCCESS',
-  FAILURE: 'FAILURE',
-  RUNNING: 'RUNNING',
-  STOPPING: 'STOPPING',
-};
-
 export const TestStatus = {
   RUNNING: 'RUNNING',
   ERROR: 'ERROR',
@@ -348,6 +341,7 @@ export const PROJECT_ID_ENDPOINT_VAR_TEMPLATE = '{projectId}';
 export const VERSION_ID_ENDPOINT_VAR_TEMPLATE = '{versionId}';
 export const VERSION_IDS_ENDPOINT_VAR_TEMPLATE = '{versionIds}';
 export const BUILD_ID_ENDPOINT_VAR_TEMPLATE = '{buildId}';
+export const PLATFORM_ENDPOINT_VAR_TEMPLATE = '{platform}';
 
 export const Endpoints = {
   PROJECTS: '/projects',
@@ -367,6 +361,17 @@ export const Endpoints = {
   NEW_BUILD: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/builds`,
   STOP_BUILD: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}`,
   BUILD_STATUS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/versions/${VERSION_ID_ENDPOINT_VAR_TEMPLATE}/getBuildStatusOutput`,
+  LATEST_SHOT: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getLatestShot`,
+  SHOT_BASIC_DETAILS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getShotBasicDetails`,
+  BROWSERS: `/platforms/${PLATFORM_ENDPOINT_VAR_TEMPLATE}/browsers`,
+  BASIC_BUILD_DETAILS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getBuildBasicDetails`,
+  CAPTURED_BUILD_CAPABILITY: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getCapturedBuildCapability`,
+  CAPTURED_BUILD_VARS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getCapturedBuildVars`,
+  CAPTURED_GLOBAL_VARS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getCapturedGlobalVars`,
+  RUNNER_PREFERENCES: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getRunnerPreferences`,
+  DRIVER_LOGS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getDriverLogs`,
+  PERFORMANCE_LOGS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getPerformanceLogs`,
+  ELEMENT_SHOT_NAMES: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getElementShotNames`,
 };
 
 export const Timeouts = {

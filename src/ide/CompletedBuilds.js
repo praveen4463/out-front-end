@@ -27,30 +27,37 @@ import DialogContent from '@material-ui/core/DialogContent';
 import Slide from '@material-ui/core/Slide';
 import {makeStyles, withStyles} from '@material-ui/core/styles';
 import clsx from 'clsx';
+import axios from 'axios';
 import PropTypes from 'prop-types';
 import Tooltip from '../TooltipCustom';
 import {IdeCompletedBuildsContext} from './Contexts';
 import {
   TestStatus,
-  ApiStatuses,
-  Os,
   Browsers,
-  Defaults,
-  Platforms,
   BuildConfigLabels,
   BuildConfigFields,
   BuildCapsFields,
   BuildCapsLabels,
+  ASSET_UPLOAD_IN_PROGRESS_ERROR,
 } from '../Constants';
 import {convertMillisIntoTimeText} from './common';
 import {
-  invokeOnApiCompletion,
   getTestStatusDisplayName,
   getOsDisplayName,
   getOsIcon,
   getBrowserDisplayName,
   getBrowserIcon,
   getVersionNamePath,
+  getBuildBasicDetailsEndpoint,
+  handleApiError,
+  getDriverLogsEndpoint,
+  getPerformanceLogsEndpoint,
+  getElementShotNamesEndpoint,
+  getCapturedBuildCapabilityEndpoint,
+  getCapturedBuildVarsEndpoint,
+  getCapturedGlobalVarsEndpoint,
+  getNewIntlComparer,
+  getRunnerPreferencesEndpoint,
 } from '../common';
 import ShotsViewer from '../components/ShotsViewer';
 import Application from '../config/application';
@@ -393,6 +400,37 @@ const CompletedBuilds = ({closeHandler}) => {
   const classes = useStyles();
 
   useEffect(() => {
+    async function getBasicBuildDetails() {
+      try {
+        const {data} = await axios(
+          getBuildBasicDetailsEndpoint(expandedBuildId)
+        );
+        if (!data.allDoneDate) {
+          setCurrentBuildDetail(new Error(ASSET_UPLOAD_IN_PROGRESS_ERROR));
+          return;
+        }
+        const buildDetail = new BuildDetail(
+          expandedBuildId,
+          data.os,
+          data.browserName,
+          data.browserVersion,
+          data.resolution,
+          data.timezone,
+          data.buildCapsName,
+          data.driverLogsAvailable,
+          data.perfLogsAvailable,
+          data.elemShotsAvailable,
+          data.shotBucket
+        );
+        setCurrentBuildDetail(buildDetail);
+      } catch (error) {
+        handleApiError(
+          error,
+          (errorMsg) => setCurrentBuildDetail(new Error(errorMsg)),
+          "Couldn't fetch build details"
+        );
+      }
+    }
     if (
       !expandedBuildId ||
       buildDetailsBuildIdRef.current === expandedBuildId // when buildDetails is an error, it doesn't
@@ -401,54 +439,11 @@ const CompletedBuilds = ({closeHandler}) => {
     ) {
       return;
     }
-    const onSuccess = (response) => {
-      const {data} = response;
-      const buildDetail = new BuildDetail(
-        expandedBuildId,
-        data.os,
-        data.browserName,
-        data.browserVersion,
-        data.resolution,
-        data.timezone,
-        data.buildCapsName,
-        data.driverLogsAvailable,
-        data.perfLogsAvailable,
-        data.elemShotsAvailable,
-        data.shotBucket
-      );
-      setCurrentBuildDetail(buildDetail);
-    };
-    const onError = (response) => {
-      const error = new Error(
-        `Couldn't fetch build details, ${response.error.reason}`
-      );
-      setCurrentBuildDetail(error);
-    };
-    // send api request to get build details, give expandedBuildId.
-    // !!! if allDoneTime of build is not yet set, api sends assets upload error.
     // This is same for logs and elem shots api calls in this module but when we stop user at
     // build details expand time, user can't touch anything that's not uploaded yet.
     // It's important to stop user as we can't decide whether some log exist before
     // upload fully done.
-    setTimeout(() => {
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: {
-          os: Os.WIN10.VALUE,
-          browserName: Browsers.CHROME.VALUE,
-          browserVersion: 90,
-          resolution: Defaults.DESKTOP_RES,
-          timezone: 'Central Pacific Standard Time',
-          buildCapsName: 'chrome_90_win10_debug',
-          driverLogsAvailable: true,
-          perfLogsAvailable: true,
-          elemShotsAvailable: true,
-          shotBucket: 'zl-session-assets-mum',
-        },
-      };
-      // const response = getApiError(ASSET_UPLOAD_IN_PROGRESS_ERROR);
-      invokeOnApiCompletion(response, onSuccess, onError);
-    }, 1000);
+    getBasicBuildDetails();
     setCurrentBuildDetail(null);
     setLoadingBuildId(expandedBuildId); // Let loader appear
   }, [expandedBuildId]);
@@ -527,7 +522,8 @@ const CompletedBuilds = ({closeHandler}) => {
         display="flex"
         p={1}
         className={classes.hoverOver}
-        data-testid="viewRow">
+        data-testid="viewRow"
+        key={label}>
         <LabelBox basis="40%">
           <Label>{`${label}:`}</Label>
         </LabelBox>
@@ -683,34 +679,40 @@ const CompletedBuilds = ({closeHandler}) => {
           )
       );
     };
-    const onSuccess = (response) => {
-      setDlgState(
-        <Box className={classes.outputPanelContent} flex={1}>
-          <Box display="flex" flexDirection="column" px={1}>
-            <pre className={classes.output}>{response.data.output}</pre>
+
+    async function getLogs() {
+      let endpointFunc;
+      switch (logType) {
+        case LOG_TYPE.DRIVER:
+          endpointFunc = getDriverLogsEndpoint;
+          break;
+        case LOG_TYPE.PERF:
+          endpointFunc = getPerformanceLogsEndpoint;
+          break;
+        default:
+          throw new Error(`Unrecognized log type: ${logType}`);
+      }
+      try {
+        const {data} = await axios(endpointFunc(expandedBuildId));
+        if (!data.log) {
+          throw new Error('No logs received despite build being done');
+        }
+        setDlgState(
+          <Box className={classes.outputPanelContent} flex={1}>
+            <Box display="flex" flexDirection="column" px={1}>
+              <pre className={classes.output}>{data.log}</pre>
+            </Box>
           </Box>
-        </Box>
-      );
-    };
-    const onError = (response) => {
-      setDlgState(
-        errorOnDlg(
-          getErrorTypeMsg(`Couldn't fetch logs, ${response.error.reason}`)
-        )
-      );
-    };
-    setTimeout(() => {
-      // send request to api using logType, expandedBuildId and expect log text as output field
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: {
-          output: `This is ${getLogText(logType)}
-It's a chrome driver`,
-        },
-      };
-      // const response = getApiError(ASSET_UPLOAD_IN_PROGRESS_ERROR);
-      invokeOnApiCompletion(response, onSuccess, onError);
-    }, 1000);
+        );
+      } catch (error) {
+        handleApiError(
+          error,
+          (errorMsg) => setDlgState(errorOnDlg(getErrorTypeMsg(errorMsg))),
+          "Couldn't fetch logs"
+        );
+      }
+    }
+    getLogs();
     setDlgState(getLoader());
   };
 
@@ -736,47 +738,38 @@ It's a chrome driver`,
           )
       );
     };
-    const onSuccess = (response) => {
-      setDlgState(
-        <Box display="flex" flexDirection="column">
-          {response.data.shotNames.map((n) => (
-            <Link
-              key={n}
-              href={shotUriTemplate.replace(SHOT_NAME_TMPL, n)}
-              aria-label="Download element screenshot"
-              title="Download element screenshot"
-              color="inherit"
-              className={classes.elemShotLink}>
-              {n}
-            </Link>
-          ))}
-        </Box>
-      );
-    };
-    const onError = (response) => {
-      setDlgState(
-        errorOnDlg(
-          getErrorTypeMsg(
-            `Couldn't fetch element screenshots, ${response.error.reason}`
-          )
-        )
-      );
-    };
-    setTimeout(() => {
-      // send request to api using expandedBuildId and expect element shot names
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: {
-          shotNames: [
-            'age-select-323d332erer3232323.png',
-            'person-box-fkj3jjkj3442jkj234.png',
-            '33kjjk3kjj23k2j31kjk4j4j42kjj.png',
-          ],
-        },
-      };
-      // const response = getApiError(ASSET_UPLOAD_IN_PROGRESS_ERROR);
-      invokeOnApiCompletion(response, onSuccess, onError);
-    }, 1000);
+    async function getElementShots() {
+      try {
+        const {data} = await axios(
+          getElementShotNamesEndpoint(expandedBuildId)
+        );
+        if (!data.shotNames) {
+          throw new Error('No shots received despite build being done');
+        }
+        setDlgState(
+          <Box display="flex" flexDirection="column">
+            {data.shotNames.map((n) => (
+              <Link
+                key={n}
+                href={shotUriTemplate.replace(SHOT_NAME_TMPL, n)}
+                aria-label="Download element screenshot"
+                title="Download element screenshot"
+                color="inherit"
+                className={classes.elemShotLink}>
+                {n}
+              </Link>
+            ))}
+          </Box>
+        );
+      } catch (error) {
+        handleApiError(
+          error,
+          (errorMsg) => setDlgState(errorOnDlg(getErrorTypeMsg(errorMsg))),
+          "Couldn't fetch element screenshots"
+        );
+      }
+    }
+    getElementShots();
     setDlgState(getLoader());
   };
 
@@ -826,101 +819,84 @@ It's a chrome driver`,
           )
       );
     };
-    const onSuccess = (response) => {
-      const {data} = response;
-      setDlgState(
-        <Box display="flex" flexDirection="column">
-          {getDataRow(BuildCapsLabels.NAME, data[BuildCapsFields.NAME])}
-          <Box className={classes.hoverOver}>{getOsForDisplay('40%')}</Box>
-          <Box className={classes.hoverOver}>{getBrowserForDisplay('40%')}</Box>
-          {getDataRow(BuildCapsLabels.AIC, data[BuildCapsFields.AIC], true)}
-          {data[BuildCapsFields.BN] === Browsers.CHROME.VALUE && (
-            <>
-              {getDataRow(BuildCapsLabels.CVL, data[BuildCapsFields.CVL], true)}
-              {getDataRow(BuildCapsLabels.CSL, data[BuildCapsFields.CSL], true)}
-              {getDataRow(
-                BuildCapsLabels.CENL,
-                data[BuildCapsFields.CENL],
-                true
-              )}
-              {getDataRow(
-                BuildCapsLabels.CEPL,
-                data[BuildCapsFields.CEPL],
-                true
-              )}
-            </>
-          )}
-          {data[BuildCapsFields.BN] === Browsers.FIREFOX.VALUE &&
-            getDataRow(BuildCapsLabels.FLL, data[BuildCapsFields.FLL])}
-          {data[BuildCapsFields.BN] === Browsers.IE.VALUE &&
-            getDataRow(BuildCapsLabels.IELL, data[BuildCapsFields.IELL])}
-          {getDataRow(BuildCapsLabels.SM, data[BuildCapsFields.SM], true)}
-          {getDataRow(BuildCapsLabels.ST, data[BuildCapsFields.ST])}
-          {getDataRow(BuildCapsLabels.PLT, data[BuildCapsFields.PLT])}
-          {getDataRow(BuildCapsLabels.EAT, data[BuildCapsFields.EAT])}
-          {getDataRow(BuildCapsLabels.SFI, data[BuildCapsFields.SFI], true)}
-          {getDataRow(BuildCapsLabels.UPB, data[BuildCapsFields.UPB])}
-          {data[BuildCapsFields.BN] === Browsers.IE.VALUE && (
-            <>
-              {getDataRow(BuildCapsLabels.IEESB, data[BuildCapsFields.IEESB])}
-              {getDataRow(
-                BuildCapsLabels.IEEPH,
-                data[BuildCapsFields.IEEPH],
-                true
-              )}
-              {getDataRow(
-                BuildCapsLabels.IERWF,
-                data[BuildCapsFields.IERWF],
-                true
-              )}
-              {getDataRow(
-                BuildCapsLabels.IEDNE,
-                data[BuildCapsFields.IEDNE],
-                true
-              )}
-            </>
-          )}
-        </Box>
-      );
-    };
-    const onError = (response) => {
-      setDlgState(
-        errorOnDlg(
-          getErrorTypeMsg(
-            `Couldn't fetch build capabilities, ${response.error.reason}`
-          )
-        )
-      );
-    };
-    setTimeout(() => {
-      // send expandedBuildId and expect captured build caps
-      // api sends only fields that makes sense for browsers, such as ie related
-      // caps are sent only when browser is ie.
-      // api sends back fields given in BuildCapabilities object.
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: {
-          [BuildCapsFields.NAME]: 'chrome_90_win10_debug',
-          [BuildCapsFields.OS]: Os.WIN10.VALUE,
-          [BuildCapsFields.BN]: Browsers.CHROME.VALUE,
-          [BuildCapsFields.BV]: '90',
-          [BuildCapsFields.PN]: Platforms.WINDOWS.VALUE,
-          [BuildCapsFields.AIC]: false,
-          [BuildCapsFields.ST]: 60000,
-          [BuildCapsFields.PLT]: 200000,
-          [BuildCapsFields.EAT]: 60000,
-          [BuildCapsFields.SFI]: false,
-          [BuildCapsFields.UPB]: 'ignore',
-          [BuildCapsFields.CVL]: false,
-          [BuildCapsFields.CSL]: false,
-          [BuildCapsFields.CENL]: false,
-          [BuildCapsFields.CEPL]: false,
-          [BuildCapsFields.SM]: true,
-        },
-      };
-      // const response = getApiError('Network error');
-      invokeOnApiCompletion(response, onSuccess, onError);
-    }, 1000);
+    async function getCapturedBuildCaps() {
+      try {
+        const {data} = await axios(
+          getCapturedBuildCapabilityEndpoint(expandedBuildId)
+        );
+        setDlgState(
+          <Box display="flex" flexDirection="column">
+            {getDataRow(BuildCapsLabels.NAME, data[BuildCapsFields.NAME])}
+            <Box className={classes.hoverOver}>{getOsForDisplay('40%')}</Box>
+            <Box className={classes.hoverOver}>
+              {getBrowserForDisplay('40%')}
+            </Box>
+            {getDataRow(BuildCapsLabels.AIC, data[BuildCapsFields.AIC], true)}
+            {data[BuildCapsFields.BN] === Browsers.CHROME.VALUE && (
+              <>
+                {getDataRow(
+                  BuildCapsLabels.CVL,
+                  data[BuildCapsFields.CVL],
+                  true
+                )}
+                {getDataRow(
+                  BuildCapsLabels.CSL,
+                  data[BuildCapsFields.CSL],
+                  true
+                )}
+                {getDataRow(
+                  BuildCapsLabels.CENL,
+                  data[BuildCapsFields.CENL],
+                  true
+                )}
+                {getDataRow(
+                  BuildCapsLabels.CEPL,
+                  data[BuildCapsFields.CEPL],
+                  true
+                )}
+              </>
+            )}
+            {data[BuildCapsFields.BN] === Browsers.FIREFOX.VALUE &&
+              getDataRow(BuildCapsLabels.FLL, data[BuildCapsFields.FLL])}
+            {data[BuildCapsFields.BN] === Browsers.IE.VALUE &&
+              getDataRow(BuildCapsLabels.IELL, data[BuildCapsFields.IELL])}
+            {getDataRow(BuildCapsLabels.SM, data[BuildCapsFields.SM], true)}
+            {getDataRow(BuildCapsLabels.ST, data[BuildCapsFields.ST])}
+            {getDataRow(BuildCapsLabels.PLT, data[BuildCapsFields.PLT])}
+            {getDataRow(BuildCapsLabels.EAT, data[BuildCapsFields.EAT])}
+            {getDataRow(BuildCapsLabels.SFI, data[BuildCapsFields.SFI], true)}
+            {getDataRow(BuildCapsLabels.UPB, data[BuildCapsFields.UPB])}
+            {data[BuildCapsFields.BN] === Browsers.IE.VALUE && (
+              <>
+                {getDataRow(BuildCapsLabels.IEESB, data[BuildCapsFields.IEESB])}
+                {getDataRow(
+                  BuildCapsLabels.IEEPH,
+                  data[BuildCapsFields.IEEPH],
+                  true
+                )}
+                {getDataRow(
+                  BuildCapsLabels.IERWF,
+                  data[BuildCapsFields.IERWF],
+                  true
+                )}
+                {getDataRow(
+                  BuildCapsLabels.IEDNE,
+                  data[BuildCapsFields.IEDNE],
+                  true
+                )}
+              </>
+            )}
+          </Box>
+        );
+      } catch (error) {
+        handleApiError(
+          error,
+          (errorMsg) => setDlgState(errorOnDlg(getErrorTypeMsg(errorMsg))),
+          "Couldn't fetch build capabilities"
+        );
+      }
+    }
+    getCapturedBuildCaps();
     setDlgState(getLoader());
   };
 
@@ -936,37 +912,35 @@ It's a chrome driver`,
           )
       );
     };
-    const onSuccess = (response) => {
-      const {vars} = response.data;
-      setDlgState(
-        <Box display="flex" flexDirection="column">
-          {Object.keys(vars).map((k) => getDataRow(k, vars[k]))}
-        </Box>
-      );
-    };
-    const onError = (response) => {
-      setDlgState(
-        errorOnDlg(
-          getErrorTypeMsg(`Couldn't fetch variables, ${response.error.reason}`)
-        )
-      );
-    };
-    setTimeout(() => {
-      // send expandedBuildId, varType and expect captured variables, both build and global
-      // give just key-value pairs
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: {
-          vars: {
-            'var-1': 'value1',
-            'var-2': 'value1',
-            'var-3': 'value1',
-          },
-        },
-      };
-      // const response = getApiError('Network error');
-      invokeOnApiCompletion(response, onSuccess, onError);
-    }, 1000);
+    async function getVars() {
+      let endpointFunc;
+      switch (varType) {
+        case VAR_TYPE.BUILD:
+          endpointFunc = getCapturedBuildVarsEndpoint;
+          break;
+        case VAR_TYPE.GLOBAL:
+          endpointFunc = getCapturedGlobalVarsEndpoint;
+          break;
+        default:
+          throw new Error(`Unrecognized var type: ${varType}`);
+      }
+      try {
+        const {data} = await axios(endpointFunc(expandedBuildId));
+        data.sort((a, b) => getNewIntlComparer()(a.key, b.key));
+        setDlgState(
+          <Box display="flex" flexDirection="column">
+            {data.map((v) => getDataRow(v.key, v.value))}
+          </Box>
+        );
+      } catch (error) {
+        handleApiError(
+          error,
+          (errorMsg) => setDlgState(errorOnDlg(getErrorTypeMsg(errorMsg))),
+          "Couldn't fetch variables"
+        );
+      }
+    }
+    getVars();
     setDlgState(getLoader());
   };
 
@@ -990,55 +964,49 @@ It's a chrome driver`,
           )
       );
     };
-    const onSuccess = (response) => {
-      const {data} = response;
-      setDlgState(
-        <Box display="flex" flexDirection="column">
-          {getDataRow(BuildConfigLabels.AOF, data[BuildConfigFields.AOF], true)}
-          {getDataRow(
-            BuildConfigLabels.AKSW,
-            data[BuildConfigFields.AKSW],
-            true
-          )}
-          {getDataRow(
-            BuildConfigLabels.AUUB,
-            data[BuildConfigFields.AUUB],
-            true
-          )}
-          {getDataRow(BuildConfigLabels.ART, data[BuildConfigFields.ART], true)}
-          {getDataRow(
-            BuildConfigLabels.ADAC,
-            data[BuildConfigFields.ADAC],
-            true
-          )}
-        </Box>
-      );
-    };
-    const onError = (response) => {
-      setDlgState(
-        errorOnDlg(
-          getErrorTypeMsg(
-            `Couldn't fetch runner's preferences, ${response.error.reason}`
-          )
-        )
-      );
-    };
-    setTimeout(() => {
-      // send expandedBuildId and expect captured runners prefs
-      // api sends back fields given in BuildConfig object.
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: {
-          [BuildConfigFields.AOF]: false,
-          [BuildConfigFields.AKSW]: true,
-          [BuildConfigFields.AUUB]: true,
-          [BuildConfigFields.ART]: true,
-          [BuildConfigFields.ADAC]: true,
-        },
-      };
-      // const response = getApiError('Network error');
-      invokeOnApiCompletion(response, onSuccess, onError);
-    }, 1000);
+    async function getRunnerPrefs() {
+      try {
+        const {data} = await axios(
+          getRunnerPreferencesEndpoint(expandedBuildId)
+        );
+        setDlgState(
+          <Box display="flex" flexDirection="column">
+            {getDataRow(
+              BuildConfigLabels.AOF,
+              data[BuildConfigFields.AOF],
+              true
+            )}
+            {getDataRow(
+              BuildConfigLabels.AKSW,
+              data[BuildConfigFields.AKSW],
+              true
+            )}
+            {getDataRow(
+              BuildConfigLabels.AUUB,
+              data[BuildConfigFields.AUUB],
+              true
+            )}
+            {getDataRow(
+              BuildConfigLabels.ART,
+              data[BuildConfigFields.ART],
+              true
+            )}
+            {getDataRow(
+              BuildConfigLabels.ADAC,
+              data[BuildConfigFields.ADAC],
+              true
+            )}
+          </Box>
+        );
+      } catch (error) {
+        handleApiError(
+          error,
+          (errorMsg) => setDlgState(errorOnDlg(getErrorTypeMsg(errorMsg))),
+          "Couldn't fetch runner's preferences"
+        );
+      }
+    }
+    getRunnerPrefs();
     setDlgState(getLoader());
   };
 

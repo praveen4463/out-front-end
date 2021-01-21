@@ -8,14 +8,17 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
 import clsx from 'clsx';
+import axios from 'axios';
 import PropTypes from 'prop-types';
 import {FormHelperText} from '@material-ui/core';
 import useSnackbarTypeError from '../hooks/useSnackbarTypeError';
-import {ApiStatuses, Browsers} from '../Constants';
+import {Browsers} from '../Constants';
 import Browser from '../model';
 import {
   getBrowserDisplayName,
   getBrowserIcon as getBrowserIcon_,
+  getBrowsersEndpoint,
+  handleApiError,
 } from '../common';
 
 const useStyles = makeStyles((theme) => ({
@@ -63,11 +66,31 @@ const BrowserSelect = React.memo(
     const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
     const classes = useStyles();
 
-    // This effect runs just once per platform, the validation method of swr or react-query
-    // will update data when user does tab refocus or computer awake etc which
-    // should be fine because this list doesn't change rapidly.
-    // https://swr.vercel.app/docs/revalidation
     useEffect(() => {
+      async function getBrowsers() {
+        try {
+          const {data} = await axios(getBrowsersEndpoint(platform));
+          if (!data.length) {
+            throw new Error(
+              `${platform} has no browser, this shouldn't have happened`
+            );
+          }
+          const browserWiseData = {};
+          // api sends sorted names and versions
+          data.forEach((brw) => {
+            const name =
+              brw.name === 'internet explorer' ? Browsers.IE.VALUE : brw.name;
+            browserWiseData[name] = brw.versions;
+          });
+          setBrowserWiseVersions(browserWiseData);
+        } catch (ex) {
+          handleApiError(
+            ex,
+            (errorMsg) => setSnackbarErrorMsg(errorMsg),
+            "Couldn't get browsers"
+          );
+        }
+      }
       // when platform is null don't run it, platform can't become non null -> null,
       // it can only change from one value to another.
       // so this is fine.
@@ -77,65 +100,7 @@ const BrowserSelect = React.memo(
       setBrowserWiseVersions(null); // when platform changes, set null so that previous
       // platform's browser won't show up while new are loading, doesn't change state
       // when it's already null.
-      const onSuccess = (response) => {
-        setBrowserWiseVersions(response.data);
-      };
-      const onError = (response) => {
-        setSnackbarErrorMsg(`Couldn't get browsers, ${response.error.reason}`);
-      };
-      // send api request for browser versions data based on platform
-      setTimeout(() => {
-        const response = {
-          status: ApiStatuses.SUCCESS,
-          data: {
-            [Browsers.CHROME.VALUE]: [
-              '70',
-              '71',
-              '72',
-              '73',
-              '74',
-              '75',
-              '76',
-              '77',
-              '78',
-              '79',
-              '80',
-              '81',
-              '82',
-              '83',
-              '84',
-              '85',
-              '86',
-              '87',
-              '90',
-            ],
-            [Browsers.FIREFOX.VALUE]: [
-              '70',
-              '71',
-              '72',
-              '73',
-              '74',
-              '75',
-              '76',
-              '77',
-              '78',
-              '79',
-              '80',
-              '81',
-              '82',
-              '83',
-              '84',
-              '85',
-            ],
-            [Browsers.IE.VALUE]: ['11'],
-          },
-        };
-        if (response.status === ApiStatuses.SUCCESS) {
-          onSuccess(response);
-        } else if (response.status === ApiStatuses.FAILURE) {
-          onError(response);
-        }
-      }, 500);
+      getBrowsers();
     }, [platform, setSnackbarErrorMsg]);
 
     const handleAccordionChange = (event, isExpanded) => {

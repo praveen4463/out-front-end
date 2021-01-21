@@ -17,13 +17,15 @@ import GetAppIcon from '@material-ui/icons/GetApp';
 import ReplayIcon from '@material-ui/icons/Replay';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
+import axios from 'axios';
 import {useHotkeys} from 'react-hotkeys-hook';
-import {ApiStatuses} from '../Constants';
+import {ShotIdentifiers} from '../Constants';
 import {
-  invokeOnApiCompletion,
   getShotNameParts,
   getShotName,
   getVersionNamePath,
+  getShotBasicDetailsEndpoint,
+  handleApiError,
 } from '../common';
 import Application from '../config/application';
 import './no-spin-box.css';
@@ -216,52 +218,58 @@ const ShotsViewer = ({
   }, []);
 
   useEffect(() => {
-    // If there was no shot, set a message and bail out.
-    const onSuccess = (response) => {
-      const {totalShots, firstShotName} = response.data;
-      if (totalShots === 0) {
-        setMsg(
-          `No screenshot exist for this build ${
-            versionId !== null ? ' and test' : ''
-          }`
+    const noShotExistMsg = `No screenshot exist for this build ${
+      versionId !== null ? ' and test' : ''
+    }`;
+    async function getShotBasicDetails() {
+      try {
+        const {data} = await axios(getShotBasicDetailsEndpoint(buildId), {
+          params: {
+            versionId,
+          },
+        });
+        // when no shots, api doesn't sends anything
+        const ts = data.totalShots;
+        if (!ts) {
+          setMsg(noShotExistMsg);
+          return;
+        }
+        const {firstShot, lastShot} = data;
+        const [sId, bKey, firstShotId] = getShotNameParts(firstShot);
+        // if first shot was EOS, we have nothing to show.
+        if (firstShotId === ShotIdentifiers.EOS) {
+          setMsg(noShotExistMsg);
+          return;
+        }
+        const [, , lastShotId] = getShotNameParts(lastShot);
+        let totalShots = ts;
+        // if last shot is an EOS, total shots displayable are one less
+        if (lastShotId === ShotIdentifiers.EOS) {
+          totalShots -= 1;
+        }
+        sessionIdRef.current = sId;
+        buildKeyRef.current = bKey;
+        shotIdStartRef.current = Number(firstShotId);
+        if (Number.isNaN(shotIdStartRef.current)) {
+          throw new TypeError(`Shot id ${firstShotId} looks invalid`);
+        }
+        shotUriTemplateRef.current = `${
+          Application.STORAGE_HOST
+        }/${shotBucket}/${getShotName(sId, bKey, SHOT_ID_TMPL)}`;
+        setIndex(1); // show shot at first index
+        setTotal(totalShots);
+        setMsg(null);
+      } catch (error) {
+        handleApiError(
+          error,
+          (errorMsg) => setMsg(errorMsg),
+          "Couldn't fetch screenshot details"
         );
-        return;
       }
-      const [sId, bKey, shotId] = getShotNameParts(firstShotName);
-      sessionIdRef.current = sId;
-      buildKeyRef.current = bKey;
-      shotIdStartRef.current = Number(shotId);
-      if (Number.isNaN(shotIdStartRef.current)) {
-        throw new TypeError(`Shot id ${shotId} looks invalid`);
-      }
-      shotUriTemplateRef.current = `${
-        Application.STORAGE_HOST
-      }/${shotBucket}/${getShotName(sId, bKey, SHOT_ID_TMPL)}`;
-      setIndex(1); // show shot at first index
-      setTotal(totalShots);
-      setMsg(null);
-    };
-    const onError = (response) => {
-      setMsg(`Couldn't fetch screenshot details, ${response.error.reason}`);
-    };
-    setTimeout(() => {
-      // send api request to get total shots and firstShotName for given build
-      // and versionId (if given). Total shots shouldn't include eos or error shot.
-      // !! if allDoneTime of build is not yet set, api sends assets upload error.
-      const response = {
-        status: ApiStatuses.SUCCESS,
-        data: {
-          totalShots: !versionId ? 11 : 7,
-          firstShotName: `8dfc821ba1ef804ae2aba62f8bf160c2-a5MadQuvxz-${
-            !versionId ? 1 : 5
-          }.png`,
-        },
-      };
-      // const response = getApiError(ASSET_UPLOAD_IN_PROGRESS_ERROR);
-      invokeOnApiCompletion(response, onSuccess, onError);
-    }, 500);
+    }
+    getShotBasicDetails();
     setMsg('Loading...');
-  }, [versionId, shotBucket]);
+  }, [versionId, shotBucket, buildId]);
 
   useEffect(() => {
     if (unmountedRef.current || index <= 0) {
