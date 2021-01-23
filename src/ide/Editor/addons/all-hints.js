@@ -61,6 +61,9 @@ const getConstantHints = (constant, options, toFilterStartingValue = '') => {
     case maps.timeouts:
       hints = filter(Constants.timeouts);
       break;
+    case maps.timeUnit:
+      hints = filter(Constants.timeUnit);
+      break;
     default:
       throw new Error(`Could not hint on ${constant}`);
   }
@@ -115,33 +118,21 @@ const allHints = (editor, options) => {
     }
   }
 
-  const preciseList = [];
-  const fuzzyList = [];
-  const seen = {}; // track uniqueness using object cause key access is faster than includes
-
+  const preciseList = new Set();
+  const fuzzyList = new Set();
   // zwl functions are not overloaded, so we can safely condition on unique
   // names.
   const hintZwlFunctions = (functions) => {
     functions.forEach((fn) => {
       const name = fn.match(FUNC_NAME);
-      if (
-        name &&
-        name[0].lastIndexOf(curVariable, 0) === 0 &&
-        seen[name[0]] === undefined
-      ) {
-        seen[name[0]] = true;
-        preciseList.push(fn);
+      if (name && name[0].lastIndexOf(curVariable, 0) === 0) {
+        preciseList.add(fn);
       }
     });
     functions.forEach((fn) => {
       const name = fn.match(FUNC_NAME);
-      if (
-        name &&
-        matches(name[0], curVariable) &&
-        seen[name[0]] === undefined
-      ) {
-        seen[name[0]] = true;
-        fuzzyList.push(fn);
+      if (name && matches(name[0], curVariable) && !preciseList.has(fn)) {
+        fuzzyList.add(fn);
       }
     });
   };
@@ -151,50 +142,47 @@ const allHints = (editor, options) => {
 
   const addElements = (elements) => {
     elements.forEach((el) => {
-      if (el.lastIndexOf(curVariable, 0) === 0 && seen[el] === undefined) {
-        seen[el] = true;
-        preciseList.push(el);
+      if (el.lastIndexOf(curVariable, 0) === 0) {
+        preciseList.add(el);
       }
     });
     elements.forEach((el) => {
-      if (matches(el, curVariable) && seen[el] === undefined) {
-        seen[el] = true;
-        fuzzyList.push(el);
+      if (matches(el, curVariable) && !preciseList.has(el)) {
+        fuzzyList.add(el);
       }
     });
   };
 
   addElements(Constants.readOnlyVars);
 
-  // find variables from above the current line
+  // TODO: there is bug here. value after period operator is taken as variable
+  // and suggested. It should be excluded
   // no fuzzy matches for variables as they are present in the editor
-  let {line} = cur;
-  const endLine =
-    Math.min(
-      Math.max(line + -1 * RANGE, editor.firstLine()),
-      editor.lastLine()
-    ) - 1;
-  for (; line !== endLine; line -= 1) {
-    const tokens = editor.getLineTokens(line);
-    const variableTokens =
-      tokens && tokens.filter((t) => t.type === 'variable');
-    if (Array.isArray(variableTokens)) {
-      for (let i = 0; i < variableTokens.length; i += 1) {
-        const text = variableTokens[i].string;
-        if (
-          text.lastIndexOf(curVariable, 0) === 0 &&
-          seen[text] === undefined
-        ) {
-          if (line !== cur.line || text !== curVariable) {
-            seen[text] = true;
-            preciseList.push(text);
+  for (let dir = -1; dir <= 1; dir += 2) {
+    let {line} = cur;
+    const endLine =
+      Math.min(
+        Math.max(line + dir * RANGE, editor.firstLine()),
+        editor.lastLine()
+      ) + dir;
+    for (; line !== endLine; line += dir) {
+      const tokens = editor.getLineTokens(line);
+      const variableTokens =
+        tokens && tokens.filter((t) => t.type === 'variable');
+      if (Array.isArray(variableTokens)) {
+        for (let i = 0; i < variableTokens.length; i += 1) {
+          const text = variableTokens[i].string;
+          if (text.lastIndexOf(curVariable, 0) === 0) {
+            if (line !== cur.line || text !== curVariable) {
+              preciseList.add(text);
+            }
           }
         }
       }
     }
   }
   return {
-    list: preciseList.concat(fuzzyList),
+    list: [...preciseList, ...fuzzyList],
     from: CodeMirror.Pos(cur.line, tok.start),
     to: CodeMirror.Pos(cur.line, tok.end),
   };

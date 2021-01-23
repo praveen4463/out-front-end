@@ -834,7 +834,7 @@ const Ide = () => {
     }
     async function sendStop() {
       try {
-        await axios.delete(getStopBuildEndpoint(state.build.buildId), {
+        await axios.patch(getStopBuildEndpoint(state.build.buildId), {
           timeout: Timeouts.API_TIMEOUT_SMALL,
         });
       } catch (error) {

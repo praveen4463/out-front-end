@@ -694,13 +694,13 @@ const CompletedBuilds = ({closeHandler}) => {
       }
       try {
         const {data} = await axios(endpointFunc(expandedBuildId));
-        if (!data.log) {
+        if (!data) {
           throw new Error('No logs received despite build being done');
         }
         setDlgState(
           <Box className={classes.outputPanelContent} flex={1}>
             <Box display="flex" flexDirection="column" px={1}>
-              <pre className={classes.output}>{data.log}</pre>
+              <pre className={classes.output}>{data}</pre>
             </Box>
           </Box>
         );
@@ -743,12 +743,12 @@ const CompletedBuilds = ({closeHandler}) => {
         const {data} = await axios(
           getElementShotNamesEndpoint(expandedBuildId)
         );
-        if (!data.shotNames) {
+        if (!data) {
           throw new Error('No shots received despite build being done');
         }
         setDlgState(
           <Box display="flex" flexDirection="column">
-            {data.shotNames.map((n) => (
+            {data.map((n) => (
               <Link
                 key={n}
                 href={shotUriTemplate.replace(SHOT_NAME_TMPL, n)}

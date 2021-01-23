@@ -404,7 +404,7 @@ const LivePreview = ({closeHandler}) => {
       try {
         const {data} = await axios(getLatestShotEndpoint(build.buildId));
         // console.log('preview will start, data is ', data);
-        startPreview(data.shotName ? getShotIdFromName(data.shotName) : null);
+        startPreview(data ? getShotIdFromName(data) : null);
       } catch (error) {
         // For now just reject if error occurs on latest processed shot check.
         // TODO: later see if we need to retry based on logs.

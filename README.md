@@ -1,5 +1,8 @@
 Zylitics Main App - The user facing app for Zylitics.
 
+Notes: timezones.json keeps just timezones accepted by win server, when we have
+mac, make arrangements to either show separate timezones based on platform.
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts

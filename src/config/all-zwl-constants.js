@@ -1,5 +1,5 @@
 // !! Maintain the sort order while changing.
-// !! All values should strictly be a valid identifier, see Constants.ZwlLexer.IDENTIFIER
+// !! All values must be a valid identifier, see Constants.ZwlLexer.IDENTIFIER
 import {Browsers, Platforms} from '../Constants';
 
 export const exceptions = [
@@ -275,6 +275,8 @@ export const browsers = Object.values(Browsers).map((o) => o.VALUE);
 
 export const platforms = Object.values(Platforms).map((o) => o.VALUE);
 
+export const timeUnit = ['microsecond', 'millisecond', 'second'];
+
 // variables those are maps
 export const maps = {
   browser: 'browser',
@@ -287,6 +289,7 @@ export const maps = {
   keys: 'keys',
   platforms: 'platforms',
   timeouts: 'timeouts',
+  timeUnit: 'timeUnit',
 };
 
 export const readOnlyVars = [...Object.keys(maps), 'platform'];
