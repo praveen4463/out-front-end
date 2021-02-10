@@ -102,4 +102,17 @@ function BuildCapabilities(
   this.wdBrwStartMaximize = wdBrwStartMaximize;
 }
 
-export {BuildConfig, BuildCapabilities};
+// User is identified using email not id, to keep id out of storage
+function UserInLocalStorage(
+  email,
+  shotBucketSessionStorage,
+  organizationId,
+  organizationName
+) {
+  this.email = email;
+  this.shotBucketSessionStorage = shotBucketSessionStorage;
+  this.organizationId = organizationId;
+  this.organizationName = organizationName;
+}
+
+export {BuildConfig, BuildCapabilities, UserInLocalStorage};

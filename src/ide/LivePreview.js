@@ -16,14 +16,20 @@ import ErrorIcon from '@material-ui/icons/Error';
 import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
-import Cookies from 'js-cookie';
 import axios from 'axios';
+import {captureMessage} from '@sentry/react';
+import {useAuth} from '../Auth';
 import {IdeBuildContext, IdeDispatchContext, IdeLPContext} from './Contexts';
 import {LP_START, LP_END} from './actionTypes';
 import {ShotIdentifiers, OFFLINE_MSG} from '../Constants';
 import {LivePreviewConstants} from './Constants';
 import Application from '../config/application';
-import {getLatestShotEndpoint, getShotName, handleApiError} from '../common';
+import {
+  getLatestShotEndpoint,
+  getShotName,
+  getUserFromLocalStorage,
+  handleApiError,
+} from '../common';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -80,6 +86,7 @@ const LivePreview = ({closeHandler}) => {
   const [fullScreen, setFullScreen] = useState(false);
   const [statusMsg, setStatusMsg] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
+  const auth = useAuth();
   const previewExistedRef = useRef(
     Boolean(livePreview.runId && livePreview.runId === build.runId)
   );
@@ -166,9 +173,9 @@ const LivePreview = ({closeHandler}) => {
   // to number we get a 0 rather than NaN
   const startPreview = useCallback(
     (latestShotIdentifier = null) => {
-      const shotUriTemplate = `${Application.STORAGE_HOST}/${Cookies.get(
-        Application.SESSION_ASSET_BUCKET_NAME_COOKIE
-      )}/${shotNameTemplate}`;
+      const shotUriTemplate = `${Application.STORAGE_HOST}/${
+        getUserFromLocalStorage(auth.user.email).shotBucketSessionStorage
+      }/${shotNameTemplate}`;
       let numberShotId = Number(latestShotIdentifier);
       if (Number.isNaN(numberShotId) && endIfLastShot(latestShotIdentifier)) {
         return;
@@ -239,6 +246,14 @@ const LivePreview = ({closeHandler}) => {
               ) {
                 clearInterval(offlineCheckInterval);
                 // console.log('offline limit reached');
+                captureMessage(
+                  'live preview ended with error as user was offline',
+                  {
+                    tags: {
+                      type: 'warning',
+                    },
+                  }
+                );
                 onPreviewEnd(`Unable to deliver live preview, Network error.`);
               }
               // console.log('offline interval invoked');
@@ -255,8 +270,14 @@ const LivePreview = ({closeHandler}) => {
           if (
             totalPollsNotFound === LivePreviewConstants.MAX_POLL_AFTER_NOT_FOUND
           ) {
-            // TODO: log error with sentry that we couldn't get current shot within
-            // the specified poll time, log current shot url too.
+            captureMessage(
+              `${src} couldn't be found within max allowed poll time, live preview will end with error`,
+              {
+                tags: {
+                  type: 'error',
+                },
+              }
+            );
             onPreviewEnd(LivePreviewConstants.ERROR_SHOT_FOUND_TEXT);
             return;
           }
@@ -294,6 +315,7 @@ const LivePreview = ({closeHandler}) => {
       onPreviewEnd,
       getErrorTypeStatusMsg,
       unmounted,
+      auth,
     ]
   );
 

@@ -246,6 +246,7 @@ const LoadFiles = React.memo(({showDialog, setShowDialog}) => {
           fileIdsNotLoaded.join(','),
           projectId
         );
+        setLoading(false);
         if (!data.length) {
           return;
         }
@@ -267,7 +268,6 @@ const LoadFiles = React.memo(({showDialog, setShowDialog}) => {
         Object.assign(files.entities.files, filesToLoad.entities.files);
         Object.assign(files.entities.tests, filesToLoad.entities.tests);
         Object.assign(files.entities.versions, filesToLoad.entities.versions);
-        setLoading(false);
       } catch (error) {
         handleApiError(error, setSnackbarErrorMsg, "Couldn't fetch files");
       }

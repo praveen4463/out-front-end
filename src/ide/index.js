@@ -42,6 +42,7 @@ import {
   RUN_DRY_UPDATE_BY_PROP,
   CLEAR_VERSIONS_LAST_RUN,
   RUN_DRY_RESET_VERSION,
+  SET_PROJECT,
 } from './actionTypes';
 import {
   BUILD_UPDATE_BY_PROP,
@@ -120,8 +121,6 @@ import {
   getBuildStatusEndpoint,
 } from '../common';
 
-import './index.css';
-
 const useStyles = makeStyles((theme) => ({
   backdrop: {
     zIndex: theme.zIndex.drawer + 1,
@@ -132,7 +131,7 @@ const EXP_WAIT_MAX = 15000;
 
 // This is the root state of IDE
 const initialState = {
-  projectId: getNumberParamFromUrl(Application.PROJECT_QS),
+  projectId: null,
   files: null,
   versionIdsCodeSaveInProgress: new Set(),
   // build represents a new build request initiated upon user action
@@ -304,17 +303,18 @@ const Ide = () => {
   const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
   const classes = useStyles();
 
+  // !!This is a workaround to set body background for IDE for now, don't use a
+  // css because once IDE loads and css applies, it applies to all components as
+  // there is just one page.
   useEffect(() => {
+    document.body.style.backgroundColor = '#121212';
     return () => {
       unmounted.current = true;
+      document.body.style.backgroundColor = '#FFFFFF';
     };
   }, []);
 
-  // Run an effect whenever projectId changes, this effectively runs the first
-  // time IDE is loaded and checks whether a projectId is in uri (selected
-  // from outside of IDE) and every time project selector is used to switch to
-  // different project. We load project specific files and variables.
-  useEffect(() => {
+  const loadDataPerProject = useCallback(() => {
     const pId = state.projectId;
     if (!pId) {
       return;
@@ -330,21 +330,6 @@ const Ide = () => {
     // Fetch all files of the project without their tests and fetch tests for only
     // file that in in qs (if any). Make sure files, tests within files, versions
     // within tests are ordered by name.
-
-    const url = new URL(document.location);
-    const qsParams = url.searchParams;
-    // see if there is any file in qs
-    const fileId = getNumberParamFromUrl(Application.FILE_QS);
-    // set projectId in uri, so that if use bookmarks the url, they get the same
-    // project selected later. Note that we're replacing history and not pushing
-    // so that doing back button won't show previous projects cause we're not
-    // reading history's popState event and not rendering page from history (routing)
-    // IDE. This we will do in rest of the front end but IDE is purely browser state
-    // dependent and nothing works using url. Project is taken in url as it is linked
-    // with the rest of the site.
-    qsParams.set(Application.PROJECT_QS, pId);
-    const updatedUrl = `${url.origin}${url.pathname}?${qsParams}`;
-    window.history.replaceState({url: updatedUrl}, null, updatedUrl);
 
     setLoading(true);
 
@@ -362,6 +347,8 @@ const Ide = () => {
     };
 
     const apiCalls = [getFilesIdentifier(), getBuildVars(), getGlobalVars()];
+    // see if there is any file in qs
+    const fileId = getNumberParamFromUrl(Application.FILE_QS);
     if (fileId) {
       apiCalls.push(getFilesWithTests(fileId, pId));
     }
@@ -437,6 +424,13 @@ const Ide = () => {
       })
       .finally(() => setLoading(false));
   }, [state.projectId, setSnackbarErrorMsg]);
+
+  // Run an effect whenever projectId changes, this effectively runs the first
+  // time IDE is loaded and every time project selector is used to switch to
+  // different project. We load project specific files and variables.
+  useEffect(() => {
+    loadDataPerProject();
+  }, [loadDataPerProject]);
 
   brvsRef.current = useMemo(
     () =>
@@ -629,7 +623,7 @@ const Ide = () => {
                 clearInterval(offlineCheckInterval);
                 halt(
                   "Can't get build progress as you're offline. Build progress" +
-                    " can be viewed from dashboard once you're connected to network"
+                    " can be viewed from builds page once you're connected to network"
                 );
               }
             }, 500);
@@ -644,7 +638,7 @@ const Ide = () => {
                 "Can't fetch build progress as the server is unreachable," +
                   " however the build is unaffected. We've been notified and are" +
                   ' looking into the problem. You can try viewing build progress' +
-                  ' from dashboard in sometime'
+                  ' from builds page in sometime'
               );
               return;
             }
@@ -673,7 +667,7 @@ const Ide = () => {
                 "Can't fetch build progress as an exception occurred at server," +
                   " however the build is running. We've been notified and are" +
                   ' fixing it. You can try viewing build progress' +
-                  ' from dashboard in sometime or contact us if you see similar error'
+                  ' from builds page in sometime or contact us if you see similar error'
               ),
             ''
           );
@@ -1000,11 +994,30 @@ const Ide = () => {
     runDry();
   }, [etVersions, runDry, state.dryRun, dryVersionIdsInSaveProgress]);
 
+  const handleErrorBoundaryReset = useCallback(() => {
+    // first reset state but keep projectId intact otherwise data won't fetch
+    // seeing project null
+    dispatch(
+      batchActions([
+        {
+          type: RESET_STATE,
+        },
+        {
+          type: SET_PROJECT,
+          payload: {projectId: state.projectId},
+        },
+      ])
+    );
+    // fetch data, the function doesn't invoke itself cause after the above
+    // dispatch completes, projectId remains unchanged. TODO: verify this behaviour
+    loadDataPerProject(); // after state is reset, load data afresh
+  }, [loadDataPerProject, state.projectId]);
+
   return (
     <ThemeProvider theme={darkTheme}>
       <ErrorBoundary
         FallbackComponent={RootErrorFallback}
-        onReset={() => dispatch({type: RESET_STATE})}
+        onReset={handleErrorBoundaryReset}
         onError={rootErrorHandler}>
         <IdeDispatchContext.Provider value={dispatch}>
           <IdeStateContext.Provider value={state}>

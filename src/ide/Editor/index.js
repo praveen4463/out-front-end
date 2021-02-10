@@ -131,7 +131,7 @@ const Editor = React.memo((props) => {
               value={tabs.selectedTabVersionId}
               onChange={handleChange}
               variant="scrollable"
-              scrollButtons="off"
+              scrollButtons="auto"
               aria-label="tabbed layout of test versions"
               classes={{root: classes.tabs, indicator: classes.indicator}}>
               {tabs.maps.map((m) => getTab(m))}

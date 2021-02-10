@@ -24,15 +24,23 @@ import Slide from '@material-ui/core/Slide';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import axios from 'axios';
+import queryString from 'query-string';
+import {useHistory, useLocation} from 'react-router-dom';
 import {useQuery, useMutation, useQueryClient} from 'react-query';
 import Tooltip from '../TooltipCustom';
 import {RESET_STATE, SET_PROJECT} from './actionTypes';
 import batchActions from './actionCreators';
-import {IdeDispatchContext, IdeProjectIdContext} from './Contexts';
+import {IdeDispatchContext} from './Contexts';
 import useSnackbarTypeError from '../hooks/useSnackbarTypeError';
 import {MaxLengths, QueryKeys, Endpoints} from '../Constants';
-import {getNewIntlComparer, handleApiError} from '../common';
+import {
+  getLocation,
+  getNewIntlComparer,
+  getNumberParamFromUrl,
+  handleApiError,
+} from '../common';
 import {equalIgnoreCase} from '../utils';
+import Application from '../config/application';
 
 const useStyles = makeStyles((theme) => ({
   formControl: {
@@ -87,10 +95,15 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 
 const ProjectSelector = React.memo(() => {
   const dispatch = useContext(IdeDispatchContext);
-  const projectId = useContext(IdeProjectIdContext);
   const [dlgOpen, setDlgOpen] = useState(false);
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState(null);
+  const history = useHistory();
+  const location = useLocation();
+  const projectId = getNumberParamFromUrl(
+    Application.PROJECT_QS,
+    location.search
+  );
   const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
   const queryClient = useQueryClient();
   const classes = useStyles();
@@ -128,19 +141,22 @@ const ProjectSelector = React.memo(() => {
   // when a project is changed, we first clear entire state to be on safe side
   // with any issue while resetting files before changing project which will
   // set files/vars again.
-  const changeProject = (pId) => {
-    dispatch(
-      batchActions([
-        {
-          type: RESET_STATE,
-        },
-        {
-          type: SET_PROJECT,
-          payload: {projectId: pId},
-        },
-      ])
-    );
-  };
+  const changeProject = useCallback(
+    (pId) => {
+      dispatch(
+        batchActions([
+          {
+            type: RESET_STATE,
+          },
+          {
+            type: SET_PROJECT,
+            payload: {projectId: pId},
+          },
+        ])
+      );
+    },
+    [dispatch]
+  );
 
   const closeDlg = () => {
     setName('');
@@ -171,8 +187,28 @@ const ProjectSelector = React.memo(() => {
     }
   );
 
+  // handleChange runs only with user action, it doesn't run when projectId is
+  // changed or sets for the first time (it was supplied in query or changed
+  // with back/forward). With this effect, we can cover all cases of change in
+  // projectId whether it was given for the first time query/changed using history
+  // back/forward or select's change.
+  useEffect(() => {
+    if (!projectId) {
+      return;
+    }
+    changeProject(projectId);
+  }, [changeProject, projectId]);
+
   const handleChange = (event) => {
-    changeProject(event.target.value);
+    // console.log('change triggered');
+    // set projectId to query, this will change projectId as it depends on location
+    // our effect then sets global state.
+    const parsed = queryString.parse(location.search);
+    parsed[Application.PROJECT_QS] = event.target.value;
+
+    history.push(
+      getLocation(location.pathname, `?${queryString.stringify(parsed)}`)
+    );
   };
 
   const projectIdExists = useMemo(() => {

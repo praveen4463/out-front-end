@@ -1,9 +1,10 @@
-import React from 'react';
+import {createContext} from 'react';
 
-export const DispatchContext = React.createContext(null);
-export const StateContext = React.createContext(null);
-export const FilesContext = React.createContext(null);
-export const VarsContext = React.createContext(null);
-export const BuildRunningContext = React.createContext(null);
-export const BuildContext = React.createContext(null);
-export const BuildConfigContext = React.createContext(null);
+export const DispatchContext = createContext(null);
+export const StateContext = createContext(null);
+export const FilesContext = createContext(null);
+export const VarsContext = createContext(null);
+export const BuildRunningContext = createContext(null);
+export const BuildContext = createContext(null);
+export const BuildConfigContext = createContext(null);
+export const AuthContext = createContext(null);

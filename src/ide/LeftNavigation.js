@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import {makeStyles} from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
 import Box from '@material-ui/core/Box';
+import {Link as RouterLink, useLocation} from 'react-router-dom';
 import Link from '@material-ui/core/Link';
 import FileIcon from '@material-ui/icons/InsertDriveFile';
 import IconButton from '@material-ui/core/IconButton';
@@ -10,7 +11,8 @@ import SvgIcon from '@material-ui/core/SvgIcon';
 import PropTypes from 'prop-types';
 import Tooltip from '../TooltipCustom';
 import {LeftNavs} from './Constants';
-import {completeRelativeUrl} from '../common';
+import {getLocation} from '../common';
+import {PageUrl} from '../Constants';
 
 const useStyles = makeStyles((theme) => ({
   nav: {
@@ -40,6 +42,7 @@ const useStyles = makeStyles((theme) => ({
 
 const LeftNavigation = (props) => {
   const {clickHandler, active} = props;
+  const location = useLocation();
   const classes = useStyles();
 
   const onFileClick = () => {
@@ -73,9 +76,10 @@ const LeftNavigation = (props) => {
       <Box flex={1} />
       <Box display="flex" justifyContent="center">
         <Link
-          href={completeRelativeUrl('/dashboard')}
-          aria-label="Go To Dashboard"
-          title="Go To Dashboard">
+          component={RouterLink}
+          to={getLocation(PageUrl.HOME, location.search)}
+          aria-label="Home"
+          title="Home">
           <SvgIcon fontSize="small">
             {/* TODO: replace with our 24x24 logo */}
             <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />

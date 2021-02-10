@@ -5,10 +5,11 @@ import Avatar from '@material-ui/core/Avatar';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import {makeStyles} from '@material-ui/core/styles';
-import Cookies from 'js-cookie';
+import {Link as RouterLink, useLocation} from 'react-router-dom';
 import Tooltip from '../TooltipCustom';
-import Application from '../config/application';
-import {completeRelativeUrl} from '../common';
+import {getLocation} from '../common';
+import {useAuth} from '../Auth';
+import {PageUrl} from '../Constants';
 
 const useStyles = makeStyles((theme) => ({
   avatar: {
@@ -34,6 +35,8 @@ const useStyles = makeStyles((theme) => ({
 
 const UserAvatar = React.memo(() => {
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const auth = useAuth();
+  const location = useLocation();
   const classes = useStyles();
 
   const handleClick = (event) => {
@@ -45,12 +48,12 @@ const UserAvatar = React.memo(() => {
   };
 
   const getUserName = () => {
-    const name = Cookies.get(Application.USER_NAME_COOKIE);
+    const name = auth.user.displayName;
     return name ?? 'Not Logged In';
   };
 
   const getFirstLetter = () => {
-    const name = Cookies.get(Application.USER_NAME_COOKIE);
+    const name = auth.user.displayName;
     if (name) {
       return name.substring(0, 1).toUpperCase();
     }
@@ -85,7 +88,8 @@ const UserAvatar = React.memo(() => {
         }}>
         <MenuItem className={classes.linkMenu}>
           <Button
-            href={completeRelativeUrl('/profile')}
+            component={RouterLink}
+            to={getLocation(PageUrl.PROFILE, location.search)}
             rel="noopener"
             target="_blank"
             aria-label="Profile"

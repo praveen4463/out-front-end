@@ -8,6 +8,7 @@
     "clsx",
     "describedby",
     "immer",
+    "localforage",
     "normalizr"
   ]
 }

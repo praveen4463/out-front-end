@@ -1,6 +1,9 @@
 import PropTypes from 'prop-types';
 import {truncate} from 'lodash-es';
 import axios from 'axios';
+import {captureException} from '@sentry/react';
+import queryString from 'query-string';
+import localforage from 'localforage';
 import {
   Os,
   Browsers,
@@ -11,11 +14,18 @@ import {
   BUILD_ID_ENDPOINT_VAR_TEMPLATE,
   Endpoints,
   PLATFORM_ENDPOINT_VAR_TEMPLATE,
+  CODE_ENDPOINT_VAR_TEMPLATE,
+  EMAIL_ENDPOINT_VAR_TEMPLATE,
+  LocalStorageKeys,
+  PASSWORD_RESET_ID_ENDPOINT_VAR_TEMPLATE,
+  EMAIL_CHANGE_ID_ENDPOINT_VAR_TEMPLATE,
 } from './Constants';
 import chrome from './icons/chrome.png';
 import firefox from './icons/firefox.png';
 import ie from './icons/ie.png';
 import windowsIcon from './icons/windows.png';
+import Application from './config/application';
+import {UserInLocalStorage} from './model';
 
 // detects runtime's locale while building collator.
 export const getNewIntlComparer = () => new Intl.Collator().compare;
@@ -170,31 +180,38 @@ export const getFileSizeInUnit = (size) => {
   return `${(size / 1048576).toFixed(1)} MB`;
 };
 
-export const getQs = () => {
-  return new URLSearchParams(document.location.search);
+export const getNumberParamFromUrl = (param, locationSearch) => {
+  const p = queryString.parse(locationSearch ?? document.location.search, {
+    parseNumbers: true,
+  });
+  return p[param];
 };
 
-export const completeRelativeUrl = (relative) => {
-  return `${relative}${document.location.search}`;
-};
-
-export const getNumberParamFromUrl = (param) => {
-  const pId = Number(getQs().get(param));
-  if (Number.isInteger(pId)) {
-    return pId;
-  }
-  return null;
+export const isInteger = (value) => {
+  const num = Number(value);
+  return Number.isInteger(num);
 };
 
 export const handleApiError = (error, showError, message) => {
   console.log('handleApiError', error.response, error.request);
-  // TODO: send to sentry from here
   if (error.response) {
-    const errorMsg = error.response.data.message;
+    let errorMsg = error.response.data.message;
     if (!errorMsg || !errorMsg.trim().length) {
-      throw new Error('Got blank error message in response');
+      // when there is no message, it could be an error thrown by proxy,
+      // read response status and deduce some message.
+      const {status} = error.response;
+      switch (status) {
+        case 401:
+          errorMsg = 'User is not authorized';
+          break;
+        default:
+          throw new Error('Got blank error message in response');
+      }
     }
-    showError(`${message}, ${errorMsg}`);
+    showError(
+      message && message.trim().length ? `${message}, ${errorMsg}` : errorMsg
+    );
+    captureException(error);
   } else if (error.request) {
     // !NOTE: Any error thrown within axios, like timeout error will land up here as well,
     // but we're shown server unreachable error. This may be fine for now but keep
@@ -202,9 +219,21 @@ export const handleApiError = (error, showError, message) => {
     const errorMsg = navigator.onLine
       ? 'server is unreachable. Please try in a few minutes or contact us.'
       : 'network error';
-    showError(`${message}, ${errorMsg}`);
+    showError(
+      message && message.trim().length ? `${message}, ${errorMsg}` : errorMsg
+    );
+    captureException(error);
   } else {
-    // throw so that error boundary could catch as this is unrecoverable error.
+    // log this with tags and see whether wee need to redirect user to a custom
+    // error page if this happens because error boundary won't catch it.
+    captureException(error, {
+      tags: {
+        throwing: true,
+        unrecoverable: true,
+        location: 'HandleApiError',
+      },
+    });
+    // throw as this is unrecoverable error.
     throw new Error(error.message);
   }
 };
@@ -309,6 +338,45 @@ export const getElementShotNamesEndpoint = (buildId) => {
   );
 };
 
+export const getValidateEmailVerificationEndpoint = (code) => {
+  return Endpoints.VALIDATE_EMAIL_VERIFICATION.replace(
+    CODE_ENDPOINT_VAR_TEMPLATE,
+    code
+  );
+};
+
+export const getSingleUserEndpoint = (email) => {
+  return Endpoints.SINGLE_USER.replace(EMAIL_ENDPOINT_VAR_TEMPLATE, email);
+};
+
+export const getValidatePasswordResetEndpoint = (code) => {
+  return Endpoints.VALIDATE_PASSWORD_RESET.replace(
+    CODE_ENDPOINT_VAR_TEMPLATE,
+    code
+  );
+};
+
+export const getValidateEmailChangeEndpoint = (code) => {
+  return Endpoints.VALIDATE_EMAIL_CHANGE.replace(
+    CODE_ENDPOINT_VAR_TEMPLATE,
+    code
+  );
+};
+
+export const getRestPasswordEndpoint = (passwordResetId) => {
+  return Endpoints.RESET_PASSWORD.replace(
+    PASSWORD_RESET_ID_ENDPOINT_VAR_TEMPLATE,
+    passwordResetId
+  );
+};
+
+export const getChangeEmailEndpoint = (emailChangeId) => {
+  return Endpoints.CHANGE_EMAIL.replace(
+    EMAIL_CHANGE_ID_ENDPOINT_VAR_TEMPLATE,
+    emailChangeId
+  );
+};
+
 /**
  * Fetches files with tests from api filtered by te given fileIds
  * @param {fileIds} fileIds Must be comma separated string if multiple, otherwise integer
@@ -322,10 +390,105 @@ export const getFilesWithTests = (fileIds, projectId) => {
   });
 };
 
+/**
+ * Instantiate the given constructor using the given json, all properties in json will be assigned
+ * into the constructor.
+ * @param {*} Ctor Constructor that needs to be instantiated with all properties from given json
+ * @param {*} json Source object to instantiate the given constructor
+ */
 export const fromJson = (Ctor, json) => {
   return Object.assign(new Ctor(), json);
 };
 
 export const isBlank = (text) => {
   return !text || !text.replace(/[\s\n\r\t]*/, '').length;
+};
+
+export const getStaticImageUrl = (imgName) => {
+  return Application.STATIC_ASSETS_URL_TEMPLATE.replace(
+    Application.IMG_NAME_TEMPLATE,
+    imgName
+  );
+};
+
+/**
+ * must be invoked on every login
+ */
+export const storeUserToLocalStorage = (
+  userInLocalStorage,
+  onSuccess = null
+) => {
+  if (!(userInLocalStorage instanceof UserInLocalStorage)) {
+    throw new TypeError('Excepting an instance of UserInLocalStorage');
+  }
+  localforage
+    .setItem(LocalStorageKeys.USER, userInLocalStorage)
+    .then((value) => {
+      if (onSuccess) {
+        onSuccess(value);
+      }
+    });
+};
+
+// Api errors are not handled
+export const getFromApiAndStoreUser = (userEmail, onSuccess = null) => {
+  axios(getSingleUserEndpoint(userEmail)).then((response) => {
+    const {data} = response;
+    const userInLocalStorage = new UserInLocalStorage(
+      userEmail,
+      data.shotBucketSessionStorage,
+      data.organizationId,
+      data.organization.name
+    );
+    storeUserToLocalStorage(userInLocalStorage, onSuccess);
+  });
+};
+
+/**
+ * Must be used only to fetch an existing user from storage, to check whether
+ * a user exist in storage, use localforage.get and check for non null value.
+ */
+export const getUserFromLocalStorage = (userEmail) => {
+  return new Promise((resolve) => {
+    localforage.getItem(LocalStorageKeys.USER).then((value) => {
+      if (!value) {
+        if (!userEmail) {
+          throw new Error(
+            'user is not in localStorage and also no userEmail is given'
+          );
+        }
+        // user must have explicitly deleted the key, let's fetch from api
+        getFromApiAndStoreUser(userEmail, resolve);
+      }
+      resolve(value);
+    });
+  });
+};
+
+export const invokeApiWithAnonymousAuth = (
+  auth,
+  config,
+  onSuccess,
+  onError,
+  onFinally = null
+) => {
+  // we want to delete anonymous user asap, i.e before running any callbacks
+  auth.signInAnonymously((user) =>
+    axios(config)
+      .then((response) => {
+        user.delete().then(() => onSuccess(response));
+      })
+      .catch((error) => {
+        user.delete().then(() => onError(error));
+      })
+      .finally(() => {
+        if (onFinally) {
+          onFinally();
+        }
+      })
+  );
+};
+
+export const getLocation = (pathname, search, state = {}) => {
+  return {pathname, search, state};
 };

@@ -43,7 +43,7 @@ const SnackbarTypeError = ({error, errorOn, setErrorClose}) => {
             <>
               <Box display="flex">
                 <ErrorIcon
-                  fontSize="small"
+                  fontSize="default"
                   color="error"
                   style={{paddingRight: '8px'}}
                 />

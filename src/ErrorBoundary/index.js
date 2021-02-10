@@ -6,7 +6,10 @@ import Button from '@material-ui/core/Button';
 import Link from '@material-ui/core/Link';
 import SvgIcon from '@material-ui/core/SvgIcon';
 import PropTypes from 'prop-types';
-import {completeRelativeUrl} from '../common';
+import {captureException} from '@sentry/react';
+import {Link as RouterLink, useLocation} from 'react-router-dom';
+import {getLocation} from '../common';
+import {PageUrl} from '../Constants';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -31,14 +34,17 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export const rootErrorHandler = (error, stackTrace) => {
-  // TODO: send to sentry
-  console.log(`From error handler: ${error}`);
-  console.log(stackTrace);
+export const rootErrorHandler = (error) => {
+  captureException(error, {
+    tags: {
+      location: 'ErrorBoundary',
+    },
+  }); // send to sentry
 };
 
 // https://github.com/bvaughn/react-error-boundary#readme
 const RootErrorFallback = ({resetErrorBoundary}) => {
+  const location = useLocation();
   const classes = useStyles();
   return (
     <div
@@ -48,6 +54,7 @@ const RootErrorFallback = ({resetErrorBoundary}) => {
         left: 0,
         top: 0,
         right: 0,
+        bottom: 0,
         width: '100%',
         display: 'flex',
         flex: '1 1 auto',
@@ -58,9 +65,13 @@ const RootErrorFallback = ({resetErrorBoundary}) => {
         flexDirection="column"
         className={classes.contentRoot}>
         <Box position="fixed" top={0} left={0} mx={3}>
-          <Link href={completeRelativeUrl('/dashboard')}>
+          <Link
+            component={RouterLink}
+            to={getLocation(PageUrl.HOME, location.search)}
+            aria-label="Home"
+            title="Home">
             <SvgIcon fontSize="small">
-              {/* TODO: replace with zylitics full logo */}
+              {/* TODO: replace with our 24x24 logo */}
               <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
             </SvgIcon>
           </Link>
@@ -79,9 +90,10 @@ const RootErrorFallback = ({resetErrorBoundary}) => {
           </Button>
           <Button
             variant="contained"
-            href={completeRelativeUrl('/dashboard')}
+            component={RouterLink}
+            to={getLocation(PageUrl.HOME, location.search)}
             className={classes.button}>
-            Go To Dashboard
+            Home
           </Button>
         </Box>
       </Box>

@@ -282,6 +282,12 @@ export const BuildCapsTimeouts = {
   EAT: 60000,
 };
 
+export const EmailVerificationUserType = {
+  NORMAL: 'NORMAL',
+  IN_ORGANIZATION: 'IN_ORGANIZATION',
+  BETA_INVITEE: 'BETA_INVITEE',
+};
+
 export const PromptBehavior = {
   DISMISS: 'dismiss',
   ACCEPT: 'accept',
@@ -342,8 +348,13 @@ export const VERSION_ID_ENDPOINT_VAR_TEMPLATE = '{versionId}';
 export const VERSION_IDS_ENDPOINT_VAR_TEMPLATE = '{versionIds}';
 export const BUILD_ID_ENDPOINT_VAR_TEMPLATE = '{buildId}';
 export const PLATFORM_ENDPOINT_VAR_TEMPLATE = '{platform}';
+export const CODE_ENDPOINT_VAR_TEMPLATE = '{code}';
+export const PASSWORD_RESET_ID_ENDPOINT_VAR_TEMPLATE = '{passwordResetId}';
+export const EMAIL_CHANGE_ID_ENDPOINT_VAR_TEMPLATE = '{emailChangeId}';
+export const EMAIL_ENDPOINT_VAR_TEMPLATE = '{email}';
 
 export const Endpoints = {
+  USERS: '/users',
   PROJECTS: '/projects',
   TEST_FILES: '/testFiles',
   ISSUE: '/issue',
@@ -372,12 +383,26 @@ export const Endpoints = {
   DRIVER_LOGS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getDriverLogs`,
   PERFORMANCE_LOGS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getPerformanceLogs`,
   ELEMENT_SHOT_NAMES: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getElementShotNames`,
+  EMAIL_VERIFICATION: '/emailVerifications',
+  VALIDATE_EMAIL_VERIFICATION: `/emailVerifications/${CODE_ENDPOINT_VAR_TEMPLATE}/validate`,
+  SINGLE_USER: `/users/${EMAIL_ENDPOINT_VAR_TEMPLATE}`,
+  SEND_PASSWORD_RESET: '/passwordResets',
+  VALIDATE_PASSWORD_RESET: `/passwordResets/${CODE_ENDPOINT_VAR_TEMPLATE}/validate`,
+  RESET_PASSWORD: `/passwordResets/${PASSWORD_RESET_ID_ENDPOINT_VAR_TEMPLATE}/resetPassword`,
+  SEND_EMAIL_CHANGE: '/emailChanges',
+  VALIDATE_EMAIL_CHANGE: `/emailChanges/${CODE_ENDPOINT_VAR_TEMPLATE}/validate`,
+  CHANGE_EMAIL: `/emailChanges/${EMAIL_CHANGE_ID_ENDPOINT_VAR_TEMPLATE}/changeEmail`,
+};
+
+export const LocalStorageKeys = {
+  USER: 'user',
 };
 
 export const Timeouts = {
   API_TIMEOUT_SMALL: 60000,
   API_TIMEOUT_LONG: 300000,
   API_TIMEOUT_X_LONG: 600000,
+  SYNC_EMAIL_SENDER: 10000,
 };
 
 export const BuildSourceType = {
@@ -386,5 +411,19 @@ export const BuildSourceType = {
   NOT_IDE: 'NOT_IDE',
 };
 
+export const PageUrl = {
+  HOME: '/',
+  LOGIN: '/login',
+  SIGNUP: '/signup',
+  FINISH_SIGNUP: '/finish-signup/:code',
+  REQUEST_RESET_PWD: '/request-reset-pwd',
+  RESET_PWD: '/reset-pwd/:code',
+  REQUEST_EMAIL_CHANGE: '/request-change-email',
+  EMAIL_CHANGE: '/change-email/:code',
+  IDE: '/ide',
+  PROFILE: '/profile',
+};
+
 export const OFFLINE_MSG = "You're offline, waiting for network...";
 export const OFFLINE_RECOVERY_TIME = 60000;
+export const MIN_PWD_LENGTH = 8;
