@@ -53,6 +53,7 @@ const darkTheme = createMuiTheme({
       default: '#121212',
       paperOnDefault: '#181818',
       contrastText: `rgba(255, 255, 255, ${highEmphasisOpacity})`,
+      contrastTextBackground: '#565656',
     },
     border: {
       light: '#363636',
@@ -78,6 +79,11 @@ const darkTheme = createMuiTheme({
         lineHeight: 1.5,
         minHeight: '0px',
         opacity: highEmphasisOpacity,
+      },
+    },
+    MuiDivider: {
+      root: {
+        margin: `6px 0`,
       },
     },
     MuiListItem: {

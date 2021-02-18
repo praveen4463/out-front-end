@@ -18,7 +18,7 @@ const useStyle = makeStyles((theme) => ({
   confirmButton: {
     backgroundColor: theme.palette.error.main,
     '&:hover': {
-      backgroundColor: theme.palette.error.main,
+      backgroundColor: theme.palette.error.dark,
     },
   },
 }));

@@ -2,6 +2,9 @@ import React, {useState, useEffect} from 'react';
 import {makeStyles} from '@material-ui/core/styles';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import Box from '@material-ui/core/Box';
+import PropTypes from 'prop-types';
+import {Container, Typography} from '@material-ui/core';
+import {getZyliticsLogo} from '../common';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -16,7 +19,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const PageLoadingIndicator = () => {
+const PageLoadingIndicator = ({loadingText}) => {
   const classes = useStyles();
   const [progress, setProgress] = useState(0);
 
@@ -45,8 +48,26 @@ const PageLoadingIndicator = () => {
           value={progress}
         />
       </Box>
+      {loadingText ? (
+        <Container>
+          <Box display="flex" flexDirection="column" alignItems="center">
+            <Box pt={5} pb={2}>
+              {getZyliticsLogo()}
+            </Box>
+            <Typography variant="body1">{loadingText}</Typography>
+          </Box>
+        </Container>
+      ) : null}
     </Box>
   );
+};
+
+PageLoadingIndicator.propTypes = {
+  loadingText: PropTypes.string,
+};
+
+PageLoadingIndicator.defaultProps = {
+  loadingText: null,
 };
 
 export default PageLoadingIndicator;

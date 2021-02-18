@@ -129,12 +129,12 @@ const SendBetaInvitations = () => {
     setStop(true);
   };
 
-  if (!auth.authStateLoaded) {
+  if (!auth.user) {
     return <PageLoadingIndicator />;
   }
 
   return (
-    <BlankCentered width="40%">
+    <BlankCentered width="40%" linkOnLogo>
       <Box
         width="100%"
         display="flex"

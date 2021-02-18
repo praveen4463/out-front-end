@@ -11,10 +11,10 @@ import {makeStyles} from '@material-ui/core/styles';
 import {useHotkeys} from 'react-hotkeys-hook';
 import MainMenu from './MainMenu';
 import EditMenu from './EditMenu';
-import HelpMenu from './HelpMenu';
-import UserAvatar from './UserAvatar';
+import HelpMenu from '../HelpMenu';
+import UserAvatar from '../UserAvatar';
 import Tooltip from '../TooltipCustom';
-import ProjectSelector from './ProjectSelector';
+import ProjectSelector from '../components/ProjectSelector';
 import {
   IdeBuildContext,
   IdeDryContext,
@@ -222,14 +222,10 @@ const TopNavigation = () => {
           openBuildConfig={build.openBuildConfig}
           anyFiles={anyFiles}
         />
-        <Box
-          display="flex"
-          flex={1}
-          justifyContent="center"
-          flexWrap="wrap"
-          mx={1}>
+        <Box mx={1}>
           <ProjectSelector />
         </Box>
+        <Box flexGrow={1} />
         <HelpMenu />
         <div>
           <UserAvatar />

@@ -1,10 +1,11 @@
 import {useEffect} from 'react';
 import {useHistory, useLocation} from 'react-router-dom';
-import {useAuth} from '../Auth';
+import {useAuthContext} from '../Auth';
+import {getLocation} from '../common';
 import {PageUrl} from '../Constants';
 
 const useRequiredAuth = (redirectTo = PageUrl.LOGIN) => {
-  const auth = useAuth();
+  const auth = useAuthContext();
   const history = useHistory();
   const location = useLocation();
 
@@ -15,10 +16,7 @@ const useRequiredAuth = (redirectTo = PageUrl.LOGIN) => {
     }
     console.log('auth user', auth.user);
     if (!auth.user || auth.user.isAnonymous) {
-      history.push({
-        pathname: redirectTo,
-        state: {location},
-      });
+      history.push(getLocation(PageUrl.LOGIN, location.search, {location}));
     }
   }, [auth.authStateLoaded, auth.user, history, location, redirectTo]);
 

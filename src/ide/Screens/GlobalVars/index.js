@@ -1,6 +1,12 @@
 /* eslint-disable react/jsx-props-no-spreading */
 /* eslint-disable react/prop-types */
-import React, {useContext, useMemo, useState, useCallback} from 'react';
+import React, {
+  useEffect,
+  useContext,
+  useMemo,
+  useState,
+  useCallback,
+} from 'react';
 import TextField from '@material-ui/core/TextField';
 import {makeStyles} from '@material-ui/core/styles';
 import MaUTable from '@material-ui/core/Table';
@@ -37,6 +43,20 @@ const useStyles = makeStyles((theme) => ({
   noRecordText: {
     marginTop: theme.spacing(4),
   },
+  textField: {
+    paddingLeft: '1px',
+    paddingRight: '1px',
+    border: `1px solid`,
+    borderColor: 'transparent',
+    borderRadius: '4px',
+    '&:hover': {
+      borderColor: 'grey',
+    },
+    '&$focused': {
+      borderColor: theme.palette.primary.main,
+    },
+  },
+  focused: {},
 }));
 
 // update is a custom function that we supplied to our table instance
@@ -44,6 +64,7 @@ const EditableCell = React.memo(({cell, row, column, update}) => {
   const [value, setValue] = useState(cell.value);
   const [error, setError] = useState(null);
   const {id} = column;
+  const classes = useStyles();
 
   const onChange = (e) => {
     const v = e.target.value;
@@ -65,7 +86,7 @@ const EditableCell = React.memo(({cell, row, column, update}) => {
   };
 
   // If the cell's value (i.e vars state) is changed externally, sync it up with our state
-  React.useEffect(() => {
+  useEffect(() => {
     setValue(cell.value);
   }, [cell.value]);
 
@@ -83,7 +104,10 @@ const EditableCell = React.memo(({cell, row, column, update}) => {
       fullWidth
       error={Boolean(error)}
       helperText={error ?? ''}
-      InputProps={{disableUnderline: true}}
+      InputProps={{
+        disableUnderline: true,
+        classes: {root: classes.textField, focused: classes.focused},
+      }}
       title="click to edit, focus out to update"
     />
   );

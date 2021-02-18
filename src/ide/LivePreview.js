@@ -18,7 +18,7 @@ import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import axios from 'axios';
 import {captureMessage} from '@sentry/react';
-import {useAuth} from '../Auth';
+import {useAuthContext} from '../Auth';
 import {IdeBuildContext, IdeDispatchContext, IdeLPContext} from './Contexts';
 import {LP_START, LP_END} from './actionTypes';
 import {ShotIdentifiers, OFFLINE_MSG} from '../Constants';
@@ -86,7 +86,7 @@ const LivePreview = ({closeHandler}) => {
   const [fullScreen, setFullScreen] = useState(false);
   const [statusMsg, setStatusMsg] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
-  const auth = useAuth();
+  const auth = useAuthContext();
   const previewExistedRef = useRef(
     Boolean(livePreview.runId && livePreview.runId === build.runId)
   );
@@ -169,13 +169,10 @@ const LivePreview = ({closeHandler}) => {
     [onPreviewEnd]
   );
 
-  // !! default null to latestShotIdentifier is important so that when conveting
+  // !! default null to latestShotIdentifier is important so that when converting
   // to number we get a 0 rather than NaN
   const startPreview = useCallback(
-    (latestShotIdentifier = null) => {
-      const shotUriTemplate = `${Application.STORAGE_HOST}/${
-        getUserFromLocalStorage(auth.user.email).shotBucketSessionStorage
-      }/${shotNameTemplate}`;
+    (shotUriTemplate, latestShotIdentifier = null) => {
       let numberShotId = Number(latestShotIdentifier);
       if (Number.isNaN(numberShotId) && endIfLastShot(latestShotIdentifier)) {
         return;
@@ -309,14 +306,7 @@ const LivePreview = ({closeHandler}) => {
       };
       show();
     },
-    [
-      shotNameTemplate,
-      endIfLastShot,
-      onPreviewEnd,
-      getErrorTypeStatusMsg,
-      unmounted,
-      auth,
-    ]
+    [endIfLastShot, onPreviewEnd, getErrorTypeStatusMsg, unmounted]
   );
 
   // !!Order of effect is precise based on sequence of events.
@@ -414,6 +404,16 @@ const LivePreview = ({closeHandler}) => {
     livePreview.runId,
   ]);
 
+  const gatherDataAndStartPreview = useCallback(
+    (latestShotIdentifier) => {
+      getUserFromLocalStorage(auth.user.email).then((user) => {
+        const shotUriTemplate = `${Application.STORAGE_HOST}/${user.shotBucketSessionStorage}/${shotNameTemplate}`;
+        startPreview(shotUriTemplate, latestShotIdentifier);
+      });
+    },
+    [auth.user.email, shotNameTemplate, startPreview]
+  );
+
   // start/resume preview for this build, this effect should run only on new
   // preview and resume preview (i.e user close and reopen panel while live
   // preview and build is running)
@@ -426,7 +426,7 @@ const LivePreview = ({closeHandler}) => {
       try {
         const {data} = await axios(getLatestShotEndpoint(build.buildId));
         // console.log('preview will start, data is ', data);
-        startPreview(data ? getShotIdFromName(data) : null);
+        gatherDataAndStartPreview(data ? getShotIdFromName(data) : null);
       } catch (error) {
         // For now just reject if error occurs on latest processed shot check.
         // TODO: later see if we need to retry based on logs.
@@ -454,7 +454,7 @@ const LivePreview = ({closeHandler}) => {
       return;
     }
     // console.log('preview will start');
-    startPreview();
+    gatherDataAndStartPreview();
   }, [
     build.runOngoing,
     livePreview.completed,
@@ -463,6 +463,7 @@ const LivePreview = ({closeHandler}) => {
     onPreviewEnd,
     build.buildId,
     getShotIdFromName,
+    gatherDataAndStartPreview,
   ]);
 
   const handleEnterFull = () => {

@@ -7,6 +7,7 @@ import {ThemeProvider} from '@material-ui/core/styles';
 import {enableMapSet} from 'immer';
 import axios from 'axios';
 import {QueryClient, QueryClientProvider} from 'react-query';
+import {ReactQueryDevtools} from 'react-query/devtools';
 import Application from './config/application';
 import RootErrorFallback, {rootErrorHandler} from './ErrorBoundary';
 import './index.css';
@@ -100,16 +101,15 @@ const queryClient = new QueryClient({
   },
 });
 
-// TODO: implement onReset error boundary
 ReactDOM.render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>
       <ErrorBoundary
         FallbackComponent={RootErrorFallback}
-        onReset={() => console.log('on reset invoked')}
         onError={rootErrorHandler}>
         <QueryClientProvider client={queryClient}>
           <App />
+          <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>
       </ErrorBoundary>
     </ThemeProvider>

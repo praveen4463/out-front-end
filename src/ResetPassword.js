@@ -7,7 +7,7 @@ import {makeStyles} from '@material-ui/core/styles';
 import Alert from '@material-ui/lab/Alert';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import {useParams, useHistory} from 'react-router-dom';
-import {useAuth} from './Auth';
+import {useAuthContext} from './Auth';
 import BlankCentered from './layouts/BlankCentered';
 import {MIN_PWD_LENGTH, PageUrl} from './Constants';
 import {
@@ -41,9 +41,9 @@ const ResetPassword = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [resetting, setResetting] = useState(false);
-  const [snackbarTypeError, setSnackbarErrorMsg] = useSnackbarTypeError();
+  const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
   const validationCallInitiatedRef = useRef(false);
-  const auth = useAuth();
+  const auth = useAuthContext();
   const history = useHistory();
 
   const classes = useStyles();

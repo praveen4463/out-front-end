@@ -43,7 +43,7 @@ import {
 import {RUN_BUILD_ON_NEW_RUN, RUN_BUILD_COMPLETE_ON_ERROR} from './actionTypes';
 import {BUILD_NEW_RUN, BUILD_COMPLETE_RUN} from '../actions/actionTypes';
 import {MaxLengths, ExplorerItemType} from './Constants';
-import {TestStatus} from '../Constants';
+import {SnackbarType, TestStatus} from '../Constants';
 import batchActions from './actionCreators';
 import {getBuildStoppingAction} from '../actions/actionCreators';
 import {
@@ -53,8 +53,8 @@ import {
   fillLastParseStatusAndGetFailed,
   convertMillisIntoTimeText,
 } from './common';
-import useSnackbarTypeInfo from '../hooks/useSnackbarTypeInfo';
-import useSnackbarTypeError from '../hooks/useSnackbarTypeError';
+import useSnackbarAlert from '../hooks/useSnackbarAlert';
+import {SnackbarAlertProps} from '../model';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -234,12 +234,11 @@ const BuildRun = ({closeHandler}) => {
   const buildRunError = buildRun === null ? null : buildRun.error;
   const buildRunInterval =
     buildRun === null ? null : buildRun.testProgressIntervalId;
-  const [setSnackbarInfoMsg, snackbarTypeInfo] = useSnackbarTypeInfo(
-    'buildRun-info'
-  );
-  const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError(
-    'buildRun-error'
-  );
+  const [
+    setSnackbarAlertProps,
+    snackbarAlert,
+    setSnackbarAlertError,
+  ] = useSnackbarAlert();
   const classes = useStyles();
   const theme = useTheme();
 
@@ -349,8 +348,11 @@ const BuildRun = ({closeHandler}) => {
     // are some tests left after filtering else we're not running new build and not
     // showing it's file tree.
     if (build.filteredNoCodeVersions && build.versionIds.length) {
-      setSnackbarInfoMsg(
-        "Test(s) with empty code have been filtered out. File tree of this build won't show them!"
+      setSnackbarAlertProps(
+        new SnackbarAlertProps(
+          "Test(s) with empty code have been filtered out. File tree of this build won't show them!",
+          SnackbarType.INFO
+        )
       );
     }
     // if there was no version as a result of filtering no-code test, complete build
@@ -360,7 +362,7 @@ const BuildRun = ({closeHandler}) => {
     // specific completion, this new run doesn't exist anywhere, we're just resetting build
     // in global state.
     if (!build.versionIds.length) {
-      setSnackbarErrorMsg(
+      setSnackbarAlertError(
         "Can't run new build, there is no test with non empty code"
       );
       dispatch({type: BUILD_COMPLETE_RUN});
@@ -375,8 +377,8 @@ const BuildRun = ({closeHandler}) => {
       }
       return;
     }
-    // reset any error messages if shown.
-    setSnackbarErrorMsg(null);
+    // reset any messages if shown.
+    setSnackbarAlertProps(new SnackbarAlertProps());
     dispatch({
       type: RUN_BUILD_ON_NEW_RUN,
     });
@@ -386,8 +388,8 @@ const BuildRun = ({closeHandler}) => {
     buildRunOngoing,
     build.versionIds,
     completeOnError,
-    setSnackbarInfoMsg,
-    setSnackbarErrorMsg,
+    setSnackbarAlertProps,
+    setSnackbarAlertError,
     build.filteredNoCodeVersions,
     dispatch,
     closeHandler,
@@ -1302,8 +1304,7 @@ const BuildRun = ({closeHandler}) => {
           </Box>
         </Box>
       </SplitPane>
-      {snackbarTypeInfo}
-      {snackbarTypeError}
+      {snackbarAlert}
     </>
   );
 };

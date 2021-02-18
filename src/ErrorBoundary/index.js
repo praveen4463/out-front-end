@@ -7,8 +7,7 @@ import Link from '@material-ui/core/Link';
 import SvgIcon from '@material-ui/core/SvgIcon';
 import PropTypes from 'prop-types';
 import {captureException} from '@sentry/react';
-import {Link as RouterLink, useLocation} from 'react-router-dom';
-import {getLocation} from '../common';
+import {Link as RouterLink} from 'react-router-dom';
 import {PageUrl} from '../Constants';
 
 const useStyles = makeStyles((theme) => ({
@@ -44,7 +43,6 @@ export const rootErrorHandler = (error) => {
 
 // https://github.com/bvaughn/react-error-boundary#readme
 const RootErrorFallback = ({resetErrorBoundary}) => {
-  const location = useLocation();
   const classes = useStyles();
   return (
     <div
@@ -67,7 +65,7 @@ const RootErrorFallback = ({resetErrorBoundary}) => {
         <Box position="fixed" top={0} left={0} mx={3}>
           <Link
             component={RouterLink}
-            to={getLocation(PageUrl.HOME, location.search)}
+            to={PageUrl.HOME}
             aria-label="Home"
             title="Home">
             <SvgIcon fontSize="small">
@@ -82,16 +80,18 @@ const RootErrorFallback = ({resetErrorBoundary}) => {
           again and possibly ignore the action that led to this error.`}
         </Typography>
         <Box display="flex" justifyContent="center" paddingTop={1}>
-          <Button
-            variant="contained"
-            onClick={resetErrorBoundary}
-            className={classes.button}>
-            Retry
-          </Button>
+          {resetErrorBoundary ? (
+            <Button
+              variant="contained"
+              onClick={resetErrorBoundary}
+              className={classes.button}>
+              Retry
+            </Button>
+          ) : null}
           <Button
             variant="contained"
             component={RouterLink}
-            to={getLocation(PageUrl.HOME, location.search)}
+            to={PageUrl.HOME}
             className={classes.button}>
             Home
           </Button>

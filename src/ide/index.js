@@ -13,7 +13,7 @@ import {normalize} from 'normalizr';
 import {ErrorBoundary} from 'react-error-boundary';
 import {intersection} from 'lodash-es';
 import axios from 'axios';
-import Application from '../config/application';
+import {useLocation} from 'react-router-dom';
 import TopNavigation from './TopNavigation';
 import Content from './Content';
 import darkTheme from './Themes';
@@ -100,6 +100,7 @@ import {
   BuildSourceType,
   OFFLINE_MSG,
   OFFLINE_RECOVERY_TIME,
+  SearchKeys,
 } from '../Constants';
 import {TestProgress} from './Constants';
 import Browser, {BuildConfig} from '../model';
@@ -120,6 +121,8 @@ import {
   getStopBuildEndpoint,
   getBuildStatusEndpoint,
 } from '../common';
+import useRequiredAuth from '../hooks/useRequiredAuth';
+import PageLoadingIndicator from '../components/PageLoadingIndicator';
 
 const useStyles = makeStyles((theme) => ({
   backdrop: {
@@ -264,10 +267,12 @@ function ideRootReducer(state, action) {
 // and it re renders, make sure you memoize child components those don't require
 // a re render.
 const Ide = () => {
+  const auth = useRequiredAuth();
   // !! after reducer has run for the first time, direct state updates won't
   // happen as state object will be locked.
   const [state, dispatch] = useReducer(ideRootReducer, initialState);
   const [loading, setLoading] = useState(false);
+  const location = useLocation();
   const pendingNewSessionRequest = useRef(false);
   const brvsRef = useRef(null);
   const buildIdRef = useRef(null);
@@ -301,6 +306,10 @@ const Ide = () => {
     [state.versionIdsCodeSaveInProgress, state.buildRun]
   );
   const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
+  const projectIdInSearch = useMemo(
+    () => getNumberParamFromUrl(SearchKeys.PROJECT_QS, location.search),
+    [location.search]
+  );
   const classes = useStyles();
 
   // !!This is a workaround to set body background for IDE for now, don't use a
@@ -313,6 +322,26 @@ const Ide = () => {
       document.body.style.backgroundColor = '#FFFFFF';
     };
   }, []);
+
+  // This effect runs when projectId changes , it updates projectId
+  // to state. We could have removed projectId from state as it's in qs but
+  // I am keeping it as it was as is from beginning and not changing it for now.
+  useEffect(() => {
+    if (!projectIdInSearch) {
+      return;
+    }
+    dispatch(
+      batchActions([
+        {
+          type: RESET_STATE,
+        },
+        {
+          type: SET_PROJECT,
+          payload: {projectId: projectIdInSearch},
+        },
+      ])
+    );
+  }, [projectIdInSearch]);
 
   const loadDataPerProject = useCallback(() => {
     const pId = state.projectId;
@@ -348,7 +377,7 @@ const Ide = () => {
 
     const apiCalls = [getFilesIdentifier(), getBuildVars(), getGlobalVars()];
     // see if there is any file in qs
-    const fileId = getNumberParamFromUrl(Application.FILE_QS);
+    const fileId = getNumberParamFromUrl(SearchKeys.FILE_QS);
     if (fileId) {
       apiCalls.push(getFilesWithTests(fileId, pId));
     }
@@ -429,8 +458,11 @@ const Ide = () => {
   // time IDE is loaded and every time project selector is used to switch to
   // different project. We load project specific files and variables.
   useEffect(() => {
+    if (!auth.user) {
+      return;
+    }
     loadDataPerProject();
-  }, [loadDataPerProject]);
+  }, [auth.user, loadDataPerProject]);
 
   brvsRef.current = useMemo(
     () =>
@@ -1012,6 +1044,10 @@ const Ide = () => {
     // dispatch completes, projectId remains unchanged. TODO: verify this behaviour
     loadDataPerProject(); // after state is reset, load data afresh
   }, [loadDataPerProject, state.projectId]);
+
+  if (!auth.user) {
+    return <PageLoadingIndicator loadingText="Loading IDE" />;
+  }
 
   return (
     <ThemeProvider theme={darkTheme}>

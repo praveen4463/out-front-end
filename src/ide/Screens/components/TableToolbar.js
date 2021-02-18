@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import NewVariable from './NewVariable';
-import GlobalFilter from './GlobalFilter';
+import GlobalFilter from '../../../components/GlobalFilter';
 import {VarTypes} from '../../../Constants';
 
 const useToolbarStyles = makeStyles((theme) => ({

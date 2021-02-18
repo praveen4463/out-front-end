@@ -9,9 +9,9 @@ import Typography from '@material-ui/core/Typography';
 import Dialog from '@material-ui/core/Dialog';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import DialogContent from '@material-ui/core/DialogContent';
-import Button from '@material-ui/core/Button';
 import Slide from '@material-ui/core/Slide';
-import {Link as RouterLink, useLocation} from 'react-router-dom';
+import Divider from '@material-ui/core/Divider';
+import {useLocation, useHistory} from 'react-router-dom';
 import Tooltip from '../TooltipCustom';
 import TestFileManager from '../Screens/TestFileManager';
 import {getLocation} from '../common';
@@ -38,19 +38,6 @@ const useStyles = makeStyles((theme) => ({
     top: theme.spacing(1),
     color: theme.palette.grey[500],
   },
-  linkMenu: {
-    padding: 0,
-  },
-  linkButton: {
-    color: theme.palette.background.contrastText,
-    textTransform: 'none',
-    letterSpacing: 0,
-    fontWeight: 400,
-    width: '100%',
-    paddingLeft: theme.spacing(4),
-    paddingRight: theme.spacing(12),
-    justifyContent: 'flex-start',
-  },
 }));
 
 const Transition = React.forwardRef(function Transition(props, ref) {
@@ -62,6 +49,7 @@ const MainMenu = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [dlgOpen, setDlgOpen] = useState(false);
   const location = useLocation();
+  const history = useHistory();
   const classes = useStyles();
 
   const handleClick = (event) => {
@@ -77,9 +65,12 @@ const MainMenu = () => {
     setDlgOpen(true);
     handleClose();
   };
+  const exit = () => {
+    history.push(getLocation(PageUrl.HOME, location.search));
+  };
   return (
     <>
-      <Tooltip title="Menu M">
+      <Tooltip title="Menu">
         <IconButton
           classes={{root: classes.menuIcon}}
           aria-controls="mainMenu"
@@ -107,15 +98,8 @@ const MainMenu = () => {
           horizontal: 'left',
         }}>
         <MenuItem onClick={handleUploadTestFile}>Upload Test File(s)</MenuItem>
-        <MenuItem onClick={handleClose} className={classes.linkMenu}>
-          <Button
-            component={RouterLink}
-            to={getLocation(PageUrl.HOME, location.search)}
-            aria-label="Exit IDE"
-            className={classes.linkButton}>
-            Exit IDE
-          </Button>
-        </MenuItem>
+        <Divider />
+        <MenuItem onClick={exit}>Exit IDE</MenuItem>
       </Menu>
       <Dialog
         TransitionComponent={Transition}

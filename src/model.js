@@ -105,14 +105,28 @@ function BuildCapabilities(
 // User is identified using email not id, to keep id out of storage
 function UserInLocalStorage(
   email,
+  role,
   shotBucketSessionStorage,
   organizationId,
   organizationName
 ) {
   this.email = email;
+  this.role = role;
   this.shotBucketSessionStorage = shotBucketSessionStorage;
   this.organizationId = organizationId;
   this.organizationName = organizationName;
 }
 
-export {BuildConfig, BuildCapabilities, UserInLocalStorage};
+function SnackbarAlertProps(
+  message = null,
+  type = null,
+  verPos = null,
+  horPos = null
+) {
+  this.message = message;
+  this.type = type;
+  this.verPos = verPos;
+  this.horPos = horPos;
+}
+
+export {BuildConfig, BuildCapabilities, UserInLocalStorage, SnackbarAlertProps};

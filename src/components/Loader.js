@@ -14,7 +14,12 @@ const Skeleton = withStyles((theme) => ({
 
 const Loader = ({rows, key}) => {
   return (
-    <Box display="flex" flexDirection="column" flex={1} key={key ?? ''}>
+    <Box
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      flex={1}
+      key={key ?? ''}>
       {getNumSeqArray(rows).map((k) => (
         <Skeleton variant="text" width="80%" height={15} key={k} />
       ))}

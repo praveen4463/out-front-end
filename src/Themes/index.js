@@ -22,20 +22,31 @@ const lightTheme = createMuiTheme({
       light: '#ff747a',
       main: '#ff3b4e',
       dark: '#c40026',
-      contrastText: '#000000',
+      contrastText: `rgba(0, 0, 0, ${highEmphasisOpacity})`,
     },
     background: {
       paper: '#FFFFFF',
       paperContrast: '#FFFFFF',
       navigations: '#FFFFFF',
       panelClose: '#FFFFFF',
-      default: `#f5f7fa`,
+      default: '#f5f7fa',
       paperOnDefault: '#FFFFFF',
-      contrastText: '#000000',
+      contrastText: `rgba(0, 0, 0, ${highEmphasisOpacity})`,
+      contrastTextBackground: `#dee2e8`,
     },
     border: {
-      light: `rgba(0, 0, 0, 0.12)`,
-      dark: `rgba(0, 0, 0, 0.87)`,
+      light: 'rgba(0, 0, 0, 0.38)',
+      dark: 'rgba(0, 0, 0, 0.87)',
+    },
+    action: {
+      hover: 'rgba(0, 0, 0, 0.08)',
+      hoverOpacity: 0.08,
+      selected: 'rgba(0, 0, 0, 0.16)',
+      selectedOpacity: 0.16,
+      focus: 'rgba(0, 0, 0, 0.2)',
+      focusOpacity: 0.2,
+      active: 'rgba(0, 0, 0, 0.2)',
+      activatedOpacity: 0.2,
     },
   },
   textOpacity: {
@@ -50,6 +61,11 @@ const lightTheme = createMuiTheme({
         fontSize: '0.875rem',
         lineHeight: 1.5,
         minHeight: '0px',
+      },
+    },
+    MuiDivider: {
+      root: {
+        margin: `6px 0`,
       },
     },
     MuiListItem: {

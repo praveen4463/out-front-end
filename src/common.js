@@ -1,3 +1,4 @@
+import React from 'react';
 import PropTypes from 'prop-types';
 import {truncate} from 'lodash-es';
 import axios from 'axios';
@@ -377,6 +378,13 @@ export const getChangeEmailEndpoint = (emailChangeId) => {
   );
 };
 
+export const getRenameProjectEndpoint = (projectId) => {
+  return Endpoints.RENAME_PROJECT.replace(
+    PROJECT_ID_ENDPOINT_VAR_TEMPLATE,
+    projectId
+  );
+};
+
 /**
  * Fetches files with tests from api filtered by te given fileIds
  * @param {fileIds} fileIds Must be comma separated string if multiple, otherwise integer
@@ -430,17 +438,22 @@ export const storeUserToLocalStorage = (
     });
 };
 
+export const storeUserBuiltUsingApiData = (userObj, onSuccess = null) => {
+  const userInLocalStorage = new UserInLocalStorage(
+    userObj.email,
+    userObj.role,
+    userObj.shotBucketSessionStorage,
+    userObj.organizationId,
+    userObj.organization.name
+  );
+  storeUserToLocalStorage(userInLocalStorage, onSuccess);
+};
+
 // Api errors are not handled
 export const getFromApiAndStoreUser = (userEmail, onSuccess = null) => {
   axios(getSingleUserEndpoint(userEmail)).then((response) => {
     const {data} = response;
-    const userInLocalStorage = new UserInLocalStorage(
-      userEmail,
-      data.shotBucketSessionStorage,
-      data.organizationId,
-      data.organization.name
-    );
-    storeUserToLocalStorage(userInLocalStorage, onSuccess);
+    storeUserBuiltUsingApiData(data, onSuccess);
   });
 };
 
@@ -459,6 +472,9 @@ export const getUserFromLocalStorage = (userEmail) => {
         }
         // user must have explicitly deleted the key, let's fetch from api
         getFromApiAndStoreUser(userEmail, resolve);
+      }
+      if (value.email !== userEmail) {
+        throw new Error('User mismatched');
       }
       resolve(value);
     });
@@ -491,4 +507,62 @@ export const invokeApiWithAnonymousAuth = (
 
 export const getLocation = (pathname, search, state = {}) => {
   return {pathname, search, state};
+};
+
+export const getZyliticsLogo = () => {
+  return (
+    <img
+      src={getStaticImageUrl('zylitics_logo.svg')}
+      alt="Zylitics Logo"
+      style={{width: '120px', height: '36px'}}
+    />
+  );
+};
+
+export const getParsedLocationStringified = (parsed) => {
+  return `?${queryString.stringify(parsed)}`;
+};
+
+export const updateMultipleInSearchQuery = (location, history, map = {}) => {
+  const parsed = queryString.parse(location.search);
+  Object.keys(map).forEach((k) => {
+    parsed[k] = map[k];
+  });
+  history.push(
+    getLocation(
+      location.pathname,
+      getParsedLocationStringified(parsed),
+      location.state
+    )
+  );
+};
+
+export const updateInSearchQuery = (location, history, key, value) => {
+  updateMultipleInSearchQuery(location, history, {[key]: value});
+};
+
+/**
+ * Filters given keys from location search and returns
+ * @param {*} filterKeys Keys in location search that needs to be kept
+ * @returns new location search with only filtered keys
+ */
+export const filterSearchQuery = (search, filterKeys = []) => {
+  const parsed = queryString.parse(search);
+  const newSearch = {};
+  filterKeys.forEach((k) => {
+    if (parsed[k]) {
+      newSearch[k] = parsed[k];
+    }
+  });
+  return getParsedLocationStringified(newSearch);
+};
+
+export const addInSearchQuery = (search, key, value) => {
+  const parsed = queryString.parse(search);
+  parsed[key] = value;
+  return getParsedLocationStringified(parsed);
+};
+
+export const setAxiosAuthToken = (token) => {
+  axios.defaults.headers.common.Authorization = `Bearer ${token}`;
 };

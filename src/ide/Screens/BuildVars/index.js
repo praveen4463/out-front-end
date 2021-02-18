@@ -50,13 +50,27 @@ import normalizeString, {equalIgnoreCase} from '../../../utils';
 
 const DEF_GROUPED_COLUMN = 'key';
 
-const useStyle = makeStyles((theme) => ({
+const useStyles = makeStyles((theme) => ({
   deleteButton: {
     color: theme.palette.background.contrastText,
   },
   noRecordText: {
     marginTop: theme.spacing(4),
   },
+  textField: {
+    paddingLeft: '1px',
+    paddingRight: '1px',
+    border: `1px solid`,
+    borderColor: 'transparent',
+    borderRadius: '4px',
+    '&:hover': {
+      borderColor: 'grey',
+    },
+    '&$focused': {
+      borderColor: theme.palette.primary.main,
+    },
+  },
+  focused: {},
 }));
 
 // update is a custom function that we supplied to our table instance
@@ -64,6 +78,7 @@ const EditableCell = React.memo(({cell, row, column, update}) => {
   const [value, setValue] = useState(cell.value);
   const [error, setError] = useState(null);
   const {id} = column;
+  const classes = useStyles();
 
   const onTextChange = (e) => {
     const v = e.target.value;
@@ -125,7 +140,10 @@ const EditableCell = React.memo(({cell, row, column, update}) => {
       fullWidth
       error={Boolean(error)}
       helperText={error ?? ''}
-      InputProps={{disableUnderline: true}}
+      InputProps={{
+        disableUnderline: true,
+        classes: {root: classes.textField, focused: classes.focused},
+      }}
       title="click to edit, focus out to update"
     />
   );
@@ -146,7 +164,7 @@ EditableCell.propTypes = {
 
 const Actions = React.memo(({originalRow, onDelete}) => {
   const vars = useContext(IdeVarsContext);
-  const classes = useStyle();
+  const classes = useStyles();
   const varShotName = truncate(originalRow.value, {
     length: 50,
   });
@@ -203,7 +221,7 @@ const BuildVars = () => {
   const dispatch = useContext(IdeDispatchContext);
   const projectId = useContext(IdeProjectIdContext);
   const vars = useContext(IdeVarsContext);
-  const classes = useStyle();
+  const classes = useStyles();
   // console.log('vars', vars);
   const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
   const columns = useMemo(

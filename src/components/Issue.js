@@ -21,8 +21,8 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.background.contrastText,
   },
   label: {
-    color: theme.palette.text.secondary,
     paddingBottom: theme.spacing(1),
+    fontWeight: 500,
   },
   textField: {
     width: '80%',

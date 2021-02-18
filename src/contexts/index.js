@@ -8,3 +8,5 @@ export const BuildRunningContext = createContext(null);
 export const BuildContext = createContext(null);
 export const BuildConfigContext = createContext(null);
 export const AuthContext = createContext(null);
+export const ManagementSnackbarContext = createContext(null);
+export const HomeLinearProgressContext = createContext(null);

@@ -74,7 +74,7 @@ const getFormattedValue = (rawValue) => {
 
 const SelectBuildVars = React.memo(
   ({varBuild, selectedBuildVarIdPerKey, onSelect}) => {
-    const {buildVars} = varBuild.entities;
+    const buildVars = varBuild ? varBuild.entities.buildVars : null;
     const groupedData = useMemo(
       () =>
         varBuild === null || !varBuild.result.length
@@ -199,8 +199,8 @@ const SelectBuildVars = React.memo(
                 </Box>
               </>
             ) : (
-              <Typography variant="body1">
-                No Build Variable exists yet, use edit menu to add some.
+              <Typography variant="body2">
+                No build variable exists yet, use edit menu to add some.
               </Typography>
             )}
           </AccordionDetails>
@@ -218,12 +218,16 @@ SelectBuildVars.propTypes = {
       }),
     }),
     result: PropTypes.arrayOf(PropTypes.number),
-  }).isRequired,
+  }),
   selectedBuildVarIdPerKey: PropTypes.shape({
     key: PropTypes.string,
     id: PropTypes.number,
   }).isRequired,
   onSelect: PropTypes.func.isRequired,
+};
+
+SelectBuildVars.defaultProps = {
+  varBuild: null,
 };
 
 export default SelectBuildVars;

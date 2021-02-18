@@ -19,7 +19,7 @@ import {
   getValidateEmailVerificationEndpoint,
   handleApiError,
   invokeApiWithAnonymousAuth,
-  storeUserToLocalStorage,
+  storeUserBuiltUsingApiData,
 } from './common';
 import {
   EmailVerificationUserType,
@@ -27,8 +27,7 @@ import {
   MIN_PWD_LENGTH,
   PageUrl,
 } from './Constants';
-import {UserInLocalStorage} from './model';
-import {useAuth} from './Auth';
+import {useAuthContext} from './Auth';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
 
 const FNAME = 'First name';
@@ -76,10 +75,10 @@ const FinishSignup = () => {
   const [input, setInput] = useState(initialInput);
   const [error, setError] = useState(initialError);
   const [saving, setSaving] = useState(false);
-  const auth = useAuth();
+  const auth = useAuthContext();
   const history = useHistory();
   const validationCallInitiatedRef = useRef(false);
-  const [snackbarTypeError, setSnackbarErrorMsg] = useSnackbarTypeError();
+  const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
 
   const classes = useStyles();
 
@@ -215,14 +214,7 @@ const FinishSignup = () => {
         // up multiple tabs, we will have to fetch this data multiple times
         // whereas with local storage, we will fetch it on logins only.
         // it will have to be re fetched only email/org_name update as well.
-        storeUserToLocalStorage(
-          new UserInLocalStorage(
-            emailVerificationResponse.email,
-            data.shotBucketSessionStorage,
-            data.organizationId,
-            data.organizationName
-          )
-        );
+        storeUserBuiltUsingApiData(data);
         // sign in user in firebase
         // don't handle firebase errors on sign in as there is almost no chance
         // of an error. We're just signing in a newly created user and passing

@@ -234,7 +234,7 @@ const EditMenu = ({editIconClasses, openBuildConfig, anyFiles}) => {
 
   return (
     <>
-      <Tooltip title="Edit Capabilities, Configs & Variables E">
+      <Tooltip title="Edit Capabilities, Configs & Variables">
         <IconButton
           aria-controls="editMenu"
           aria-haspopup="true"

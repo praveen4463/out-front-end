@@ -273,7 +273,7 @@ export const MaxLengths = {
   BUILD_CAPS_TIMEOUT: 3600000,
   UPLOAD_SIZE_MB: 100,
   GCP_OBJECT_NAME: 500,
-  PROJECT_NAME: 50,
+  PROJECT_NAME: 40,
 };
 
 export const BuildCapsTimeouts = {
@@ -286,6 +286,11 @@ export const EmailVerificationUserType = {
   NORMAL: 'NORMAL',
   IN_ORGANIZATION: 'IN_ORGANIZATION',
   BETA_INVITEE: 'BETA_INVITEE',
+};
+
+export const Role = {
+  ADMIN: 'ADMIN',
+  DEVELOPER: 'DEVELOPER',
 };
 
 export const PromptBehavior = {
@@ -356,6 +361,7 @@ export const EMAIL_ENDPOINT_VAR_TEMPLATE = '{email}';
 export const Endpoints = {
   USERS: '/users',
   PROJECTS: '/projects',
+  RENAME_PROJECT: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/renameProject`,
   TEST_FILES: '/testFiles',
   ISSUE: '/issue',
   BUILD_CAPABILITIES: '/buildCapabilities',
@@ -421,7 +427,39 @@ export const PageUrl = {
   REQUEST_EMAIL_CHANGE: '/request-change-email',
   EMAIL_CHANGE: '/change-email/:code',
   IDE: '/ide',
-  PROFILE: '/profile',
+  SETTINGS: '/settings',
+  PROFILE: '/settings/profile',
+  MANAGEMENT: '/management',
+  MANAGE_PROJECTS: '/management/projects',
+  PROJECTS: '/projects',
+  CREATE: '/create',
+  UPDATE_WITHOUT_PARAM: '/update',
+  UPDATE: '/update/:id',
+  SELECT_PROJECT: '/select-project',
+};
+
+export const SearchKeys = {
+  PROJECT_QS: 'project',
+  FILE_QS: 'file',
+  FIRST_PROJECT: 'first_project',
+};
+
+export const SnackbarType = {
+  ERROR: 'ERROR',
+  INFO: 'INFO',
+  SUCCESS: 'SUCCESS',
+  WARNING: 'WARNING',
+};
+
+export const SnackbarVerPos = {
+  BOTTOM: 'bottom',
+  TOP: 'top',
+};
+
+export const SnackbarHorPos = {
+  LEFT: 'left',
+  RIGHT: 'right',
+  CENTER: 'center',
 };
 
 export const OFFLINE_MSG = "You're offline, waiting for network...";

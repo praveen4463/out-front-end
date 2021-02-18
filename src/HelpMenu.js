@@ -2,7 +2,6 @@ import React, {useState, useCallback} from 'react';
 import IconButton from '@material-ui/core/IconButton';
 import HelpOutlineOutlinedIcon from '@material-ui/icons/HelpOutlineOutlined';
 import Menu from '@material-ui/core/Menu';
-import Button from '@material-ui/core/Button';
 import MenuItem from '@material-ui/core/MenuItem';
 import {makeStyles} from '@material-ui/core/styles';
 import Dialog from '@material-ui/core/Dialog';
@@ -11,18 +10,17 @@ import DialogContent from '@material-ui/core/DialogContent';
 import CloseIcon from '@material-ui/icons/Close';
 import Typography from '@material-ui/core/Typography';
 import Slide from '@material-ui/core/Slide';
-import Tooltip from '../TooltipCustom';
-import Issue from '../components/Issue';
+import Tooltip from './TooltipCustom';
+import Issue from './components/Issue';
 import KeyShortcuts from './KeyShortcuts';
 
 const useStyles = makeStyles((theme) => ({
   helpIcon: {
+    color: theme.palette.background.contrastText,
     opacity: theme.textOpacity.highEmphasis,
   },
   root: {
-    backgroundColor: theme.palette.background.paperOnDefault,
     height: '90%',
-    color: theme.palette.background.contrastText,
   },
   dlgTitle: {
     margin: 0,
@@ -33,19 +31,8 @@ const useStyles = makeStyles((theme) => ({
     position: 'absolute',
     right: theme.spacing(1),
     top: theme.spacing(1),
-    color: theme.palette.grey[500],
-  },
-  linkMenu: {
-    padding: 0,
-  },
-  link: {
-    textTransform: 'none',
-    letterSpacing: 0,
-    fontWeight: 400,
-    width: '100%',
-    paddingLeft: theme.spacing(4),
-    paddingRight: theme.spacing(12),
-    justifyContent: 'flex-start',
+    color: theme.palette.background.contrastText,
+    opacity: theme.textOpacity.highEmphasis,
   },
 }));
 
@@ -145,7 +132,7 @@ const HelpMenu = () => {
   };
   return (
     <>
-      <Tooltip title="Help & Resources H">
+      <Tooltip title="Help & Resources">
         <IconButton
           classes={{root: classes.helpIcon}}
           aria-controls="helpMenu"
@@ -175,15 +162,13 @@ const HelpMenu = () => {
         <MenuItem onClick={handleClickKeyShortcuts}>
           Keyboard shortcuts
         </MenuItem>
-        <MenuItem className={classes.linkMenu}>
-          <Button
-            href="https://docs.zylitics.io"
-            rel="noopener"
-            target="_blank"
-            aria-label="Documentation"
-            className={classes.link}>
-            Documentation
-          </Button>
+        <MenuItem
+          component="a"
+          href="https://docs.zylitics.io"
+          rel="noopener"
+          target="_blank"
+          aria-label="Documentation">
+          Documentation
         </MenuItem>
       </Menu>
       <Dialog

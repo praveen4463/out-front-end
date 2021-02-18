@@ -1,25 +1,21 @@
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import Box from '@material-ui/core/Box';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import Typography from '@material-ui/core/Typography';
-import FormControl from '@material-ui/core/FormControl';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Checkbox from '@material-ui/core/Checkbox';
 import Link from '@material-ui/core/Link';
 import {makeStyles} from '@material-ui/core/styles';
 import Alert from '@material-ui/lab/Alert';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import {useHistory, useLocation, Link as RouterLink} from 'react-router-dom';
 import BlankCentered from './layouts/BlankCentered';
-import {useAuth} from './Auth';
+import {useAuthContext} from './Auth';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
 import {PageUrl} from './Constants';
 import {getFromApiAndStoreUser} from './common';
 
 const EMAIL = 'Email';
 const PWD = 'Password';
-const REMEMBER = 'Remember';
 
 const useStyles = makeStyles((theme) => ({
   label: {
@@ -39,7 +35,6 @@ const useStyles = makeStyles((theme) => ({
 const initialInput = {
   [EMAIL]: '',
   [PWD]: '',
-  [REMEMBER]: false,
 };
 const initialError = {
   [EMAIL]: null,
@@ -51,7 +46,7 @@ const Login = () => {
   const [input, setInput] = useState(initialInput);
   const [error, setError] = useState(initialError);
   const [logging, setLogging] = useState(false);
-  const auth = useAuth();
+  const auth = useAuthContext();
   const history = useHistory();
   const location = useLocation();
   const locationInState =
@@ -65,9 +60,11 @@ const Login = () => {
       return;
     }
     if (!auth.authStateLoaded) {
+      console.log('login: auth not loaded');
       return;
     }
     if (auth.user && !auth.user.isAnonymous) {
+      console.log('login: auth user found');
       // redirect to where we were as a user exists
       history.replace(locationInState || PageUrl.HOME);
     }
@@ -125,7 +122,7 @@ const Login = () => {
   };
 
   const handleLogIn = () => {
-    const errors = validateOnSubmit([REMEMBER]);
+    const errors = validateOnSubmit();
     if (Object.keys(errors).length > 0) {
       setError({...error, ...errors});
       return;
@@ -141,8 +138,7 @@ const Login = () => {
       () => {
         setLogInError('Incorrect email address or password');
         setLogging(false);
-      },
-      input[REMEMBER]
+      }
     );
   };
 
@@ -151,6 +147,12 @@ const Login = () => {
       handleLogIn();
     }
   };
+
+  const focusOnMount = useCallback((field) => {
+    if (field !== null) {
+      field.focus();
+    }
+  }, []);
 
   if (!auth.authStateLoaded) {
     return <PageLoadingIndicator />;
@@ -186,6 +188,7 @@ const Login = () => {
               inputProps: {tabIndex: '0'},
             }}
             onKeyUp={keyUpHandler}
+            inputRef={focusOnMount}
             value={input[EMAIL]}
             onChange={handleChange(EMAIL)}
             error={Boolean(error[EMAIL])}
@@ -215,31 +218,9 @@ const Login = () => {
         <Box
           display="flex"
           pb={2}
-          justifyContent="space-between"
+          justifyContent="flex-end"
           width="100%"
           alignItems="center">
-          <FormControl>
-            <FormControlLabel
-              style={{marginLeft: 0}}
-              control={
-                <Checkbox
-                  style={{padding: '0px', marginRight: '5px'}}
-                  name="remember"
-                  id="remember"
-                  checked={input[REMEMBER]}
-                  onChange={handleChange(REMEMBER)}
-                />
-              }
-              label={
-                <Typography
-                  variant="body2"
-                  component="label"
-                  htmlFor="remember">
-                  Remember me
-                </Typography>
-              }
-            />
-          </FormControl>
           <Link
             component={RouterLink}
             variant="body2"
