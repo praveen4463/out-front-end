@@ -7,10 +7,12 @@ import {makeStyles} from '@material-ui/core/styles';
 import Box from '@material-ui/core/Box';
 import Divider from '@material-ui/core/Divider';
 import {Link as RouterLink, useLocation, useHistory} from 'react-router-dom';
+import {useQuery} from 'react-query';
 import Tooltip from './TooltipCustom';
-import {getLocation} from './common';
+import {getLocation, getUserDisplayName} from './common';
 import {useAuthContext} from './Auth';
-import {PageUrl} from './Constants';
+import {PageUrl, QueryKeys} from './Constants';
+import {userInStorageFetch} from './api/fetches';
 
 const useStyles = makeStyles((theme) => ({
   avatar: {
@@ -34,6 +36,10 @@ const UserAvatar = React.memo(() => {
   const auth = useAuthContext();
   const location = useLocation();
   const history = useHistory();
+  const {data} = useQuery(QueryKeys.USER_IN_STORAGE, userInStorageFetch);
+  const displayName = data
+    ? getUserDisplayName(data.firstName, data.lastName)
+    : null;
   const classes = useStyles();
 
   const handleClick = (event) => {
@@ -45,7 +51,7 @@ const UserAvatar = React.memo(() => {
   };
 
   const getIdentifier = () => {
-    const [firstName, lastName] = auth.user.displayName.split(' ');
+    const {firstName, lastName} = data;
     return `${firstName.substring(0, 1).toUpperCase()}${lastName
       .substring(0, 1)
       .toUpperCase()}`;
@@ -57,9 +63,13 @@ const UserAvatar = React.memo(() => {
     );
   };
 
+  if (!data) {
+    return null;
+  }
+
   return (
     <>
-      <Tooltip title={`${auth.user.displayName} (You)`}>
+      <Tooltip title={displayName}>
         <IconButton
           aria-controls="userAvatar"
           aria-haspopup="true"
@@ -86,11 +96,14 @@ const UserAvatar = React.memo(() => {
         }}>
         <MenuItem
           component={RouterLink}
-          to={getLocation(PageUrl.PROFILE, location.search)}
+          to={getLocation(
+            `${PageUrl.SETTINGS}${PageUrl.PROFILE}`,
+            location.search
+          )}
           aria-label="Edit profile">
           <Box display="flex" flexDirection="column">
-            <span>{auth.user.displayName}</span>
-            <span>{auth.user.email}</span>
+            <span>{displayName}</span>
+            <span>{data.email}</span>
           </Box>
         </MenuItem>
         <Divider />

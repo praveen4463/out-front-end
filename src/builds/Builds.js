@@ -5,7 +5,6 @@ import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import Typography from '@material-ui/core/Typography';
-import Divider from '@material-ui/core/Divider';
 import {
   Switch,
   Route,
@@ -15,10 +14,8 @@ import {
 } from 'react-router-dom';
 import {filterSearchQuery, getLocation} from '../common';
 import {PageUrl, SearchKeys} from '../Constants';
-import ManageProjects from './ManageProjects';
 import useSnackbarAlert from '../hooks/useSnackbarAlert';
-import {ManagementSnackbarContext} from '../contexts';
-import NotFound from '../NotFound';
+import {BuildsSnackbarContext} from '../contexts';
 
 const useStyles = makeStyles((theme) => ({
   linkText: {
@@ -61,20 +58,15 @@ const Default = () => {
 
   return (
     <Box className={classes.defaultRoot}>
-      <Typography variant="h4">Zylitics management</Typography>
+      <Typography variant="h4">Finished Builds</Typography>
       <Typography variant="body1">
-        Manage projects, capabilities, variables, and more.
-      </Typography>
-      <Divider variant="fullWidth" className={classes.divider} />
-      <Typography variant="body2" color="textSecondary">
-        Left menu shows the list of available options, rest of the management is
-        available via IDE only (for now).
+        Here we will have all builds listed with various search options
       </Typography>
     </Box>
   );
 };
 
-const Management = () => {
+const Builds = () => {
   const location = useLocation();
   const {path, url} = useRouteMatch();
   const getSearchLocation = useMemo(
@@ -88,9 +80,9 @@ const Management = () => {
   ] = useSnackbarAlert();
   const classes = useStyles();
 
-  const getLink = (page, name) => (
+  const getLink = (pageUrl, name) => (
     <ListItemLink
-      to={getLocation(`${url}${page}`, getSearchLocation)}
+      to={getLocation(pageUrl, getSearchLocation)}
       aria-label={name}>
       <ListItemText
         primary={name}
@@ -110,25 +102,26 @@ const Management = () => {
           className={classes.linksContainer}
           component="nav">
           <List style={{padding: 0}}>
-            {getLink(PageUrl.PROJECTS, 'Projects')}
+            {getLink(PageUrl.BUILDS, 'Finished Builds')}
+            {getLink(`${url}${PageUrl.RUNNING_BUILDS}`, 'Running builds')}
+            {getLink(`${url}${PageUrl.CREATE}`, 'New build')}
           </List>
         </Box>
         <Box flex={1} display="flex" justifyContent="center">
-          <ManagementSnackbarContext.Provider
+          <BuildsSnackbarContext.Provider
             value={[setSnackbarAlertProps, setSnackbarAlertError]}>
             <Switch>
               <Route exact path={path}>
                 <Default />
               </Route>
-              <Route path={`${path}${PageUrl.PROJECTS}`}>
-                <ManageProjects />
+              <Route path={`${path}${PageUrl.RUNNING_BUILDS}`}>
+                <h1>Currently running builds...</h1>
               </Route>
-              <Route path="*">
-                {/* Keep this in the end of switch */}
-                <NotFound />
+              <Route path={`${path}${PageUrl.CREATE}`}>
+                <h1>New Build</h1>
               </Route>
             </Switch>
-          </ManagementSnackbarContext.Provider>
+          </BuildsSnackbarContext.Provider>
         </Box>
       </Box>
       {snackbarAlert}
@@ -136,4 +129,4 @@ const Management = () => {
   );
 };
 
-export default Management;
+export default Builds;

@@ -1,13 +1,22 @@
-import {useEffect} from 'react';
+import {useContext, useEffect} from 'react';
 import {useHistory, useLocation} from 'react-router-dom';
 import {useAuthContext} from '../Auth';
 import {getLocation} from '../common';
 import {PageUrl} from '../Constants';
+import {AppSnackbarContext} from '../contexts';
 
-const useRequiredAuth = (redirectTo = PageUrl.LOGIN) => {
+/**
+ * Redirects to a given url when there is no logged in user
+ * @param {() => any} beforeRedirectFn synchronous function to call before
+ * redirecting to url when there is no logged in user.
+ * @param {string} redirectTo Url of the page to redirect when there is no
+ * logged in user
+ */
+const useRequiredAuth = (beforeRedirectFn = null, redirectTo = null) => {
   const auth = useAuthContext();
   const history = useHistory();
   const location = useLocation();
+  const [setSnackbarAlertProps] = useContext(AppSnackbarContext);
 
   useEffect(() => {
     if (!auth.authStateLoaded) {
@@ -16,9 +25,22 @@ const useRequiredAuth = (redirectTo = PageUrl.LOGIN) => {
     }
     console.log('auth user', auth.user);
     if (!auth.user || auth.user.isAnonymous) {
-      history.push(getLocation(PageUrl.LOGIN, location.search, {location}));
+      if (beforeRedirectFn) {
+        beforeRedirectFn();
+      }
+      history.push(
+        getLocation(redirectTo || PageUrl.LOGIN, location.search, {location})
+      );
     }
-  }, [auth.authStateLoaded, auth.user, history, location, redirectTo]);
+  }, [
+    auth.authStateLoaded,
+    auth.user,
+    history,
+    location,
+    redirectTo,
+    setSnackbarAlertProps,
+    beforeRedirectFn,
+  ]);
 
   return auth;
 };

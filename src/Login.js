@@ -1,4 +1,10 @@
-import React, {useEffect, useState, useRef, useCallback} from 'react';
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useContext,
+} from 'react';
 import Box from '@material-ui/core/Box';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
@@ -12,7 +18,13 @@ import BlankCentered from './layouts/BlankCentered';
 import {useAuthContext} from './Auth';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
 import {PageUrl} from './Constants';
-import {getFromApiAndStoreUser} from './common';
+import {
+  getFromApiAndStoreUser,
+  handleApiError,
+  handleAuthError,
+} from './common';
+import Application from './config/application';
+import {AppSnackbarContext} from './contexts';
 
 const EMAIL = 'Email';
 const PWD = 'Password';
@@ -52,6 +64,9 @@ const Login = () => {
   const locationInState =
     location.state && location.state.location ? location.state.location : null;
   const userAlreadyLoggedInCheckedRef = useRef(false);
+  const [setSnackbarAlertProps, setSnackbarAlertError] = useContext(
+    AppSnackbarContext
+  );
 
   const classes = useStyles();
 
@@ -128,15 +143,41 @@ const Login = () => {
       return;
     }
     setLogging(true);
+    setSnackbarAlertProps(null); // reset any shown snackbars
     auth.signIn(
       input[EMAIL].trim(),
       input[PWD].trim(),
-      (user) => {
-        getFromApiAndStoreUser(user.email);
-        history.replace(locationInState || PageUrl.HOME);
-      },
       () => {
-        setLogInError('Incorrect email address or password');
+        // storing logging-in user's data is vital, thus we don't allow login
+        // until we've put user's data
+        getFromApiAndStoreUser(
+          () => history.replace(locationInState || PageUrl.HOME),
+          (ex) => {
+            handleApiError(ex, setSnackbarAlertError, "Couldn't finish login");
+            auth.signOut();
+          }
+        );
+      },
+      (ex) => {
+        let errorMsg = null;
+        const {code} = ex;
+        if (code === 'auth/user-disabled') {
+          errorMsg = `Your account is disabled, if you think this is an error or need help, write us at ${Application.SUPPORT_EMAIL}`;
+        } else if (
+          code === 'auth/invalid-email' ||
+          code === 'auth/user-not-found' ||
+          code === 'auth/wrong-password'
+        ) {
+          errorMsg = 'Incorrect email address or password';
+        } else if (code === 'auth/too-many-requests') {
+          errorMsg =
+            "Too many failed attempts, consider resetting password if you've forget it";
+        }
+        if (errorMsg) {
+          setLogInError(errorMsg);
+        } else {
+          handleAuthError(ex, setSnackbarAlertError);
+        }
         setLogging(false);
       }
     );
@@ -243,19 +284,19 @@ const Login = () => {
           </Button>
         </Box>
         {/* TODO: // enable once we are in paid trials and create signup page.
-        <Box pt={2} width="100%">
-          <Typography variant="body2">
-            New to Zylitics?{' '}
-            <Link
-              component={RouterLink}
-              to={PageUrl.SIGNUP}
-              aria-label="Create an account"
-              title="Create an account">
-              Create an account
-            </Link>
-          </Typography>
-        </Box>
-        */}
+          <Box pt={2} width="100%">
+            <Typography variant="body2">
+              New to Zylitics?{' '}
+              <Link
+                component={RouterLink}
+                to={PageUrl.SIGNUP}
+                aria-label="Create an account"
+                title="Create an account">
+                Create an account
+              </Link>
+            </Typography>
+          </Box>
+          */}
         {logging && (
           <Box position="absolute" top={0} left={0} width="100%">
             <LinearProgress color="secondary" />

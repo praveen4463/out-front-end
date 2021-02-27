@@ -2,24 +2,31 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {init} from '@sentry/react';
 import {Integrations} from '@sentry/tracing';
-import {ErrorBoundary} from 'react-error-boundary';
 import {ThemeProvider} from '@material-ui/core/styles';
 import {enableMapSet} from 'immer';
 import axios from 'axios';
 import {QueryClient, QueryClientProvider} from 'react-query';
 import {ReactQueryDevtools} from 'react-query/devtools';
+import firebase from 'firebase/app';
+import {BrowserRouter as Router} from 'react-router-dom';
+import localforage from 'localforage';
 import Application from './config/application';
-import RootErrorFallback, {rootErrorHandler} from './ErrorBoundary';
 import './index.css';
 import App from './App';
 import theme from './Themes';
-import 'fontsource-roboto/latin-300.css';
-import 'fontsource-roboto/latin-400.css';
-import 'fontsource-roboto/latin-500.css';
-import 'fontsource-roboto/latin-700.css';
-import 'fontsource-source-code-pro/latin-200.css';
-import 'fontsource-source-code-pro/latin-300.css';
-import 'fontsource-fira-mono/latin-400.css';
+import '@fontsource/roboto/latin-300.css';
+import '@fontsource/roboto/latin-400.css';
+import '@fontsource/roboto/latin-500.css';
+import '@fontsource/roboto/latin-700.css';
+import '@fontsource/source-code-pro/latin-200.css';
+import '@fontsource/source-code-pro/latin-300.css';
+import '@fontsource/fira-mono/latin-400.css';
+import '@fontsource/roboto/latin-300-italic.css';
+import '@fontsource/roboto/latin-400-italic.css';
+import '@fontsource/roboto/latin-500-italic.css';
+import '@fontsource/roboto/latin-700-italic.css';
+import '@fontsource/source-code-pro/latin-200-italic.css';
+import '@fontsource/source-code-pro/latin-300-italic.css';
 
 // **Immer
 // enable Map and Set ================================================
@@ -101,17 +108,37 @@ const queryClient = new QueryClient({
   },
 });
 
+// **LocalForage =======================================================================
+localforage.config({
+  name: 'ZyliticsLocalStorageDb',
+  version: 1.0,
+  storeName: 'ZyliticsLocalStorage', // Should be alphanumeric, with underscores.
+});
+
+// **Firebase
+const firebaseConfig = {
+  apiKey: 'AIzaSyDGDzeT2kbQxmdS_kCmjs4E4iZqOAU4ejQ',
+  authDomain: 'zl-front-end.firebaseapp.com',
+  projectId: 'zl-front-end',
+  storageBucket: 'zl-front-end.appspot.com',
+  messagingSenderId: '786012176086',
+  appId: '1:786012176086:web:a1434a98dd522440a6d377',
+  measurementId: 'G-KG989GGTNL',
+};
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
 ReactDOM.render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>
-      <ErrorBoundary
-        FallbackComponent={RootErrorFallback}
-        onError={rootErrorHandler}>
-        <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <Router>
           <App />
-          <ReactQueryDevtools initialIsOpen={false} />
-        </QueryClientProvider>
-      </ErrorBoundary>
+        </Router>
+        <ReactQueryDevtools initialIsOpen={false} />
+      </QueryClientProvider>
     </ThemeProvider>
   </React.StrictMode>,
   document.getElementById('root')

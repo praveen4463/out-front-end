@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import Box from '@material-ui/core/Box';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
@@ -29,6 +29,7 @@ import {
 } from './Constants';
 import {useAuthContext} from './Auth';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
+import Application from './config/application';
 
 const FNAME = 'First name';
 const LNAME = 'Last name';
@@ -88,7 +89,7 @@ const FinishSignup = () => {
   // prevent this effect run when we sign in user form here after account creation
   useEffect(() => {
     if (!emailVerificationResponse && auth.user && !auth.user.isAnonymous) {
-      captureMessage(`User ${auth.user.email} is already logged in and clicked
+      captureMessage(`User ${auth.user.id} is already logged in and clicked
       on some email with code ${code}, redirecting to home`);
       history.replace(PageUrl.HOME);
     }
@@ -141,12 +142,10 @@ const FinishSignup = () => {
           const {length} = value;
           if (!length) {
             errors[key] = `${key} is required`;
-          } else if (key === PWD) {
-            if (length < MIN_PWD_LENGTH) {
-              errors[
-                key
-              ] = `${PWD} must contain at least ${MIN_PWD_LENGTH} characters`;
-            }
+          } else if (key === PWD && length < MIN_PWD_LENGTH) {
+            errors[
+              key
+            ] = `${PWD} must contain at least ${MIN_PWD_LENGTH} characters`;
           }
         }
       });
@@ -208,12 +207,13 @@ const FinishSignup = () => {
         data: payload,
       },
       ({data}) => {
-        // Store extra user data in local storage by user's email not id. This
+        // Store extra user data in local storage. This
         // is done because firebase doesn't allow to store extra details with
         // user object. We can't put it as browser state because if user opens
         // up multiple tabs, we will have to fetch this data multiple times
         // whereas with local storage, we will fetch it on logins only.
-        // it will have to be re fetched only email/org_name update as well.
+        // it will have to be re fetched whenever some of it's data changes from
+        // profile page or email change etc.
         storeUserBuiltUsingApiData(data);
         // sign in user in firebase
         // don't handle firebase errors on sign in as there is almost no chance
@@ -237,14 +237,6 @@ const FinishSignup = () => {
       handleSave();
     }
   };
-
-  // create function once during re renders so that it will be called only on
-  // first render.
-  const focusOnMount = useCallback((field) => {
-    if (field !== null) {
-      field.focus();
-    }
-  }, []);
 
   if (!emailVerificationResponse && !emailVerificationError) {
     return <PageLoadingIndicator />;
@@ -287,7 +279,7 @@ const FinishSignup = () => {
                     inputProps: {tabIndex: '0'},
                   }}
                   onKeyUp={keyUpHandler}
-                  inputRef={focusOnMount}
+                  autoFocus
                   value={input[FNAME]}
                   onChange={handleChange(FNAME)}
                   error={Boolean(error[FNAME])}
@@ -382,14 +374,14 @@ const FinishSignup = () => {
                       htmlFor="terms">
                       I agree to the{' '}
                       <Link
-                        href="https://about.zylitics.io/terms"
+                        href={`${Application.ABOUT_ZYLITICS_URL}${Application.TERMS_PAGE}`}
                         rel="noopener"
                         target="_blank">
                         terms of service
                       </Link>{' '}
                       and{' '}
                       <Link
-                        href="https://about.zylitics.io/privacy"
+                        href={`${Application.ABOUT_ZYLITICS_URL}${Application.PRIVACY_PAGE}`}
                         rel="noopener"
                         target="_blank">
                         privacy policy

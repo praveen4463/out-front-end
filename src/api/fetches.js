@@ -1,6 +1,6 @@
 import axios from 'axios';
 import {Endpoints} from '../Constants';
-import {getNewIntlComparer} from '../common';
+import {getNewIntlComparer, getUserFromLocalStorage} from '../common';
 
 export const projectsFetch = () => {
   return axios(Endpoints.PROJECTS).then(({data}) => {
@@ -9,5 +9,11 @@ export const projectsFetch = () => {
     return p;
   });
 };
+
+export const userInStorageFetch = () =>
+  getUserFromLocalStorage().then((userInStorage) => userInStorage);
+
+export const userPlanFetch = () =>
+  axios(Endpoints.USER_PLAN).then(({data}) => data);
 
 export const files = () => {};

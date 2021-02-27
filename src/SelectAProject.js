@@ -2,7 +2,7 @@ import React, {useEffect} from 'react';
 import Box from '@material-ui/core/Box';
 import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
-import makeStyles from '@material-ui/styles/makeStyles';
+import {makeStyles} from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
 import ButtonBase from '@material-ui/core/ButtonBase';
 import Link from '@material-ui/core/Link';
@@ -20,6 +20,7 @@ import Loader from './components/Loader';
 import useRequiredAuth from './hooks/useRequiredAuth';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
 import useSnackbarAlert from './hooks/useSnackbarAlert';
+import UserAvatar from './UserAvatar';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -98,9 +99,10 @@ const SelectAProject = () => {
         flexDirection="column"
         alignItems="center"
         className={classes.root}>
-        <Box pt={5} pb={3}>
-          {getZyliticsLogo()}
+        <Box display="flex" justifyContent="flex-end" width="100%">
+          <UserAvatar />
         </Box>
+        <Box pb={3}>{getZyliticsLogo()}</Box>
         {isLoading ? (
           <Box width="100%">
             <Loader rows={4} />

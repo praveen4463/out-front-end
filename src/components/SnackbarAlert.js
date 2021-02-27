@@ -17,7 +17,7 @@ const useStyle = makeStyles((theme) => ({
   root: {
     backgroundColor: theme.palette.background.paper,
     color: theme.palette.background.contrastText,
-    borderTop: (props) => `2px solid ${props.borderColor}`,
+    borderTop: (props) => `4px solid ${props.borderColor}`,
     borderBottom: `1px solid ${theme.palette.border.light}`,
   },
   icon: {
@@ -26,7 +26,15 @@ const useStyle = makeStyles((theme) => ({
   },
 }));
 
-const SnackbarAlert = ({message, open, onClose, type, verPos, horPos}) => {
+const SnackbarAlert = ({
+  message,
+  open,
+  onClose,
+  type,
+  verPos,
+  horPos,
+  autoHideDuration,
+}) => {
   const theme = useTheme();
 
   const getBorderColor = () => {
@@ -72,12 +80,13 @@ const SnackbarAlert = ({message, open, onClose, type, verPos, horPos}) => {
   };
 
   const getAutoHideDuration = () => {
+    if (autoHideDuration) {
+      return autoHideDuration;
+    }
     switch (type) {
       case SnackbarType.ERROR:
-        return 30000;
-      case SnackbarType.WARNING:
         return 15000;
-      case SnackbarType.INFO:
+      case SnackbarType.WARNING:
         return 10000;
       default:
         return 5000;
@@ -87,13 +96,13 @@ const SnackbarAlert = ({message, open, onClose, type, verPos, horPos}) => {
   const getIcon = () => {
     switch (type) {
       case SnackbarType.ERROR:
-        return <ErrorIcon fontSize="small" className={classes.icon} />;
+        return <ErrorIcon fontSize="large" className={classes.icon} />;
       case SnackbarType.WARNING:
-        return <WarningIcon fontSize="small" className={classes.icon} />;
+        return <WarningIcon fontSize="large" className={classes.icon} />;
       case SnackbarType.SUCCESS:
-        return <SuccessIcon fontSize="small" className={classes.icon} />;
+        return <SuccessIcon fontSize="large" className={classes.icon} />;
       default:
-        return <InfoIcon fontSize="small" className={classes.icon} />;
+        return <InfoIcon fontSize="large" className={classes.icon} />;
     }
   };
 
@@ -110,9 +119,9 @@ const SnackbarAlert = ({message, open, onClose, type, verPos, horPos}) => {
         <SnackbarContent
           message={
             <>
-              <Box display="flex">
+              <Box display="flex" alignItems="center">
                 {getIcon()}
-                <Typography variant="body2">{message}</Typography>
+                <Typography variant="body1">{message}</Typography>
               </Box>
             </>
           }
@@ -141,11 +150,13 @@ SnackbarAlert.propTypes = {
   type: PropTypes.oneOf(Object.values(SnackbarType)),
   verPos: PropTypes.oneOf(Object.values(SnackbarVerPos)).isRequired,
   horPos: PropTypes.oneOf(Object.values(SnackbarHorPos)).isRequired,
+  autoHideDuration: PropTypes.number,
 };
 
 SnackbarAlert.defaultProps = {
   message: null,
   type: null,
+  autoHideDuration: null,
 };
 
 export default SnackbarAlert;

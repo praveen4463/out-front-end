@@ -1,4 +1,5 @@
-import React, {useEffect, useMemo} from 'react';
+import React, {useEffect, useMemo, useRef} from 'react';
+import Box from '@material-ui/core/Box';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import {makeStyles} from '@material-ui/core/styles';
@@ -22,7 +23,7 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.background.contrastText,
     textTransform: 'none',
     fontWeight: 500,
-    padding: theme.spacing(1.5),
+    padding: theme.spacing(0.5),
   },
   manageLink: {
     color: theme.palette.primary.main,
@@ -36,6 +37,7 @@ const ProjectSelector = () => {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const location = useLocation();
   const history = useHistory();
+  const buttonBoxRef = useRef(null);
   const [, snackbarAlert, setSnackbarAlertError] = useSnackbarAlert();
   const {data: projects, error, isFetching} = useQuery(
     QueryKeys.PROJECTS,
@@ -47,8 +49,8 @@ const ProjectSelector = () => {
     location.search
   );
 
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
+  const handleClick = () => {
+    setAnchorEl(buttonBoxRef.current);
   };
 
   const handleClose = () => {
@@ -97,13 +99,15 @@ const ProjectSelector = () => {
 
   return (
     <>
-      <Button
-        color="default"
-        endIcon={<ArrowDropDownIcon />}
-        className={classes.button}
-        onClick={handleClick}>
-        {selectedProject.name}
-      </Button>
+      <Box p={1} ref={buttonBoxRef}>
+        <Button
+          color="default"
+          endIcon={<ArrowDropDownIcon />}
+          className={classes.button}
+          onClick={handleClick}>
+          {selectedProject.name}
+        </Button>
+      </Box>
       <Menu
         id="projects"
         anchorEl={anchorEl}

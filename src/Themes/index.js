@@ -48,6 +48,12 @@ const lightTheme = createMuiTheme({
       active: 'rgba(0, 0, 0, 0.2)',
       activatedOpacity: 0.2,
     },
+    text: {
+      light: 'rgba(0, 0, 0, 0.38)',
+      medium: 'rgba(0, 0, 0, 0.6)',
+      main: `rgba(0, 0, 0, ${highEmphasisOpacity})`,
+      dark: 'rgba(0, 0, 0, 1)',
+    },
   },
   textOpacity: {
     highEmphasis: highEmphasisOpacity,

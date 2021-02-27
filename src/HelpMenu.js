@@ -13,6 +13,7 @@ import Slide from '@material-ui/core/Slide';
 import Tooltip from './TooltipCustom';
 import Issue from './components/Issue';
 import KeyShortcuts from './KeyShortcuts';
+import Application from './config/application';
 
 const useStyles = makeStyles((theme) => ({
   helpIcon: {
@@ -164,7 +165,7 @@ const HelpMenu = () => {
         </MenuItem>
         <MenuItem
           component="a"
-          href="https://docs.zylitics.io"
+          href={Application.DOCS_ZYLITICS_URL}
           rel="noopener"
           target="_blank"
           aria-label="Documentation">

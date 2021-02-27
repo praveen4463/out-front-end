@@ -15,9 +15,12 @@ import {
 } from 'react-router-dom';
 import {filterSearchQuery, getLocation} from '../common';
 import {PageUrl, SearchKeys} from '../Constants';
-import ManageProjects from './ManageProjects';
+import Profile from './Profile';
 import useSnackbarAlert from '../hooks/useSnackbarAlert';
-import {ManagementSnackbarContext} from '../contexts';
+import {SettingsSnackbarContext} from '../contexts';
+import Password from './Password';
+import Email from './Email';
+import Usage from './Usage';
 import NotFound from '../NotFound';
 
 const useStyles = makeStyles((theme) => ({
@@ -61,20 +64,19 @@ const Default = () => {
 
   return (
     <Box className={classes.defaultRoot}>
-      <Typography variant="h4">Zylitics management</Typography>
+      <Typography variant="h4">Zylitics settings</Typography>
       <Typography variant="body1">
-        Manage projects, capabilities, variables, and more.
+        Edit your profile, view or change billing, usage quotas, and more.
       </Typography>
       <Divider variant="fullWidth" className={classes.divider} />
       <Typography variant="body2" color="textSecondary">
-        Left menu shows the list of available options, rest of the management is
-        available via IDE only (for now).
+        Left menu shows the list of available options
       </Typography>
     </Box>
   );
 };
 
-const Management = () => {
+const Settings = () => {
   const location = useLocation();
   const {path, url} = useRouteMatch();
   const getSearchLocation = useMemo(
@@ -110,25 +112,50 @@ const Management = () => {
           className={classes.linksContainer}
           component="nav">
           <List style={{padding: 0}}>
-            {getLink(PageUrl.PROJECTS, 'Projects')}
+            {getLink(PageUrl.PROFILE, 'Profile')}
+            {/* Billing is currently hidden as there wouldn't be much to show
+            until we're into paid plans. Make sure only admins can access this link
+            Billing may show current plan, upgrade options, previous invoice etc */}
+            {/* getLink(PageUrl.BILLING, 'Billing') */}
+            {getLink(PageUrl.EMAIL, 'Email')}
+            {getLink(PageUrl.PASSWORD, 'Password')}
+            {getLink(PageUrl.USAGE_QUOTA, 'Usage Quotas')}
+            {/* Add members screen once we're in trials, can invite members,
+            see members in org, change their role and disable/delete members. TODO: add
+            members link then. Remember only admins can manage team members.
+            Once a member is disabled, we will disable it in firebase and db. For
+            now our queries don't have a check for user disable but firebase will
+            log out user once their authStateChange listener is run. We could also
+            user token revoke in near future to immediately log user out and they
+            won't be able to login and make requests then. When delete we will
+            delete form firebase and db both. */}
           </List>
         </Box>
         <Box flex={1} display="flex" justifyContent="center">
-          <ManagementSnackbarContext.Provider
+          <SettingsSnackbarContext.Provider
             value={[setSnackbarAlertProps, setSnackbarAlertError]}>
             <Switch>
               <Route exact path={path}>
                 <Default />
               </Route>
-              <Route path={`${path}${PageUrl.PROJECTS}`}>
-                <ManageProjects />
+              <Route path={`${path}${PageUrl.PROFILE}`}>
+                <Profile />
+              </Route>
+              <Route path={`${path}${PageUrl.PASSWORD}`}>
+                <Password />
+              </Route>
+              <Route path={`${path}${PageUrl.EMAIL}`}>
+                <Email />
+              </Route>
+              <Route path={`${path}${PageUrl.USAGE_QUOTA}`}>
+                <Usage />
               </Route>
               <Route path="*">
                 {/* Keep this in the end of switch */}
                 <NotFound />
               </Route>
             </Switch>
-          </ManagementSnackbarContext.Provider>
+          </SettingsSnackbarContext.Provider>
         </Box>
       </Box>
       {snackbarAlert}
@@ -136,4 +163,4 @@ const Management = () => {
   );
 };
 
-export default Management;
+export default Settings;

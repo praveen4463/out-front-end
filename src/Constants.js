@@ -293,6 +293,11 @@ export const Role = {
   DEVELOPER: 'DEVELOPER',
 };
 
+export const PlanType = {
+  FREE: 'FREE',
+  PAID: 'PAID',
+};
+
 export const PromptBehavior = {
   DISMISS: 'dismiss',
   ACCEPT: 'accept',
@@ -346,6 +351,8 @@ export const QueryKeys = {
   PROJECTS: 'projects',
   TEST_FILES: 'testFiles',
   BUILD_CAPABILITIES: 'buildCapabilities',
+  USER_IN_STORAGE: 'userInStorage',
+  USER_PLAN: 'userPlan',
 };
 
 export const PROJECT_ID_ENDPOINT_VAR_TEMPLATE = '{projectId}';
@@ -356,7 +363,6 @@ export const PLATFORM_ENDPOINT_VAR_TEMPLATE = '{platform}';
 export const CODE_ENDPOINT_VAR_TEMPLATE = '{code}';
 export const PASSWORD_RESET_ID_ENDPOINT_VAR_TEMPLATE = '{passwordResetId}';
 export const EMAIL_CHANGE_ID_ENDPOINT_VAR_TEMPLATE = '{emailChangeId}';
-export const EMAIL_ENDPOINT_VAR_TEMPLATE = '{email}';
 
 export const Endpoints = {
   USERS: '/users',
@@ -391,7 +397,9 @@ export const Endpoints = {
   ELEMENT_SHOT_NAMES: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getElementShotNames`,
   EMAIL_VERIFICATION: '/emailVerifications',
   VALIDATE_EMAIL_VERIFICATION: `/emailVerifications/${CODE_ENDPOINT_VAR_TEMPLATE}/validate`,
-  SINGLE_USER: `/users/${EMAIL_ENDPOINT_VAR_TEMPLATE}`,
+  SINGLE_USER: `/users/current`,
+  USER_PLAN: `/users/current/getUserPlan`,
+  UPDATE_USER_PROFILE: `/users/current/updateUserProfile`,
   SEND_PASSWORD_RESET: '/passwordResets',
   VALIDATE_PASSWORD_RESET: `/passwordResets/${CODE_ENDPOINT_VAR_TEMPLATE}/validate`,
   RESET_PASSWORD: `/passwordResets/${PASSWORD_RESET_ID_ENDPOINT_VAR_TEMPLATE}/resetPassword`,
@@ -419,6 +427,8 @@ export const BuildSourceType = {
 
 export const PageUrl = {
   HOME: '/',
+  BUILDS: '/builds',
+  RUNNING_BUILDS: '/running',
   LOGIN: '/login',
   SIGNUP: '/signup',
   FINISH_SIGNUP: '/finish-signup/:code',
@@ -428,7 +438,12 @@ export const PageUrl = {
   EMAIL_CHANGE: '/change-email/:code',
   IDE: '/ide',
   SETTINGS: '/settings',
-  PROFILE: '/settings/profile',
+  PROFILE: '/profile',
+  BILLING: '/billing',
+  MEMBERS: '/members',
+  USAGE_QUOTA: '/usage_quota',
+  PASSWORD: '/password',
+  EMAIL: '/email',
   MANAGEMENT: '/management',
   MANAGE_PROJECTS: '/management/projects',
   PROJECTS: '/projects',
@@ -441,7 +456,7 @@ export const PageUrl = {
 export const SearchKeys = {
   PROJECT_QS: 'project',
   FILE_QS: 'file',
-  FIRST_PROJECT: 'first_project',
+  RESET_ON_ERROR: 'reset_on_error',
 };
 
 export const SnackbarType = {

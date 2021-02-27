@@ -35,10 +35,10 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const Transition = React.forwardRef(function Transition(props, ref) {
+const Transition = React.forwardRef((props, ref) => (
   // eslint-disable-next-line react/jsx-props-no-spreading
-  return <Slide direction="down" ref={ref} {...props} />;
-});
+  <Slide direction="down" ref={ref} {...props} />
+));
 
 const TitleDialog = ({
   showDialog,

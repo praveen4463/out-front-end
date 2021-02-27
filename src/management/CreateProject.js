@@ -54,6 +54,10 @@ const useStyles = makeStyles((theme) => ({
     paddingBottom: theme.spacing(1.5),
     fontSize: '1rem',
   },
+  label: {
+    fontWeight: 600,
+    paddingBottom: theme.spacing(1),
+  },
 }));
 
 const CreateProject = () => {
@@ -235,62 +239,64 @@ const CreateProject = () => {
   }, [mutationLoading, setProgressAtTopBar]);
 
   return (
-    <>
-      <Box display="flex" flexDirection="column" className={classes.root}>
-        <Box pb={4}>
-          <Typography variant="h5">
-            {existProjectId ? 'Edit project' : 'Create a project'}
-          </Typography>
-        </Box>
-        <Box
-          className={classes.content}
-          p={6}
-          boxShadow={3}
-          width="60%"
-          display="flex"
-          flexDirection="column">
-          <Typography variant="body2" component="label" htmlFor="name">
-            Name
-          </Typography>
-          <TextField
-            value={name}
-            name="name"
-            id="name"
-            variant="outlined"
-            fullWidth
-            InputProps={{
-              classes: {input: classes.textField},
-              inputProps: {tabIndex: '0'},
-            }}
-            onChange={handleNameChange}
-            onKeyUp={keyUpHandler}
-            error={Boolean(nameError)}
-            helperText={nameError}
-            margin="none"
-            autoFocus
-          />
-        </Box>
-        <Box display="flex" pt={2}>
-          <Button
-            variant="contained"
-            color="secondary"
-            disabled={mutationLoading}
-            className={classes.buttonSave}
-            onClick={handleSave}>
-            {mutationLoading
-              ? `${existProjectId ? 'Updating' : 'Creating'} project...`
-              : `${existProjectId ? 'Update' : 'Create'} project`}
-          </Button>
-          <Button
-            variant="contained"
-            className={classes.buttonCancel}
-            disabled={mutationLoading}
-            onClick={handleCancel}>
-            Cancel
-          </Button>
-        </Box>
+    <Box display="flex" flexDirection="column" className={classes.root}>
+      <Box pb={4}>
+        <Typography variant="h5">
+          {existProjectId ? 'Edit project' : 'Create a project'}
+        </Typography>
       </Box>
-    </>
+      <Box
+        className={classes.content}
+        p={6}
+        boxShadow={3}
+        width="60%"
+        display="flex"
+        flexDirection="column">
+        <Typography
+          variant="body2"
+          component="label"
+          htmlFor="name"
+          className={classes.label}>
+          Name
+        </Typography>
+        <TextField
+          value={name}
+          name="name"
+          id="name"
+          variant="outlined"
+          fullWidth
+          InputProps={{
+            classes: {input: classes.textField},
+            inputProps: {tabIndex: '0'},
+          }}
+          onChange={handleNameChange}
+          onKeyUp={keyUpHandler}
+          error={Boolean(nameError)}
+          helperText={nameError}
+          margin="none"
+          autoFocus
+        />
+      </Box>
+      <Box display="flex" pt={2}>
+        <Button
+          variant="contained"
+          color="secondary"
+          disabled={mutationLoading}
+          className={classes.buttonSave}
+          onClick={handleSave}>
+          {mutationLoading
+            ? `${existProjectId ? 'Updating' : 'Creating'} project...`
+            : `${existProjectId ? 'Update' : 'Create'} project`}
+        </Button>
+        <Button
+          variant="contained"
+          className={classes.buttonCancel}
+          disabled={mutationLoading}
+          onClick={handleCancel}>
+          Cancel
+        </Button>
+      </Box>
+    </Box>
   );
 };
 

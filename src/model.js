@@ -102,14 +102,17 @@ function BuildCapabilities(
   this.wdBrwStartMaximize = wdBrwStartMaximize;
 }
 
-// User is identified using email not id, to keep id out of storage
 function UserInLocalStorage(
+  firstName,
+  lastName,
   email,
   role,
   shotBucketSessionStorage,
   organizationId,
   organizationName
 ) {
+  this.firstName = firstName;
+  this.lastName = lastName;
   this.email = email;
   this.role = role;
   this.shotBucketSessionStorage = shotBucketSessionStorage;
@@ -121,12 +124,14 @@ function SnackbarAlertProps(
   message = null,
   type = null,
   verPos = null,
-  horPos = null
+  horPos = null,
+  autoHideDuration = null
 ) {
   this.message = message;
   this.type = type;
   this.verPos = verPos;
   this.horPos = horPos;
+  this.autoHideDuration = autoHideDuration;
 }
 
 export {BuildConfig, BuildCapabilities, UserInLocalStorage, SnackbarAlertProps};

@@ -7,5 +7,10 @@ const Application = {
   IMG_NAME_TEMPLATE,
   STATIC_ASSETS_URL_TEMPLATE: `https://storage.googleapis.com/zl-front/${IMG_NAME_TEMPLATE}`,
   ZYLITICS_ADMIN_EMAILS: ['admin@zylitics.io', 'praveen@zylitics.io'],
+  SUPPORT_EMAIL: 'support@zylitics.io', // TODO: create this email
+  ABOUT_ZYLITICS_URL: 'https://about.zylitics.io',
+  DOCS_ZYLITICS_URL: 'https://docs.zylitics.io',
+  TERMS_PAGE: '/terms',
+  PRIVACY_PAGE: '/privacy',
 };
 export default Application;

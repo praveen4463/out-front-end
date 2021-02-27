@@ -47,6 +47,9 @@ const useStyle = makeStyles((theme) => ({
   textColorInherit: {
     opacity: 'unset',
   },
+  scrollButtons: {
+    color: theme.palette.background.contrastText,
+  },
 }));
 
 const Editor = React.memo((props) => {
@@ -133,7 +136,11 @@ const Editor = React.memo((props) => {
               variant="scrollable"
               scrollButtons="auto"
               aria-label="tabbed layout of test versions"
-              classes={{root: classes.tabs, indicator: classes.indicator}}>
+              classes={{
+                root: classes.tabs,
+                indicator: classes.indicator,
+                scrollButtons: classes.scrollButtons,
+              }}>
               {tabs.maps.map((m) => getTab(m))}
             </Tabs>
           </Box>

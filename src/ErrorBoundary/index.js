@@ -7,7 +7,7 @@ import Link from '@material-ui/core/Link';
 import SvgIcon from '@material-ui/core/SvgIcon';
 import PropTypes from 'prop-types';
 import {captureException} from '@sentry/react';
-import {Link as RouterLink} from 'react-router-dom';
+import {Link as RouterLink, useHistory} from 'react-router-dom';
 import {PageUrl} from '../Constants';
 
 const useStyles = makeStyles((theme) => ({
@@ -43,7 +43,15 @@ export const rootErrorHandler = (error) => {
 
 // https://github.com/bvaughn/react-error-boundary#readme
 const RootErrorFallback = ({resetErrorBoundary}) => {
+  const history = useHistory();
   const classes = useStyles();
+
+  const handleToHome = () => {
+    resetErrorBoundary(); // invoke reset is essential otherwise boundary doesn't
+    // resets it's error state.
+    history.replace(PageUrl.HOME);
+  };
+
   return (
     <div
       className={classes.root}
@@ -90,8 +98,7 @@ const RootErrorFallback = ({resetErrorBoundary}) => {
           ) : null}
           <Button
             variant="contained"
-            component={RouterLink}
-            to={PageUrl.HOME}
+            onClick={handleToHome}
             className={classes.button}>
             Home
           </Button>

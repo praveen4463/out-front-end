@@ -18,7 +18,6 @@ import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import axios from 'axios';
 import {captureMessage} from '@sentry/react';
-import {useAuthContext} from '../Auth';
 import {IdeBuildContext, IdeDispatchContext, IdeLPContext} from './Contexts';
 import {LP_START, LP_END} from './actionTypes';
 import {ShotIdentifiers, OFFLINE_MSG} from '../Constants';
@@ -86,7 +85,6 @@ const LivePreview = ({closeHandler}) => {
   const [fullScreen, setFullScreen] = useState(false);
   const [statusMsg, setStatusMsg] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
-  const auth = useAuthContext();
   const previewExistedRef = useRef(
     Boolean(livePreview.runId && livePreview.runId === build.runId)
   );
@@ -406,12 +404,12 @@ const LivePreview = ({closeHandler}) => {
 
   const gatherDataAndStartPreview = useCallback(
     (latestShotIdentifier) => {
-      getUserFromLocalStorage(auth.user.email).then((user) => {
+      getUserFromLocalStorage().then((user) => {
         const shotUriTemplate = `${Application.STORAGE_HOST}/${user.shotBucketSessionStorage}/${shotNameTemplate}`;
         startPreview(shotUriTemplate, latestShotIdentifier);
       });
     },
-    [auth.user.email, shotNameTemplate, startPreview]
+    [shotNameTemplate, startPreview]
   );
 
   // start/resume preview for this build, this effect should run only on new

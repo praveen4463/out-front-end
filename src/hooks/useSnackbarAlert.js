@@ -7,9 +7,10 @@ const useSnackbarAlert = () => {
   const [snackbarAlertProps, setSnackbarAlertProps] = useState(
     new SnackbarAlertProps()
   );
+  const normalizedProps = snackbarAlertProps ?? new SnackbarAlertProps();
 
   const handleOnClose = useCallback(() => {
-    setSnackbarAlertProps(new SnackbarAlertProps());
+    setSnackbarAlertProps(null);
   }, []);
 
   // convenience function to set an error message without having to specify
@@ -20,13 +21,14 @@ const useSnackbarAlert = () => {
 
   const snackbarAlert = (
     <SnackbarAlert
-      key={snackbarAlertProps.message ?? ''}
-      message={snackbarAlertProps.message}
-      open={Boolean(snackbarAlertProps.message)}
+      key={normalizedProps.message ?? ''}
+      message={normalizedProps.message}
+      open={Boolean(normalizedProps.message)}
       onClose={handleOnClose}
-      type={snackbarAlertProps.type}
-      verPos={snackbarAlertProps.verPos || SnackbarVerPos.BOTTOM}
-      horPos={snackbarAlertProps.horPos || SnackbarHorPos.RIGHT}
+      type={normalizedProps.type}
+      verPos={normalizedProps.verPos || SnackbarVerPos.BOTTOM}
+      horPos={normalizedProps.horPos || SnackbarHorPos.RIGHT}
+      autoHideDuration={normalizedProps.autoHideDuration}
     />
   );
 

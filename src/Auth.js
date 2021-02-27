@@ -3,26 +3,26 @@ import firebase from 'firebase/app';
 import 'firebase/auth';
 import PropTypes from 'prop-types';
 import {AuthContext} from './contexts';
+import {MIN_PWD_LENGTH} from './Constants';
+import {handleAuthError} from './common';
 
-const firebaseConfig = {
-  apiKey: 'AIzaSyDGDzeT2kbQxmdS_kCmjs4E4iZqOAU4ejQ',
-  authDomain: 'zl-front-end.firebaseapp.com',
-  projectId: 'zl-front-end',
-  storageBucket: 'zl-front-end.appspot.com',
-  messagingSenderId: '786012176086',
-  appId: '1:786012176086:web:a1434a98dd522440a6d377',
-  measurementId: 'G-KG989GGTNL',
-};
-
-firebase.initializeApp(firebaseConfig);
-
-const useProvideAuth = (onSignIn, onSignOut) => {
+const useProvideAuth = (onSignIn, onSignOut, showGlobalError) => {
   const [user, setUser] = useState(null);
   const [authStateLoaded, setAuthStateLoaded] = useState(false);
   const tokenExpTimeSecsRef = useRef(null);
 
   const setTokenExpTimeSecsRef = (claims) => {
     tokenExpTimeSecsRef.current = claims.exp;
+  };
+
+  // if some method is called with no error handler, we will show error in global
+  // handler after catching it rather than throwing
+  const handlerOrShowGlobalError = (error, handler) => {
+    if (handler) {
+      handler(error);
+      return;
+    }
+    handleAuthError(error, showGlobalError);
   };
 
   // remember setting was removed because Session persistence of firebase only
@@ -51,16 +51,10 @@ const useProvideAuth = (onSignIn, onSignOut) => {
           }
         });
       })
-      .catch((error) => {
-        if (onError) {
-          onError(error);
-          return;
-        }
-        throw error;
-      });
+      .catch((error) => handlerOrShowGlobalError(error, onError));
   };
 
-  const signOut = (onSuccess = null) => {
+  const signOut = (onSuccess = null, onError = null) => {
     firebase
       .auth()
       .signOut()
@@ -70,7 +64,8 @@ const useProvideAuth = (onSignIn, onSignOut) => {
         if (onSuccess) {
           onSuccess();
         }
-      });
+      })
+      .catch((error) => handlerOrShowGlobalError(error, onError));
   };
 
   const signInAnonymously = (onSuccess = null, onError = null) => {
@@ -86,13 +81,7 @@ const useProvideAuth = (onSignIn, onSignOut) => {
           }
         });
       })
-      .catch((error) => {
-        if (onError) {
-          onError(error);
-          return;
-        }
-        throw error;
-      });
+      .catch((error) => handlerOrShowGlobalError(error, onError));
   };
 
   /**
@@ -106,13 +95,14 @@ const useProvideAuth = (onSignIn, onSignOut) => {
     currentPassword,
     newPassword,
     onSuccess = null,
-    onError = null
+    onError = null,
+    onFinally = null
   ) => {
     if (!user) {
       throw new TypeError('user is null');
     }
-    if (!newPassword || newPassword.trim().length < 6) {
-      throw new TypeError('New password must be 6+ chars');
+    if (!newPassword || newPassword.trim().length < MIN_PWD_LENGTH) {
+      throw new TypeError(`New password must be ${MIN_PWD_LENGTH}+ chars`);
     }
     // first re authenticate user
     const authCredentials = firebase.auth.EmailAuthProvider.credential(
@@ -130,53 +120,31 @@ const useProvideAuth = (onSignIn, onSignOut) => {
               onSuccess();
             }
           })
-          .catch((error) => {
-            if (onError) {
-              onError(error);
-            }
-          });
+          .catch((error) => handleAuthError(error, showGlobalError));
       })
-      .catch((error) => {
-        if (onError) {
-          onError(error);
-          return;
+      .catch((error) => handlerOrShowGlobalError(error, onError))
+      .finally(() => {
+        if (onFinally) {
+          onFinally();
         }
-        throw error;
       });
   };
 
-  const updateName = (newName, onSuccess = null, onError = null) => {
-    if (!user) {
-      throw new TypeError('user is null');
-    }
-    user
-      .updateProfile({displayName: newName})
-      .then(() => {
-        if (onSuccess) {
-          onSuccess();
-        }
-      })
-      .catch((error) => {
-        if (onError) {
-          onError(error);
-          return;
-        }
-        throw error;
-      });
-  };
-
-  const getToken0 = (_user, onSuccess) => {
+  const getToken0 = (_user, onSuccess, onError = null) => {
     if (!_user) {
       throw new TypeError('user is null');
     }
-    _user.getIdTokenResult().then((res) => {
-      setTokenExpTimeSecsRef(res.claims);
-      onSuccess(res.token);
-    });
+    _user
+      .getIdTokenResult()
+      .then((res) => {
+        setTokenExpTimeSecsRef(res.claims);
+        onSuccess(res.token);
+      })
+      .catch((error) => handlerOrShowGlobalError(error, onError));
   };
 
-  const getToken = (onSuccess) => {
-    getToken0(user, onSuccess);
+  const getToken = (onSuccess, onError = null) => {
+    getToken0(user, onSuccess, onError);
   };
 
   /**
@@ -185,8 +153,8 @@ const useProvideAuth = (onSignIn, onSignOut) => {
    * @param _user_ Firebase user
    * @param onSuccess Callback to invoke on success
    */
-  const getTokenOfUser = (_user_, onSuccess) => {
-    getToken0(_user_, onSuccess);
+  const getTokenOfUser = (_user_, onSuccess, onError = null) => {
+    getToken0(_user_, onSuccess, onError);
   };
 
   // Whenever user is signed in or out, this observer gets invoked and reset the
@@ -208,12 +176,14 @@ const useProvideAuth = (onSignIn, onSignOut) => {
       // just call onSignOut, set user to null and mark authState loaded
       if (u) {
         if (!u.isAnonymous) {
-          u.getIdTokenResult().then((res) => {
-            setTokenExpTimeSecsRef(res.claims);
-            onSignIn(u.uid, res.token, u.email);
-            setUser(u);
-            setAuthStateLoaded(true);
-          });
+          u.getIdTokenResult()
+            .then((res) => {
+              setTokenExpTimeSecsRef(res.claims);
+              onSignIn(u.uid, res.token, u.email);
+              setUser(u);
+              setAuthStateLoaded(true);
+            })
+            .catch((error) => handleAuthError(error, showGlobalError));
         }
         return;
       }
@@ -222,7 +192,7 @@ const useProvideAuth = (onSignIn, onSignOut) => {
       setAuthStateLoaded(true);
     });
     return () => unsubscribe(); // runs when component providing context is unmounted
-  }, [onSignIn, onSignOut]);
+  }, [onSignIn, onSignOut, showGlobalError]);
 
   return {
     user,
@@ -232,32 +202,33 @@ const useProvideAuth = (onSignIn, onSignOut) => {
     signOut,
     signInAnonymously,
     updatePassword,
-    updateName,
     getToken,
     getTokenOfUser,
   };
 };
 
 /**
- * onInit: (authContext) => any, must be a useCallback.
- * onSignIn: (uid, idToken, email) => any, must be a useCallback to keep observer
- * from creating more than once.
- * * onSignOut: () => any, must be a useCallback to keep observer
- * from creating more than once.
+ * @param {*} onInit (authContext) => any, must be a useCallback.
+ * @param {*} onSignIn (uid, idToken, email) => any, must be a useCallback
+ * @param {*} onSignOut () => any, must be a useCallback
+ * @param {*} showGlobalError () => any, function that can display user an error message on any page in the app, must be a useCallback
  */
-const ProvideAuth = React.memo(({children, onInit, onSignIn, onSignOut}) => {
-  const auth = useProvideAuth(onSignIn, onSignOut);
-  // whatever we send to onInit will be closed over, thus auth can't be sent as
-  // it changes on state change. Containers like ref or functions can be sent.
-  onInit(auth.getTokenOfUser, auth.tokenExpTimeSecsRef);
-  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
-});
+const ProvideAuth = React.memo(
+  ({children, onInit, onSignIn, onSignOut, showGlobalError}) => {
+    const auth = useProvideAuth(onSignIn, onSignOut, showGlobalError);
+    // whatever we send to onInit will be closed over, thus auth can't be sent as
+    // it changes on state change. Containers like ref or functions can be sent.
+    onInit(auth.getTokenOfUser, auth.tokenExpTimeSecsRef);
+    return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
+  }
+);
 
 ProvideAuth.propTypes = {
   children: PropTypes.node.isRequired,
   onInit: PropTypes.func.isRequired,
   onSignIn: PropTypes.func.isRequired,
   onSignOut: PropTypes.func.isRequired,
+  showGlobalError: PropTypes.func.isRequired,
 };
 
 /*

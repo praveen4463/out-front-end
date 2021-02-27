@@ -10,10 +10,9 @@ import {ThemeProvider, makeStyles} from '@material-ui/core/styles';
 import Backdrop from '@material-ui/core/Backdrop';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import {normalize} from 'normalizr';
-import {ErrorBoundary} from 'react-error-boundary';
 import {intersection} from 'lodash-es';
 import axios from 'axios';
-import {useLocation} from 'react-router-dom';
+import {useLocation, useHistory} from 'react-router-dom';
 import TopNavigation from './TopNavigation';
 import Content from './Content';
 import darkTheme from './Themes';
@@ -88,7 +87,6 @@ import dryReducer from './reducers/dry';
 import dryRunReducer from './reducers/dryRun';
 import parseReducer from './reducers/parse';
 import parseRunReducer from './reducers/parseRun';
-import RootErrorFallback, {rootErrorHandler} from '../ErrorBoundary';
 import {
   VarTypes,
   Browsers,
@@ -120,6 +118,7 @@ import {
   getNewBuildEndpoint,
   getStopBuildEndpoint,
   getBuildStatusEndpoint,
+  removeFromSearchQuery,
 } from '../common';
 import useRequiredAuth from '../hooks/useRequiredAuth';
 import PageLoadingIndicator from '../components/PageLoadingIndicator';
@@ -273,6 +272,7 @@ const Ide = () => {
   const [state, dispatch] = useReducer(ideRootReducer, initialState);
   const [loading, setLoading] = useState(false);
   const location = useLocation();
+  const history = useHistory();
   const pendingNewSessionRequest = useRef(false);
   const brvsRef = useRef(null);
   const buildIdRef = useRef(null);
@@ -363,17 +363,14 @@ const Ide = () => {
     setLoading(true);
 
     // get data from api via separate requests in parallel
-    const getFilesIdentifier = () => {
-      return axios(prepareEndpoint(Endpoints.FILES, pId));
-    };
+    const getFilesIdentifier = () =>
+      axios(prepareEndpoint(Endpoints.FILES, pId));
 
-    const getBuildVars = () => {
-      return axios(prepareEndpoint(Endpoints.BUILD_VARS, pId));
-    };
+    const getBuildVars = () =>
+      axios(prepareEndpoint(Endpoints.BUILD_VARS, pId));
 
-    const getGlobalVars = () => {
-      return axios(prepareEndpoint(Endpoints.GLOBAL_VARS, pId));
-    };
+    const getGlobalVars = () =>
+      axios(prepareEndpoint(Endpoints.GLOBAL_VARS, pId));
 
     const apiCalls = [getFilesIdentifier(), getBuildVars(), getGlobalVars()];
     // see if there is any file in qs
@@ -454,6 +451,42 @@ const Ide = () => {
       .finally(() => setLoading(false));
   }, [state.projectId, setSnackbarErrorMsg]);
 
+  // This effect checks whether an error boundary for ide was reset after an error,
+  // and if so, resets the state of ide.
+  useEffect(() => {
+    const resetOnError = getNumberParamFromUrl(
+      SearchKeys.RESET_ON_ERROR,
+      location.search
+    );
+    if (resetOnError !== 1) {
+      return;
+    }
+    // first reset state but keep projectId intact otherwise data won't fetch
+    // seeing project null
+    dispatch(
+      batchActions([
+        {
+          type: RESET_STATE,
+        },
+        {
+          type: SET_PROJECT,
+          payload: {projectId: projectIdInSearch},
+        },
+      ])
+    );
+    // remove reset param from search, do it before fetching data.
+    removeFromSearchQuery(location, history, SearchKeys.RESET_ON_ERROR);
+    // fetch data, the function doesn't invoke itself cause after the above
+    // dispatch completes, projectId remains unchanged.
+    loadDataPerProject(); // after state is reset, load data afresh
+  }, [
+    history,
+    loadDataPerProject,
+    location,
+    location.search,
+    projectIdInSearch,
+  ]);
+
   // Run an effect whenever projectId changes, this effectively runs the first
   // time IDE is loaded and every time project selector is used to switch to
   // different project. We load project specific files and variables.
@@ -520,15 +553,13 @@ const Ide = () => {
     let pendingTestProgressApiResponse = false;
     let waitingInternallyForErrorRecovery = false;
     let serverUnreachableErrorCount = 0;
-    const getSetErrorAction = (errorMsg) => {
-      return {
-        type: RUN_BUILD_UPDATE_BY_PROP,
-        payload: {
-          prop: 'error',
-          value: errorMsg,
-        },
-      };
-    };
+    const getSetErrorAction = (errorMsg) => ({
+      type: RUN_BUILD_UPDATE_BY_PROP,
+      payload: {
+        prop: 'error',
+        value: errorMsg,
+      },
+    });
     // invoke function every one second but send api request only after last
     // request is completed or wait for error recovery.
     return setInterval(() => {
@@ -1026,115 +1057,88 @@ const Ide = () => {
     runDry();
   }, [etVersions, runDry, state.dryRun, dryVersionIdsInSaveProgress]);
 
-  const handleErrorBoundaryReset = useCallback(() => {
-    // first reset state but keep projectId intact otherwise data won't fetch
-    // seeing project null
-    dispatch(
-      batchActions([
-        {
-          type: RESET_STATE,
-        },
-        {
-          type: SET_PROJECT,
-          payload: {projectId: state.projectId},
-        },
-      ])
-    );
-    // fetch data, the function doesn't invoke itself cause after the above
-    // dispatch completes, projectId remains unchanged. TODO: verify this behaviour
-    loadDataPerProject(); // after state is reset, load data afresh
-  }, [loadDataPerProject, state.projectId]);
-
   if (!auth.user) {
     return <PageLoadingIndicator loadingText="Loading IDE" />;
   }
 
   return (
     <ThemeProvider theme={darkTheme}>
-      <ErrorBoundary
-        FallbackComponent={RootErrorFallback}
-        onReset={handleErrorBoundaryReset}
-        onError={rootErrorHandler}>
-        <IdeDispatchContext.Provider value={dispatch}>
-          <IdeStateContext.Provider value={state}>
-            <IdeProjectIdContext.Provider value={state.projectId}>
-              <IdeFilesContext.Provider value={state.files}>
-                <IdeEditorContext.Provider value={state.editor}>
-                  <IdeVersionIdsCodeSaveInProgressContext.Provider
-                    value={state.versionIdsCodeSaveInProgress}>
-                    <IdeVarsContext.Provider value={state.vars}>
-                      <IdeBuildRunOngoingContext.Provider
-                        value={state.build.runOngoing}>
-                        <IdeDryRunConfigContext.Provider
-                          value={state.config.dry}>
-                          <IdeBuildContext.Provider value={state.build}>
-                            <IdeBuildConfigContext.Provider
-                              value={state.config.build}>
-                              <IdeBuildRunContext.Provider
-                                value={state.buildRun}>
-                                <IdeDryContext.Provider value={state.dry}>
-                                  <IdeDryRunContext.Provider
-                                    value={state.dryRun}>
-                                    <IdeDryRunOngoingContext.Provider
-                                      value={state.dry.runOngoing}>
-                                      <IdeParseRunOngoingContext.Provider
-                                        value={state.parse.runOngoing}>
-                                        <IdeParseContext.Provider
-                                          value={state.parse}>
-                                          <IdeParseRunContext.Provider
-                                            value={state.parseRun}>
-                                            <IdeCompletedBuildsContext.Provider
-                                              value={state.completedBuilds}>
-                                              <IdeLPContext.Provider
-                                                value={state.livePreview}>
+      <IdeDispatchContext.Provider value={dispatch}>
+        <IdeStateContext.Provider value={state}>
+          <IdeProjectIdContext.Provider value={state.projectId}>
+            <IdeFilesContext.Provider value={state.files}>
+              <IdeEditorContext.Provider value={state.editor}>
+                <IdeVersionIdsCodeSaveInProgressContext.Provider
+                  value={state.versionIdsCodeSaveInProgress}>
+                  <IdeVarsContext.Provider value={state.vars}>
+                    <IdeBuildRunOngoingContext.Provider
+                      value={state.build.runOngoing}>
+                      <IdeDryRunConfigContext.Provider value={state.config.dry}>
+                        <IdeBuildContext.Provider value={state.build}>
+                          <IdeBuildConfigContext.Provider
+                            value={state.config.build}>
+                            <IdeBuildRunContext.Provider value={state.buildRun}>
+                              <IdeDryContext.Provider value={state.dry}>
+                                <IdeDryRunContext.Provider value={state.dryRun}>
+                                  <IdeDryRunOngoingContext.Provider
+                                    value={state.dry.runOngoing}>
+                                    <IdeParseRunOngoingContext.Provider
+                                      value={state.parse.runOngoing}>
+                                      <IdeParseContext.Provider
+                                        value={state.parse}>
+                                        <IdeParseRunContext.Provider
+                                          value={state.parseRun}>
+                                          <IdeCompletedBuildsContext.Provider
+                                            value={state.completedBuilds}>
+                                            <IdeLPContext.Provider
+                                              value={state.livePreview}>
+                                              <div
+                                                style={{
+                                                  display: 'flex',
+                                                  flexDirection: 'column',
+                                                  height: '100%',
+                                                  margin: 0,
+                                                }}>
                                                 <div
                                                   style={{
                                                     display: 'flex',
-                                                    flexDirection: 'column',
-                                                    height: '100%',
-                                                    margin: 0,
+                                                    flex: '1 1 auto',
                                                   }}>
                                                   <div
                                                     style={{
-                                                      display: 'flex',
-                                                      flex: '1 1 auto',
+                                                      width: '100%',
+                                                      height: '100%',
+                                                      position: 'fixed',
+                                                      left: 0,
+                                                      right: 0,
+                                                      top: 0,
+                                                      bottom: 0,
                                                     }}>
-                                                    <div
-                                                      style={{
-                                                        width: '100%',
-                                                        height: '100%',
-                                                        position: 'fixed',
-                                                        left: 0,
-                                                        right: 0,
-                                                        top: 0,
-                                                        bottom: 0,
-                                                      }}>
-                                                      <TopNavigation />
-                                                      <Content />
-                                                    </div>
+                                                    <TopNavigation />
+                                                    <Content />
                                                   </div>
                                                 </div>
-                                              </IdeLPContext.Provider>
-                                            </IdeCompletedBuildsContext.Provider>
-                                          </IdeParseRunContext.Provider>
-                                        </IdeParseContext.Provider>
-                                      </IdeParseRunOngoingContext.Provider>
-                                    </IdeDryRunOngoingContext.Provider>
-                                  </IdeDryRunContext.Provider>
-                                </IdeDryContext.Provider>
-                              </IdeBuildRunContext.Provider>
-                            </IdeBuildConfigContext.Provider>
-                          </IdeBuildContext.Provider>
-                        </IdeDryRunConfigContext.Provider>
-                      </IdeBuildRunOngoingContext.Provider>
-                    </IdeVarsContext.Provider>
-                  </IdeVersionIdsCodeSaveInProgressContext.Provider>
-                </IdeEditorContext.Provider>
-              </IdeFilesContext.Provider>
-            </IdeProjectIdContext.Provider>
-          </IdeStateContext.Provider>
-        </IdeDispatchContext.Provider>
-      </ErrorBoundary>
+                                              </div>
+                                            </IdeLPContext.Provider>
+                                          </IdeCompletedBuildsContext.Provider>
+                                        </IdeParseRunContext.Provider>
+                                      </IdeParseContext.Provider>
+                                    </IdeParseRunOngoingContext.Provider>
+                                  </IdeDryRunOngoingContext.Provider>
+                                </IdeDryRunContext.Provider>
+                              </IdeDryContext.Provider>
+                            </IdeBuildRunContext.Provider>
+                          </IdeBuildConfigContext.Provider>
+                        </IdeBuildContext.Provider>
+                      </IdeDryRunConfigContext.Provider>
+                    </IdeBuildRunOngoingContext.Provider>
+                  </IdeVarsContext.Provider>
+                </IdeVersionIdsCodeSaveInProgressContext.Provider>
+              </IdeEditorContext.Provider>
+            </IdeFilesContext.Provider>
+          </IdeProjectIdContext.Provider>
+        </IdeStateContext.Provider>
+      </IdeDispatchContext.Provider>
       {snackbarTypeError}
       <Backdrop className={classes.backdrop} open={loading}>
         <CircularProgress color="primary" size="8rem" thickness={1} />

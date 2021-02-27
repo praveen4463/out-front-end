@@ -13,7 +13,7 @@ const useStyle = makeStyles((theme) => ({
   root: {
     backgroundColor: theme.palette.background.paper,
     color: theme.palette.background.contrastText,
-    borderTop: `2px solid ${theme.palette.error.dark}`,
+    borderTop: `4px solid ${theme.palette.error.dark}`,
     borderBottom: `1px solid ${theme.palette.border.light}`,
   },
 }));
@@ -41,13 +41,13 @@ const SnackbarTypeError = ({error, errorOn, setErrorClose}) => {
         <SnackbarContent
           message={
             <>
-              <Box display="flex">
+              <Box display="flex" alignItems="center">
                 <ErrorIcon
-                  fontSize="default"
+                  fontSize="large"
                   color="error"
                   style={{paddingRight: '8px'}}
                 />
-                <Typography variant="body2">{error}</Typography>
+                <Typography variant="body1">{error}</Typography>
               </Box>
             </>
           }

@@ -40,7 +40,8 @@ const setVersionLastRun = (draft, payload) => {
   ) {
     throw new Error('Insufficient arguments passed to setVersionLastRun.');
   }
-  if (!payload.output && !payload.error) {
+  // output could be null when run didn't have any
+  if (payload.output === undefined && !payload.error) {
     throw new Error('Insufficient arguments passed to setVersionLastRun.');
   }
   if (payload.error && !(payload.error instanceof LastRunError)) {

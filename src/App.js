@@ -1,30 +1,38 @@
 import React, {useCallback, Suspense, lazy} from 'react';
-import {ThemeProvider} from '@material-ui/core/styles';
 import axios from 'axios';
 import * as Sentry from '@sentry/react';
 import firebase from 'firebase/app';
 import 'firebase/auth';
-import {BrowserRouter as Router, Switch, Route} from 'react-router-dom';
+import {Switch, Route, useLocation, useHistory} from 'react-router-dom';
+import {ErrorBoundary} from 'react-error-boundary';
 import Home from './Home';
 import FinishSignup from './FinishSignup';
-import ErrorBoundary from './ErrorBoundary';
-import darkTheme from './ide/Themes';
-import lightTheme from './Themes';
 import {ProvideAuth} from './Auth';
 import NotFound from './NotFound';
 import Login from './Login';
 import SendBetaInvitations from './admin/SendBetaInvitations';
-import {PageUrl} from './Constants';
+import {PageUrl, SearchKeys} from './Constants';
 import ForgotPassword from './ForgotPassword';
 import ResetPassword from './ResetPassword';
-import Profile from './Profile';
-import {setAxiosAuthToken} from './common';
+import {addInSearchQuery, getLocation, setAxiosAuthToken} from './common';
 import SelectAProject from './SelectAProject';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
+import RootErrorFallback, {rootErrorHandler} from './ErrorBoundary';
+import useSnackbarAlert from './hooks/useSnackbarAlert';
+import {AppSnackbarContext} from './contexts';
+import ChangeEmail from './ChangeEmail';
 
 const Ide = lazy(() => import('./ide'));
 
 const App = () => {
+  const location = useLocation();
+  const history = useHistory();
+  const [
+    setSnackbarAlertProps,
+    snackbarAlert,
+    setSnackbarAlertError,
+  ] = useSnackbarAlert();
+
   const onInit = useCallback((getTokenOfUser, tokenExpTimeSecsRef) => {
     axios.interceptors.request.use((config) => {
       const user = firebase.auth().currentUser;
@@ -80,68 +88,88 @@ const App = () => {
     Sentry.setUser(null);
   }, []);
 
+  const sendToIdeWithReset = () => {
+    history.replace(
+      getLocation(
+        PageUrl.IDE,
+        addInSearchQuery(location.search, SearchKeys.RESET_ON_ERROR, 1)
+      )
+    );
+  };
+
   // !! List all root level url's here
   return (
-    <ProvideAuth onInit={onInit} onSignIn={onSignIn} onSignOut={onSignOut}>
-      <Router>
-        <Switch>
-          <Route path={PageUrl.SELECT_PROJECT}>
-            <SelectAProject />
-          </Route>
-          <Route path={PageUrl.LOGIN}>
-            <Login />
-          </Route>
-          <Route path={PageUrl.FINISH_SIGNUP}>
-            <FinishSignup />
-          </Route>
-          <Route path={PageUrl.REQUEST_RESET_PWD}>
-            <ForgotPassword />
-          </Route>
-          <Route path={PageUrl.RESET_PWD}>
-            <ResetPassword />
-          </Route>
-          <Route path={PageUrl.IDE}>
-            <Suspense
-              fallback={
-                <PageLoadingIndicator loadingText="Loading Zylitics IDE" />
-              }>
-              <Ide />
-            </Suspense>
-          </Route>
-          <Route path={PageUrl.PROFILE}>
-            <Profile />
-          </Route>
-          <Route exact path="/show-error-boundary-for-test-dark">
-            <ThemeProvider theme={darkTheme}>
-              <ErrorBoundary
-                resetErrorBoundary={() =>
-                  console.log('resetErrorBoundary invoked')
-                }
-              />
-            </ThemeProvider>
-          </Route>
-          <Route exact path="/show-error-boundary-for-test-light">
-            <ThemeProvider theme={lightTheme}>
-              <ErrorBoundary
-                resetErrorBoundary={() =>
-                  console.log('resetErrorBoundary invoked')
-                }
-              />
-            </ThemeProvider>
-          </Route>
-          <Route exact path="/admin/send-beta-invitations">
-            <SendBetaInvitations />
-          </Route>
-          <Route path={PageUrl.HOME}>
-            <Home />
-          </Route>
-          <Route path="*">
-            {/* Keep this in the end of switch */}
-            <NotFound />
-          </Route>
-        </Switch>
-      </Router>
-    </ProvideAuth>
+    <>
+      <ProvideAuth
+        onInit={onInit}
+        onSignIn={onSignIn}
+        onSignOut={onSignOut}
+        showGlobalError={setSnackbarAlertError}>
+        {/* on reset we will go to home page as there is currently no state to reset
+          It is hoped that the last error shouldn't occur going to empty home url
+          without anything in search */}
+        <ErrorBoundary
+          FallbackComponent={RootErrorFallback}
+          onReset={() => history.push(PageUrl.HOME)}
+          onError={rootErrorHandler}>
+          <AppSnackbarContext.Provider
+            value={[setSnackbarAlertProps, setSnackbarAlertError]}>
+            <Switch>
+              <Route path={PageUrl.SELECT_PROJECT}>
+                <SelectAProject />
+              </Route>
+              <Route path={PageUrl.LOGIN}>
+                <Login />
+              </Route>
+              <Route path={PageUrl.FINISH_SIGNUP}>
+                <FinishSignup />
+              </Route>
+              <Route path={PageUrl.REQUEST_RESET_PWD}>
+                <ForgotPassword />
+              </Route>
+              <Route path={PageUrl.RESET_PWD}>
+                <ResetPassword />
+              </Route>
+              <Route path={PageUrl.EMAIL_CHANGE}>
+                <ChangeEmail />
+              </Route>
+              <Route path={PageUrl.IDE}>
+                <Suspense
+                  fallback={
+                    <PageLoadingIndicator loadingText="Loading Zylitics IDE" />
+                  }>
+                  {/* Had to put boundary for ide here rather than inside it to
+                  catch error thrown at reducer level and those are not in components
+                  within ide. Due to outside, it take theme of root level which is fine
+                  and doesn't matter much.
+                  Make sure to put it inside suspense so that if IDE fails to load due
+                  to network error, the top level boundary is run rather than this otherwise
+                  this will try to go to IDE on 'retry' and we will have a recursive
+                  loop that will not end until ide could load. */}
+                  <ErrorBoundary
+                    FallbackComponent={RootErrorFallback}
+                    onReset={sendToIdeWithReset}
+                    onError={rootErrorHandler}>
+                    <Ide />
+                  </ErrorBoundary>
+                </Suspense>
+              </Route>
+              <Route exact path="/admin/send-beta-invitations">
+                <SendBetaInvitations />
+              </Route>
+              <Route path={PageUrl.HOME}>
+                <Home />
+              </Route>
+              <Route path="*">
+                {/* Keep this in the end of switch */}
+                <NotFound />
+              </Route>
+            </Switch>
+          </AppSnackbarContext.Provider>
+        </ErrorBoundary>
+      </ProvideAuth>
+      {snackbarAlert}
+    </>
   );
 };
 

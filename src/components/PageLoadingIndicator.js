@@ -51,10 +51,12 @@ const PageLoadingIndicator = ({loadingText}) => {
       {loadingText ? (
         <Container>
           <Box display="flex" flexDirection="column" alignItems="center">
-            <Box pt={5} pb={2}>
+            <Box mt={15} pt={2}>
               {getZyliticsLogo()}
             </Box>
-            <Typography variant="body1">{loadingText}</Typography>
+            <Typography variant="body1" color="textSecondary">
+              {loadingText}
+            </Typography>
           </Box>
         </Container>
       ) : null}

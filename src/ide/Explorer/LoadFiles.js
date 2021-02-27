@@ -1,6 +1,6 @@
 /* eslint-disable react/destructuring-assignment */
 /* eslint-disable react/jsx-props-no-spreading */
-import React, {useState, useContext, useEffect, useMemo} from 'react';
+import React, {useState, useContext, useEffect} from 'react';
 import PropTypes from 'prop-types';
 import SvgIcon from '@material-ui/core/SvgIcon';
 import {fade, makeStyles, withStyles} from '@material-ui/core/styles';
@@ -34,21 +34,17 @@ import TitleDialog from '../../components/TitleDialog';
 import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 import {EXP_LOAD_FILES} from '../actionTypes';
 
-const MinusSquare = (props) => {
-  return (
-    <SvgIcon fontSize="inherit" style={{width: 14, height: 14}} {...props}>
-      <path d="M22.047 22.074v0 0-20.147 0h-20.12v0 20.147 0h20.12zM22.047 24h-20.12q-.803 0-1.365-.562t-.562-1.365v-20.147q0-.776.562-1.351t1.365-.575h20.147q.776 0 1.351.575t.575 1.351v20.147q0 .803-.575 1.365t-1.378.562v0zM17.873 11.023h-11.826q-.375 0-.669.281t-.294.682v0q0 .401.294 .682t.669.281h11.826q.375 0 .669-.281t.294-.682v0q0-.401-.294-.682t-.669-.281z" />
-    </SvgIcon>
-  );
-};
+const MinusSquare = (props) => (
+  <SvgIcon fontSize="inherit" style={{width: 14, height: 14}} {...props}>
+    <path d="M22.047 22.074v0 0-20.147 0h-20.12v0 20.147 0h20.12zM22.047 24h-20.12q-.803 0-1.365-.562t-.562-1.365v-20.147q0-.776.562-1.351t1.365-.575h20.147q.776 0 1.351.575t.575 1.351v20.147q0 .803-.575 1.365t-1.378.562v0zM17.873 11.023h-11.826q-.375 0-.669.281t-.294.682v0q0 .401.294 .682t.669.281h11.826q.375 0 .669-.281t.294-.682v0q0-.401-.294-.682t-.669-.281z" />
+  </SvgIcon>
+);
 
-const PlusSquare = (props) => {
-  return (
-    <SvgIcon fontSize="inherit" style={{width: 14, height: 14}} {...props}>
-      <path d="M22.047 22.074v0 0-20.147 0h-20.12v0 20.147 0h20.12zM22.047 24h-20.12q-.803 0-1.365-.562t-.562-1.365v-20.147q0-.776.562-1.351t1.365-.575h20.147q.776 0 1.351.575t.575 1.351v20.147q0 .803-.575 1.365t-1.378.562v0zM17.873 12.977h-4.923v4.896q0 .401-.281.682t-.682.281v0q-.375 0-.669-.281t-.294-.682v-4.896h-4.923q-.401 0-.682-.294t-.281-.669v0q0-.401.281-.682t.682-.281h4.923v-4.896q0-.401.294-.682t.669-.281v0q.401 0 .682.281t.281.682v4.896h4.923q.401 0 .682.281t.281.682v0q0 .375-.281.669t-.682.294z" />
-    </SvgIcon>
-  );
-};
+const PlusSquare = (props) => (
+  <SvgIcon fontSize="inherit" style={{width: 14, height: 14}} {...props}>
+    <path d="M22.047 22.074v0 0-20.147 0h-20.12v0 20.147 0h20.12zM22.047 24h-20.12q-.803 0-1.365-.562t-.562-1.365v-20.147q0-.776.562-1.351t1.365-.575h20.147q.776 0 1.351.575t.575 1.351v20.147q0 .803-.575 1.365t-1.378.562v0zM17.873 12.977h-4.923v4.896q0 .401-.281.682t-.682.281v0q-.375 0-.669-.281t-.294-.682v-4.896h-4.923q-.401 0-.682-.294t-.281-.669v0q0-.401.281-.682t.682-.281h4.923v-4.896q0-.401.294-.682t.669-.281v0q.401 0 .682.281t.281.682v4.896h4.923q.401 0 .682.281t.281.682v0q0 .375-.281.669t-.682.294z" />
+  </SvgIcon>
+);
 
 function CloseSquare(props) {
   return (
@@ -205,11 +201,14 @@ const cloneFiles = (files) => {
   return clone;
 };
 
+const anyFilesExists = (files) =>
+  Boolean(files && Array.isArray(files.result) && files.result.length);
+
 const LoadFiles = React.memo(({showDialog, setShowDialog}) => {
   const dispatch = useContext(IdeDispatchContext);
   const projectId = useContext(IdeProjectIdContext);
   const filesFromContext = useContext(IdeFilesContext);
-  const files = useMemo(() => cloneFiles(filesFromContext), [filesFromContext]);
+  const [files, setFiles] = useState(null);
   const etFiles = files ? files.entities.files : null;
   const etTests = files ? files.entities.tests : null;
   const etVersions = files ? files.entities.versions : null;
@@ -218,18 +217,16 @@ const LoadFiles = React.memo(({showDialog, setShowDialog}) => {
   const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
   const [loading, setLoading] = useState(false);
   const [selectedFileIds, setSelectedFileIds] = useState(new Set());
-  const anyFiles = useMemo(
-    () => Boolean(files && Array.isArray(files.result) && files.result.length),
-    [files]
-  );
+  const anyFiles = anyFilesExists(files);
 
-  // Must run just once on load
+  // This effect set files by looking into what is in file context and in api
   useEffect(() => {
-    if (!anyFiles) {
+    if (!anyFilesExists(filesFromContext)) {
       return; // if there were no files at all, we don't have anything to load.
     }
-    const fileIdsNotLoaded = files.result.filter(
-      (fid) => !files.entities.files[fid].loadToTree
+    const cloned = cloneFiles(filesFromContext);
+    const fileIdsNotLoaded = cloned.result.filter(
+      (fid) => !cloned.entities.files[fid].loadToTree
     );
     if (!fileIdsNotLoaded.length) {
       return; // all files in editor, no data needs to be fetched.
@@ -265,16 +262,17 @@ const LoadFiles = React.memo(({showDialog, setShowDialog}) => {
         });
 
         const filesToLoad = normalize(filesWithTests, filesSchema);
-        Object.assign(files.entities.files, filesToLoad.entities.files);
-        Object.assign(files.entities.tests, filesToLoad.entities.tests);
-        Object.assign(files.entities.versions, filesToLoad.entities.versions);
+        Object.assign(cloned.entities.files, filesToLoad.entities.files);
+        Object.assign(cloned.entities.tests, filesToLoad.entities.tests);
+        Object.assign(cloned.entities.versions, filesToLoad.entities.versions);
+        setFiles(cloned);
       } catch (error) {
         handleApiError(error, setSnackbarErrorMsg, "Couldn't fetch files");
       }
     }
 
     getFiles();
-  }, [anyFiles, files, projectId, setSnackbarErrorMsg]);
+  }, [filesFromContext, projectId, setSnackbarErrorMsg]);
 
   const handleToggle = (e, nodeIds) => {
     if (e.target.getAttribute('type') !== 'checkbox') {

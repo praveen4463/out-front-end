@@ -210,7 +210,7 @@ const Default = () => {
         <Typography variant="h5">Projects</Typography>
       </Box>
       <Box pb={4}>
-        <Typography variant="body1">
+        <Typography variant="body1" color="textSecondary">
           Organize tests and builds into meaningful categories
         </Typography>
       </Box>
@@ -272,13 +272,11 @@ const Default = () => {
                     prepareRow(row);
                     return (
                       <TableRow {...row.getRowProps()} hover>
-                        {row.cells.map((cell) => {
-                          return (
-                            <TableCell {...cell.getCellProps()}>
-                              {cell.render('Cell')}
-                            </TableCell>
-                          );
-                        })}
+                        {row.cells.map((cell) => (
+                          <TableCell {...cell.getCellProps()}>
+                            {cell.render('Cell')}
+                          </TableCell>
+                        ))}
                       </TableRow>
                     );
                   })}
