@@ -96,6 +96,7 @@ const UserAvatar = React.memo(() => {
         }}>
         <MenuItem
           component={RouterLink}
+          onClick={handleClose}
           to={getLocation(
             `${PageUrl.SETTINGS}${PageUrl.PROFILE}`,
             location.search
@@ -109,6 +110,7 @@ const UserAvatar = React.memo(() => {
         <Divider />
         <MenuItem
           component={RouterLink}
+          onClick={handleClose}
           to={getLocation(PageUrl.SETTINGS, location.search)}
           aria-label="Settings">
           Settings

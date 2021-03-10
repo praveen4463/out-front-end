@@ -26,8 +26,8 @@ const lightTheme = createMuiTheme({
     },
     background: {
       paper: '#FFFFFF',
-      paperContrast: '#FFFFFF',
-      navigations: '#FFFFFF',
+      paperContrast: '#f7f7fa',
+      navigations: '#f7f7fa',
       panelClose: '#FFFFFF',
       default: '#f5f7fa',
       paperOnDefault: '#FFFFFF',
@@ -36,6 +36,7 @@ const lightTheme = createMuiTheme({
     },
     border: {
       light: 'rgba(0, 0, 0, 0.38)',
+      lightest: 'rgba(0, 0, 0, 0.10)',
       dark: 'rgba(0, 0, 0, 0.87)',
     },
     action: {

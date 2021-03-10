@@ -341,7 +341,7 @@ export const ShotIdentifiers = {
 };
 
 export const ASSET_UPLOAD_IN_PROGRESS_ERROR =
-  'Assets upload is still in progress, please try in sometime.';
+  'Assets upload is still in progress for this build, please check back in sometime.';
 export const MB_BYTES = 1048576; // (1 KB = 1024 bytes, 1MB = 1024 KB) https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file
 export const GCP_OBJECT_NAME_REGEX = /[\\/\s*[\]?#]|^\.$|^\.\.$/;
 export const GCP_OBJECT_NAME_ILLEGAL_CHARS_STRING =
@@ -353,6 +353,9 @@ export const QueryKeys = {
   BUILD_CAPABILITIES: 'buildCapabilities',
   USER_IN_STORAGE: 'userInStorage',
   USER_PLAN: 'userPlan',
+  BROWSERS: 'browsers',
+  COMPLETED_BUILDS_SUMMARY: 'completedBuildsSummary',
+  COMPLETED_BUILD_DETAILS: 'completedBuildDetails',
 };
 
 export const PROJECT_ID_ENDPOINT_VAR_TEMPLATE = '{projectId}';
@@ -371,6 +374,7 @@ export const Endpoints = {
   TEST_FILES: '/testFiles',
   ISSUE: '/issue',
   BUILD_CAPABILITIES: '/buildCapabilities',
+  BROWSERS: '/browsers',
   FILES: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/files`,
   FILES_WITH_TESTS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/files/getWithTests`,
   TESTS: '/tests',
@@ -382,12 +386,17 @@ export const Endpoints = {
   BUILD_VARS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/buildVars`,
   GLOBAL_VARS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/globalVars`,
   NEW_BUILD: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/builds`,
+  COMPLETED_BUILD_SUMMARY: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/builds/getCompletedBuildSummary`,
+  COMPLETED_BUILD_DETAILS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getCompletedBuildDetails`,
   STOP_BUILD: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/stopBuild`,
   BUILD_STATUS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/versions/${VERSION_ID_ENDPOINT_VAR_TEMPLATE}/getBuildStatusOutput`,
   LATEST_SHOT: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getLatestShot`,
   SHOT_BASIC_DETAILS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getShotBasicDetails`,
-  BROWSERS: `/platforms/${PLATFORM_ENDPOINT_VAR_TEMPLATE}/browsers`,
-  BASIC_BUILD_DETAILS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getBuildBasicDetails`,
+  BUILD_OUTPUT_DETAILS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getBuildOutputDetails`,
+  VERSION_OUTPUT_DETAILS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/versions/${VERSION_ID_ENDPOINT_VAR_TEMPLATE}/getVersionOutputDetails`,
+  CAPTURED_CODE: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/versions/${VERSION_ID_ENDPOINT_VAR_TEMPLATE}/getCapturedCode`,
+  RE_RUN_BUILD: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/reRun`,
+  PLATFORM_BROWSERS: `/platforms/${PLATFORM_ENDPOINT_VAR_TEMPLATE}/getBrowsers`,
   CAPTURED_BUILD_CAPABILITY: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getCapturedBuildCapability`,
   CAPTURED_BUILD_VARS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getCapturedBuildVars`,
   CAPTURED_GLOBAL_VARS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getCapturedGlobalVars`,
@@ -448,6 +457,7 @@ export const PageUrl = {
   MANAGE_PROJECTS: '/management/projects',
   PROJECTS: '/projects',
   CREATE: '/create',
+  GET: '/:id',
   UPDATE_WITHOUT_PARAM: '/update',
   UPDATE: '/update/:id',
   SELECT_PROJECT: '/select-project',
@@ -457,6 +467,14 @@ export const SearchKeys = {
   PROJECT_QS: 'project',
   FILE_QS: 'file',
   RESET_ON_ERROR: 'reset_on_error',
+  START_DATE: 'start_date',
+  END_DATE: 'end_date',
+  TEST_STATUS: 'test_status',
+  BROWSER_NAME: 'brw',
+  BROWSER_VERSION: 'brw_v',
+  OS: 'os',
+  BEFORE: 'before',
+  AFTER: 'after',
 };
 
 export const SnackbarType = {

@@ -134,4 +134,65 @@ function SnackbarAlertProps(
   this.autoHideDuration = autoHideDuration;
 }
 
-export {BuildConfig, BuildCapabilities, UserInLocalStorage, SnackbarAlertProps};
+function TestVersionDetails(
+  versionId,
+  versionName,
+  status,
+  timeTakenMillis,
+  fileName,
+  testName
+) {
+  this.versionId = versionId;
+  this.versionName = versionName;
+  this.status = status;
+  this.timeTakenMillis = timeTakenMillis;
+  this.fileName = fileName;
+  this.testName = testName;
+}
+
+function CompletedBuildDetailsObj(
+  buildId,
+  buildName,
+  finalStatus,
+  createDate,
+  testTimeMillis,
+  os,
+  browserName,
+  browserVersion,
+  resolution,
+  timezone,
+  buildCapsName,
+  shotBucket,
+  allDoneDate,
+  driverLogsAvailable,
+  perfLogsAvailable,
+  elemShotsAvailable,
+  testVersionDetailsList
+) {
+  this.buildId = buildId;
+  this.buildName = buildName;
+  this.finalStatus = finalStatus;
+  this.createDate = createDate;
+  this.testTimeMillis = testTimeMillis;
+  this.os = os;
+  this.browserName = browserName;
+  this.browserVersion = browserVersion;
+  this.resolution = resolution;
+  this.timezone = timezone;
+  this.buildCapsName = buildCapsName;
+  this.shotBucket = shotBucket;
+  this.allDoneDate = allDoneDate;
+  this.driverLogsAvailable = driverLogsAvailable;
+  this.perfLogsAvailable = perfLogsAvailable;
+  this.elemShotsAvailable = elemShotsAvailable;
+  this.testVersionDetailsList = testVersionDetailsList;
+}
+
+export {
+  BuildConfig,
+  BuildCapabilities,
+  UserInLocalStorage,
+  SnackbarAlertProps,
+  CompletedBuildDetailsObj,
+  TestVersionDetails,
+};

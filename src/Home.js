@@ -1,4 +1,4 @@
-import React, {useState, useMemo} from 'react';
+import React, {useState, useMemo, useEffect, useRef} from 'react';
 import Box from '@material-ui/core/Box';
 import Drawer from '@material-ui/core/Drawer';
 import clsx from 'clsx';
@@ -154,6 +154,8 @@ const Home = () => {
   const [keepSidebarOpen, setKeepSidebarOpen] = React.useState(true);
   const [open, setOpen] = React.useState(true);
   const [progress, setProgress] = useState(false);
+  const [progressValue, setProgressValue] = useState(0);
+  const progressTimerRef = useRef(null);
   const auth = useRequiredAuth();
   const location = useLocation();
   const getSearchLocation = useMemo(
@@ -161,6 +163,28 @@ const Home = () => {
     [location.search]
   );
   const classes = useStyles();
+
+  useEffect(() => {
+    if (!progress) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+      return undefined;
+    }
+    const timer = setInterval(() => {
+      setProgressValue((oldProgress) => {
+        if (oldProgress === 100) {
+          return 0;
+        }
+        const diff = Math.random() * 10;
+        return Math.min(oldProgress + diff, 100);
+      });
+    }, 500);
+    progressTimerRef.current = timer;
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [progress]);
 
   if (!auth.user) {
     return <PageLoadingIndicator />;
@@ -332,7 +356,11 @@ const Home = () => {
       {progress ? (
         <Box position="absolute" top={0} left={0} width="100%">
           <Toolbar variant="dense" />
-          <LinearProgress color="secondary" />
+          <LinearProgress
+            variant="determinate"
+            color="secondary"
+            value={progressValue}
+          />
         </Box>
       ) : null}
     </div>

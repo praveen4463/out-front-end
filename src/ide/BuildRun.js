@@ -51,10 +51,10 @@ import {
   versionsHaveLastParseStatus,
   getVersionsNoParseStatus,
   fillLastParseStatusAndGetFailed,
-  convertMillisIntoTimeText,
 } from './common';
 import useSnackbarAlert from '../hooks/useSnackbarAlert';
 import {SnackbarAlertProps} from '../model';
+import {convertMillisIntoTimeText} from '../buildsCommon';
 
 const useStyles = makeStyles((theme) => ({
   root: {

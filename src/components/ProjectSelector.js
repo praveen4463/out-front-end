@@ -30,6 +30,9 @@ const useStyles = makeStyles((theme) => ({
     textDecorationLine: 'underline',
     fontWeight: 700,
   },
+  endIcon: {
+    marginLeft: 0,
+  },
 }));
 
 // Remember react query default setting is 'fetch on window refocus'
@@ -41,7 +44,8 @@ const ProjectSelector = () => {
   const [, snackbarAlert, setSnackbarAlertError] = useSnackbarAlert();
   const {data: projects, error, isFetching} = useQuery(
     QueryKeys.PROJECTS,
-    projectsFetch
+    projectsFetch,
+    {staleTime: 5 * 60 * 1000}
   );
   const classes = useStyles();
   const projectId = getNumberParamFromUrl(
@@ -104,6 +108,7 @@ const ProjectSelector = () => {
           color="default"
           endIcon={<ArrowDropDownIcon />}
           className={classes.button}
+          classes={{endIcon: classes.endIcon}}
           onClick={handleClick}>
           {selectedProject.name}
         </Button>

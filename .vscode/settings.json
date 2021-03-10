@@ -9,6 +9,7 @@
     "describedby",
     "immer",
     "localforage",
-    "normalizr"
+    "normalizr",
+    "prefetch"
   ]
 }

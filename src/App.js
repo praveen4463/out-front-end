@@ -5,6 +5,8 @@ import firebase from 'firebase/app';
 import 'firebase/auth';
 import {Switch, Route, useLocation, useHistory} from 'react-router-dom';
 import {ErrorBoundary} from 'react-error-boundary';
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
 import Home from './Home';
 import FinishSignup from './FinishSignup';
 import {ProvideAuth} from './Auth';

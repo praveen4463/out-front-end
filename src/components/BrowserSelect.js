@@ -12,13 +12,13 @@ import axios from 'axios';
 import PropTypes from 'prop-types';
 import {FormHelperText} from '@material-ui/core';
 import useSnackbarTypeError from '../hooks/useSnackbarTypeError';
-import {Browsers} from '../Constants';
 import Browser from '../model';
 import {
   getBrowserDisplayName,
   getBrowserIcon as getBrowserIcon_,
-  getBrowsersEndpoint,
+  getPlatformBrowsersEndpoint,
   handleApiError,
+  transformApiBrowserData,
 } from '../common';
 
 const useStyles = makeStyles((theme) => ({
@@ -69,20 +69,8 @@ const BrowserSelect = React.memo(
     useEffect(() => {
       async function getBrowsers() {
         try {
-          const {data} = await axios(getBrowsersEndpoint(platform));
-          if (!data.length) {
-            throw new Error(
-              `${platform} has no browser, this shouldn't have happened`
-            );
-          }
-          const browserWiseData = {};
-          // api sends sorted names and versions
-          data.forEach((brw) => {
-            const name =
-              brw.name === 'internet explorer' ? Browsers.IE.VALUE : brw.name;
-            browserWiseData[name] = brw.versions;
-          });
-          setBrowserWiseVersions(browserWiseData);
+          const {data} = await axios(getPlatformBrowsersEndpoint(platform));
+          setBrowserWiseVersions(transformApiBrowserData(data));
         } catch (ex) {
           handleApiError(
             ex,

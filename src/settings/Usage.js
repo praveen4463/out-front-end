@@ -16,7 +16,7 @@ import {formatTimestamp} from '../utils';
 // TODO: this page is incomplete and built for just free plans. Once we enter
 // paid plans, put a button to upgrade plan (only admin), show extra minutes incurred,
 // and the pricing incurred for extra minutes etc. See gitlab or zapier for ref.
-const dateFormat = 'MMM dd, yyyy';
+const dateFormat = 'MMM dd, yyyy'; // https://date-fns.org/v2.18.0/docs/format
 
 const useStyles = makeStyles((theme) => ({
   root: {

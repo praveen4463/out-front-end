@@ -51,8 +51,8 @@ import {
   versionsHaveLastParseStatus,
   fillLastParseStatusAndGetFailed,
   getVersionsNoParseStatus,
-  convertMillisIntoTimeText,
 } from './common';
+import {convertMillisIntoTimeText} from '../buildsCommon';
 
 const useStyles = makeStyles((theme) => ({
   root: {

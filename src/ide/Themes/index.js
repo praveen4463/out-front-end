@@ -65,6 +65,12 @@ const darkTheme = createMuiTheme({
       activeBackground: '#646464',
       activeBackgroundText: '#fff',
     },
+    text: {
+      light: 'rgba(255, 255, 255, 0.38)',
+      medium: 'rgba(255, 255, 255, 0.6)',
+      main: `rgba(255, 255, 255, ${highEmphasisOpacity})`,
+      dark: 'rgba(255, 255, 255, 1)',
+    },
   },
   textOpacity: {
     highEmphasis: highEmphasisOpacity,

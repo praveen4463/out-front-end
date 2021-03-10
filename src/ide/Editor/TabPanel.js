@@ -72,8 +72,8 @@ import {
   getDryRunEndpoint,
 } from '../common';
 import {handleApiError, isBlank} from '../../common';
-import './material-darker.css';
-import './modes/zwl';
+import '../../codemirror/material-darker.css';
+import '../../codemirror/modes/zwl';
 
 const useStyle = makeStyles((theme) => ({
   root: {

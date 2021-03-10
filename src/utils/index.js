@@ -1,4 +1,11 @@
 import format from 'date-fns/format';
+import formatISO from 'date-fns/formatISO';
+
+const assertDate = (date) => {
+  if (!(date instanceof Date)) {
+    throw new TypeError('Expecting instance of Date');
+  }
+};
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Escaping
 const normalizeString = (s) => {
@@ -23,6 +30,9 @@ export const equalIgnoreCase = (v1, v2) => {
   return v1.toLowerCase() === v2.toLowerCase();
 };
 
+export const dateFromUnixEpochSec = (unixEpochSec) =>
+  new Date(unixEpochSec * 1000);
+
 /**
  * Formats a date
  * @param {Date} date The Date object
@@ -44,7 +54,30 @@ export const formatDate = (date, formatValue) => {
  * @param {string} formatValue Format as per https://date-fns.org/v2.17.0/docs/format
  */
 export const formatTimestamp = (unixEpochSec, formatValue) => {
-  return format(new Date(unixEpochSec * 1000), formatValue);
+  return format(dateFromUnixEpochSec(unixEpochSec), formatValue);
+};
+
+export const dateToUTCDateOnlyInISO = (date) => {
+  assertDate(date);
+  return formatISO(
+    new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    {representation: 'date'}
+  );
+};
+
+export const dateToDateOnlyISO = (date) => {
+  assertDate(date);
+  return formatISO(date, {representation: 'date'});
+};
+
+export const isoDateOnlyToDate = (isoDateOnly) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDateOnly)) {
+    throw new TypeError('Illegal ISO date string');
+  }
+  // don't use date parsing as it is uncertain whether derived date will be in UTC or
+  // local time zone. Just extract date parts to generate date in local timezone.
+  const [year, month, date] = isoDateOnly.split('-');
+  return new Date(year, month - 1, date);
 };
 
 export default normalizeString;

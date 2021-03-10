@@ -306,6 +306,21 @@ export const prepareEndpoint = (endpoint, projectId, pathVar) => {
 export const getNewBuildEndpoint = (projectId) =>
   Endpoints.NEW_BUILD.replace(PROJECT_ID_ENDPOINT_VAR_TEMPLATE, projectId);
 
+export const getCompletedBuildSummaryEndpoint = (projectId) =>
+  Endpoints.COMPLETED_BUILD_SUMMARY.replace(
+    PROJECT_ID_ENDPOINT_VAR_TEMPLATE,
+    projectId
+  );
+
+export const getCompletedBuildDetailsEndpoint = (buildId) =>
+  Endpoints.COMPLETED_BUILD_DETAILS.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  );
+
+export const reRunBuildEndpoint = (buildId) =>
+  Endpoints.RE_RUN_BUILD.replace(BUILD_ID_ENDPOINT_VAR_TEMPLATE, buildId);
+
 export const getStopBuildEndpoint = (buildId) =>
   Endpoints.STOP_BUILD.replace(BUILD_ID_ENDPOINT_VAR_TEMPLATE, buildId);
 
@@ -321,14 +336,26 @@ export const getLatestShotEndpoint = (buildId) =>
 export const getShotBasicDetailsEndpoint = (buildId) =>
   Endpoints.SHOT_BASIC_DETAILS.replace(BUILD_ID_ENDPOINT_VAR_TEMPLATE, buildId);
 
-export const getBrowsersEndpoint = (platform) =>
-  Endpoints.BROWSERS.replace(PLATFORM_ENDPOINT_VAR_TEMPLATE, platform);
-
-export const getBuildBasicDetailsEndpoint = (buildId) =>
-  Endpoints.BASIC_BUILD_DETAILS.replace(
+export const getBuildOutputDetailsEndpoint = (buildId) =>
+  Endpoints.BUILD_OUTPUT_DETAILS.replace(
     BUILD_ID_ENDPOINT_VAR_TEMPLATE,
     buildId
   );
+
+export const getVersionOutputDetailsEndpoint = (buildId, versionId) =>
+  Endpoints.VERSION_OUTPUT_DETAILS.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  ).replace(VERSION_ID_ENDPOINT_VAR_TEMPLATE, versionId);
+
+export const getCapturedCodeEndpoint = (buildId, versionId) =>
+  Endpoints.CAPTURED_CODE.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  ).replace(VERSION_ID_ENDPOINT_VAR_TEMPLATE, versionId);
+
+export const getPlatformBrowsersEndpoint = (platform) =>
+  Endpoints.PLATFORM_BROWSERS.replace(PLATFORM_ENDPOINT_VAR_TEMPLATE, platform);
 
 export const getCapturedBuildCapabilityEndpoint = (buildId) =>
   Endpoints.CAPTURED_BUILD_CAPABILITY.replace(
@@ -398,6 +425,20 @@ export const getFilesWithTests = (fileIds, projectId) =>
       fileIdsFilter: fileIds,
     },
   });
+
+export const transformApiBrowserData = (data) => {
+  if (!data.length) {
+    throw new Error("No browsers found, this shouldn't have happened");
+  }
+  const browserWiseData = {};
+  // api sends sorted names and versions
+  data.forEach((brw) => {
+    const name =
+      brw.name === 'internet explorer' ? Browsers.IE.VALUE : brw.name;
+    browserWiseData[name] = brw.versions;
+  });
+  return browserWiseData;
+};
 
 /**
  * Instantiate the given constructor using the given json, all properties in json will be assigned
@@ -538,12 +579,9 @@ export const updateInSearchQuery = (location, history, key, value) => {
   updateMultipleInSearchQuery(location, history, {[key]: value});
 };
 
-export const removeFromSearchQuery = (location, history, key) => {
+export const removeMultipleFromSearchQuery = (location, history, keys = []) => {
   const parsed = queryString.parse(location.search);
-  if (!parsed[key]) {
-    return;
-  }
-  delete parsed[key];
+  keys.forEach((k) => delete parsed[k]);
   history.push(
     getLocation(
       location.pathname,
@@ -551,6 +589,10 @@ export const removeFromSearchQuery = (location, history, key) => {
       location.state
     )
   );
+};
+
+export const removeFromSearchQuery = (location, history, key) => {
+  removeMultipleFromSearchQuery(location, history, [key]);
 };
 
 /**
@@ -569,10 +611,16 @@ export const filterSearchQuery = (search, filterKeys = []) => {
   return getParsedLocationStringified(newSearch);
 };
 
-export const addInSearchQuery = (search, key, value) => {
+export const addMultipleInSearchQuery = (search, map = {}) => {
   const parsed = queryString.parse(search);
-  parsed[key] = value;
+  Object.keys(map).forEach((k) => {
+    parsed[k] = map[k];
+  });
   return getParsedLocationStringified(parsed);
+};
+
+export const addInSearchQuery = (search, key, value) => {
+  return addMultipleInSearchQuery(search, {[key]: value});
 };
 
 export const setAxiosAuthToken = (token) => {
