@@ -8,12 +8,9 @@ import Typography from '@material-ui/core/Typography';
 import Slide from '@material-ui/core/Slide';
 import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
+import clsx from 'clsx';
 
 const useStyles = makeStyles((theme) => ({
-  menuIcon: {
-    opacity: theme.textOpacity.highEmphasis,
-    height: '100%',
-  },
   root: {
     backgroundColor: theme.palette.background.paperOnDefault,
     height: '90%',
@@ -23,6 +20,7 @@ const useStyles = makeStyles((theme) => ({
     margin: 0,
     padding: theme.spacing(2),
     borderBottom: `1px solid ${theme.palette.border.light}`,
+    backgroundColor: theme.palette.background.navigations,
   },
   closeButton: {
     position: 'absolute',
@@ -30,8 +28,8 @@ const useStyles = makeStyles((theme) => ({
     top: theme.spacing(1),
     color: theme.palette.grey[500],
   },
-  link: {
-    color: theme.palette.background.contrastText,
+  dlgContentNoPadding: {
+    padding: 0,
   },
 }));
 
@@ -42,51 +40,64 @@ const Transition = React.forwardRef((props, ref) => (
 
 const TitleDialog = ({
   showDialog,
-  setShowDialog,
+  closeDialog,
   title,
+  titleContent,
+  dlgContentNoPadding,
   maxWidth,
   children,
 }) => {
   const classes = useStyles();
-
-  const closeDlg = () => {
-    setShowDialog(false);
-  };
   return (
     <Dialog
       TransitionComponent={Transition}
-      onClose={closeDlg}
+      onClose={closeDialog}
       fullWidth
       maxWidth={maxWidth}
       open={showDialog}
       classes={{paper: classes.root}}>
       <DialogTitle
-        onClose={closeDlg}
+        onClose={closeDialog}
         disableTypography
         className={classes.dlgTitle}>
-        <Typography variant="h6">{title}</Typography>
-        <IconButton
-          aria-label="close"
-          className={classes.closeButton}
-          onClick={closeDlg}>
-          <CloseIcon titleAccess="Close" />
-        </IconButton>
+        {title ? (
+          <>
+            <Typography variant="h6">{title}</Typography>
+            <IconButton
+              aria-label="close"
+              className={classes.closeButton}
+              onClick={closeDialog}>
+              <CloseIcon titleAccess="Close" />
+            </IconButton>
+          </>
+        ) : (
+          titleContent || null
+        )}
       </DialogTitle>
-      <DialogContent>{children}</DialogContent>
+      <DialogContent
+        className={clsx(dlgContentNoPadding && classes.dlgContentNoPadding)}>
+        {children}
+      </DialogContent>
     </Dialog>
   );
 };
 
 TitleDialog.propTypes = {
   showDialog: PropTypes.bool.isRequired,
-  setShowDialog: PropTypes.func.isRequired,
+  closeDialog: PropTypes.func.isRequired,
+  title: PropTypes.string,
+  titleContent: PropTypes.node,
+  dlgContentNoPadding: PropTypes.bool,
   maxWidth: PropTypes.string,
-  title: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
+  children: PropTypes.node,
 };
 
 TitleDialog.defaultProps = {
+  title: null,
+  titleContent: null,
+  dlgContentNoPadding: false,
   maxWidth: 'lg',
+  children: null,
 };
 
 export default TitleDialog;

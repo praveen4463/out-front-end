@@ -150,7 +150,9 @@ const CompletedBuilds = ({closeHandler}) => {
           return;
         }
         const cbd = fromJson(CompletedBuildDetailsObj, data);
-        cbd.testVersionDetailsList.map((l) => fromJson(TestVersionDetails, l));
+        cbd.testVersionDetailsList = cbd.testVersionDetailsList.map((l) =>
+          fromJson(TestVersionDetails, l)
+        );
         setCurrentBuildDetail(cbd);
       } catch (error) {
         handleApiError(

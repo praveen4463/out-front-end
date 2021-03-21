@@ -1,4 +1,4 @@
-import React, {useState, useContext, useEffect, useMemo} from 'react';
+import React, {useState, useContext, useEffect, useRef} from 'react';
 import {useLocation, useParams, Link as RouterLink} from 'react-router-dom';
 import {useQuery} from 'react-query';
 import Box from '@material-ui/core/Box';
@@ -9,23 +9,21 @@ import Button from '@material-ui/core/Button';
 import axios from 'axios';
 import {
   ASSET_UPLOAD_IN_PROGRESS_ERROR,
+  BuildSourceType,
   QueryKeys,
   SnackbarHorPos,
   SnackbarType,
   SnackbarVerPos,
   TestStatus,
+  Timeouts,
 } from '../Constants';
 import {completedBuildDetailsFetch} from '../api/fetches';
-import {BuildsSnackbarContext} from '../contexts';
-import {fromJson, handleApiError, reRunBuildEndpoint} from '../common';
+import {AppSnackbarContext} from '../contexts';
+import {handleApiError, reRunBuildEndpoint} from '../common';
 import Loader from '../components/Loader';
-import {getTestResultPerStatus} from '../buildsCommon';
+import {getTestResultPerStatus, newSessionInBackground} from '../buildsCommon';
 import BuildStatusIconSet from '../components/BuildStatusIconSet';
-import {
-  SnackbarAlertProps,
-  CompletedBuildDetailsObj,
-  TestVersionDetails,
-} from '../model';
+import {SnackbarAlertProps} from '../model';
 import CompletedBuildDetails from '../components/CompletedBuildDetails';
 
 const useStyles = makeStyles((theme) => ({
@@ -57,23 +55,17 @@ const CompletedBuild = () => {
   const location = useLocation();
   const locationInState =
     location.state && location.state.location ? location.state.location : null;
-  const {data, error, isLoading} = useQuery(
+  const unmounted = useRef(false);
+  const {data: completeBuildDetails, error, isLoading} = useQuery(
     [QueryKeys.COMPLETED_BUILD_DETAILS, id],
     completedBuildDetailsFetch,
     {staleTime: 10000}
   );
+  // use app level snackbar, so that even if user goes away we should them the message
+  // about build start.
   const [setSnackbarAlertProps, setSnackbarAlertError] = useContext(
-    BuildsSnackbarContext
+    AppSnackbarContext
   );
-  // when there is no response body, api send empty string
-  const completeBuildDetails = useMemo(() => {
-    if (!data) {
-      return null;
-    }
-    const cbd = fromJson(CompletedBuildDetailsObj, data);
-    cbd.testVersionDetailsList.map((l) => fromJson(TestVersionDetails, l));
-    return cbd;
-  }, [data]);
   const classes = useStyles();
   // listens for builds loading error
   useEffect(() => {
@@ -82,14 +74,43 @@ const CompletedBuild = () => {
     }
   }, [error, setSnackbarAlertError]);
 
+  useEffect(() => {
+    return () => {
+      unmounted.current = true;
+    };
+  }, []);
+
+  const setNotRunningOnSessionError = () => {
+    if (unmounted.current) {
+      return;
+    }
+    setReRunning(false);
+  };
+
   const reRun = () => {
     setReRunSubmitted(true);
     axios
-      .post(reRunBuildEndpoint(id))
-      .then(({data: reRunData}) => {
+      .post(
+        reRunBuildEndpoint(id),
+        {buildSourceType: BuildSourceType.NOT_IDE},
+        {
+          timeout: Timeouts.API_TIMEOUT_SMALL,
+        }
+      )
+      .then(({data: reRunBuildId}) => {
+        // we got new buildId, let's begin new session and tell user it's running,
+        newSessionInBackground(
+          reRunBuildId,
+          completeBuildDetails.buildName,
+          setSnackbarAlertProps,
+          setNotRunningOnSessionError
+        );
         setSnackbarAlertProps(
           new SnackbarAlertProps(
-            `A new build # ${reRunData.buildId} successfully created and started. You can visit 'Running Builds' page to check the progress.`,
+            `A duplicate build # ${reRunBuildId} is successfully created and a` +
+              ' new machine is getting up for running it.' +
+              " Starting a new machine may take upto two minutes. Please visit 'Running Builds' page to" +
+              ' check the progress.',
             SnackbarType.SUCCESS,
             SnackbarVerPos.TOP,
             SnackbarHorPos.CENTER,
@@ -112,12 +133,10 @@ const CompletedBuild = () => {
         );
       })
       .finally(() => setReRunSubmitted(false));
-    // send api request.
-    setReRunning(true);
   };
 
   const getNoDataMessage = (msg) => (
-    <Box textAlign="center" fontSize="body1.fontSize" fontWeight={500} pt={10}>
+    <Box textAlign="center" fontSize="body1.fontSize" fontWeight={500} pt={2}>
       {msg}
     </Box>
   );
@@ -152,7 +171,7 @@ const CompletedBuild = () => {
   return (
     <Box display="flex" flexDirection="column" className={classes.root}>
       {isLoading ? (
-        <Box pt={6}>
+        <Box pt={1}>
           <Loader rows={4} />
         </Box>
       ) : null}
@@ -161,11 +180,7 @@ const CompletedBuild = () => {
             'Either you are looking at an invalid build or the build is not yet completed.'
           )
         : null}
-      {/* There is data but not allDoneDate */}
-      {completeBuildDetails && !completeBuildDetails.allDoneDate
-        ? getNoDataMessage(ASSET_UPLOAD_IN_PROGRESS_ERROR)
-        : null}
-      {completeBuildDetails?.allDoneDate ? (
+      {completeBuildDetails ? (
         <>
           <Box
             display="flex"
@@ -209,9 +224,14 @@ const CompletedBuild = () => {
             </Box>
             {getBuildStatusIconSet(completeBuildDetails.testVersionDetailsList)}
           </Box>
-          <CompletedBuildDetails
-            completedBuildDetailsObj={completeBuildDetails}
-          />
+          {/* if allDoneDate isn't there, show an error */}
+          {!completeBuildDetails.allDoneDate ? (
+            getNoDataMessage(ASSET_UPLOAD_IN_PROGRESS_ERROR)
+          ) : (
+            <CompletedBuildDetails
+              completedBuildDetailsObj={completeBuildDetails}
+            />
+          )}
         </>
       ) : null}
     </Box>

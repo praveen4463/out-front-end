@@ -356,6 +356,9 @@ export const QueryKeys = {
   BROWSERS: 'browsers',
   COMPLETED_BUILDS_SUMMARY: 'completedBuildsSummary',
   COMPLETED_BUILD_DETAILS: 'completedBuildDetails',
+  RUNNING_BUILDS: 'runningBuilds',
+  RUNNING_BUILD_SUMMARY: 'runningBuildSummary',
+  BUILD_OUTPUT: 'buildOutput',
 };
 
 export const PROJECT_ID_ENDPOINT_VAR_TEMPLATE = '{projectId}';
@@ -386,8 +389,13 @@ export const Endpoints = {
   BUILD_VARS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/buildVars`,
   GLOBAL_VARS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/globalVars`,
   NEW_BUILD: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/builds`,
+  NEW_BUILD_WITHOUT_SESSION: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/builds/newBuildWithoutSession`,
+  RE_RUN_BUILD: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/reRun`,
+  NEW_SESSION: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/newSession`,
   COMPLETED_BUILD_SUMMARY: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/builds/getCompletedBuildSummary`,
   COMPLETED_BUILD_DETAILS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getCompletedBuildDetails`,
+  RUNNING_BUILDS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/builds/getRunningBuilds`,
+  RUNNING_BUILD_SUMMARY: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getRunningBuildSummary`,
   STOP_BUILD: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/stopBuild`,
   BUILD_STATUS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/versions/${VERSION_ID_ENDPOINT_VAR_TEMPLATE}/getBuildStatusOutput`,
   LATEST_SHOT: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getLatestShot`,
@@ -395,7 +403,6 @@ export const Endpoints = {
   BUILD_OUTPUT_DETAILS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getBuildOutputDetails`,
   VERSION_OUTPUT_DETAILS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/versions/${VERSION_ID_ENDPOINT_VAR_TEMPLATE}/getVersionOutputDetails`,
   CAPTURED_CODE: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/versions/${VERSION_ID_ENDPOINT_VAR_TEMPLATE}/getCapturedCode`,
-  RE_RUN_BUILD: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/reRun`,
   PLATFORM_BROWSERS: `/platforms/${PLATFORM_ENDPOINT_VAR_TEMPLATE}/getBrowsers`,
   CAPTURED_BUILD_CAPABILITY: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getCapturedBuildCapability`,
   CAPTURED_BUILD_VARS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getCapturedBuildVars`,

@@ -45,17 +45,6 @@ const TestProgress = {
   API_ERRORS_BEFORE_BAIL_OUT: 6,
 };
 
-const LivePreviewConstants = {
-  POLL_TIME_WHEN_NOT_FOUND: 500,
-  MAX_POLL_AFTER_NOT_FOUND: 20, // precisely set to large value, sometimes the
-  // first shot takes time to come, delays such as opening browser, maximizing
-  // window etc, slow connection
-  OFFLINE_RECOVERY_TIME: 30000,
-  ERROR_SHOT_FOUND_TEXT:
-    "There was an error generating live preview. We've been notified and working on getting it fixed.",
-  COMPLETION_TEXT: 'Live preview has been ended.',
-};
-
 const PARSE_SUCCESS_MSG = 'Parsing completed, no problems found';
 
 export {
@@ -69,5 +58,4 @@ export {
   ZwlLexer,
   TestProgress,
   PARSE_SUCCESS_MSG,
-  LivePreviewConstants,
 };

@@ -70,6 +70,7 @@ import {convertMillisIntoTimeText} from '../buildsCommon';
 import CompletedBuild from './CompletedBuild';
 import BuildStatusIconSet from '../components/BuildStatusIconSet';
 import BuildStatusIcon from '../components/BuildStatusIcon';
+import RunningBuilds from './RunningBuilds';
 
 const ALL = 'ALL';
 
@@ -310,7 +311,7 @@ const Default = ({url}) => {
     () => getNumberParamFromUrl(SearchKeys.PROJECT_QS, location.search),
     [location.search]
   );
-  const viewBuildQuery = useMemo(
+  const separatePageQuery = useMemo(
     () => addInSearchQuery('', SearchKeys.PROJECT_QS, projectId),
     [projectId]
   );
@@ -715,7 +716,7 @@ const Default = ({url}) => {
       }
     } else if (minutes > 0) {
       identifier = 'minute';
-      total = hours;
+      total = minutes;
       if (seconds >= 50) {
         total += 1;
       }
@@ -732,8 +733,18 @@ const Default = ({url}) => {
 
   return (
     <Box display="flex" flexDirection="column" className={classes.root}>
-      <Box pb={2}>
-        <Typography variant="h4">Finished Builds</Typography>
+      <Box pb={2} display="flex" alignItems="center">
+        <Typography variant="h4">Completed Builds</Typography>
+        <Box flex={1} />
+        <Button
+          variant="contained"
+          color="secondary"
+          component={RouterLink}
+          to={getLocation(`${url}${PageUrl.CREATE}`, separatePageQuery, {
+            location,
+          })}>
+          Create New Build
+        </Button>
       </Box>
       <Box pb={4} display="flex">
         <Box mr={1}>
@@ -953,7 +964,7 @@ const Default = ({url}) => {
           ? completedBuildsSummary.map((bs) => (
               <ButtonBase
                 component={RouterLink}
-                to={getLocation(`${url}/${bs.buildId}`, viewBuildQuery, {
+                to={getLocation(`${url}/${bs.buildId}`, separatePageQuery, {
                   location,
                 })}
                 key={bs.buildId}>
@@ -1083,7 +1094,7 @@ const Builds = () => {
           className={classes.linksContainer}
           component="nav">
           <List style={{padding: 0}}>
-            {getLink(url, 'Finished Builds')}
+            {getLink(url, 'Completed builds')}
             {getLink(`${url}${PageUrl.RUNNING_BUILDS}`, 'Running builds')}
             {getLink(`${url}${PageUrl.CREATE}`, 'New build')}
           </List>
@@ -1096,10 +1107,7 @@ const Builds = () => {
                 <Default url={url} />
               </Route>
               <Route path={`${path}${PageUrl.RUNNING_BUILDS}`}>
-                <h1>Currently running builds...</h1>
-              </Route>
-              <Route path={`${path}${PageUrl.RUNNING_BUILDS}${PageUrl.GET}`}>
-                <h1>Running build details</h1>
+                <RunningBuilds />
               </Route>
               <Route path={`${path}${PageUrl.CREATE}`}>
                 <h1>New Build</h1>

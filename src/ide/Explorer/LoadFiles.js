@@ -317,7 +317,7 @@ const LoadFiles = React.memo(({showDialog, setShowDialog}) => {
   return (
     <TitleDialog
       showDialog={showDialog}
-      setShowDialog={setShowDialog}
+      closeDialog={handleCancel}
       title="Load Files">
       {loading ? <Loader rows={6} /> : null}
       {!loading && anyFiles ? (

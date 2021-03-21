@@ -22,6 +22,7 @@ const CodeViewer = ({rawCode}) => {
         id="output"
         className="CodeMirror cm-s-material-darker"
         ref={outputRef}
+        style={{padding: '16px', overflow: 'auto'}}
       />
     </Box>
   );

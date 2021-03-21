@@ -4,8 +4,11 @@ import SuccessIcon from '@material-ui/icons/Check';
 import FailureIcon from '@material-ui/icons/HighlightOff';
 import StopIcon from '@material-ui/icons/Stop';
 import AbortedIcon from '@material-ui/icons/NotInterested';
+import YetToRunIcon from '@material-ui/icons/FiberManualRecord';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import PropTypes from 'prop-types';
 import {TestStatus} from '../Constants';
+import {YET_TO_RUN} from '../buildsCommon';
 
 const BuildStatusIcon = ({status, className}) => {
   const theme = useTheme();
@@ -44,6 +47,22 @@ const BuildStatusIcon = ({status, className}) => {
             className={className}
           />
         );
+      case TestStatus.RUNNING:
+        return (
+          <CircularProgress
+            size={theme.spacing(3)}
+            style={{color: '#868686'}}
+            className={className}
+          />
+        );
+      case YET_TO_RUN:
+        return (
+          <YetToRunIcon
+            titleAccess="Yet To Run"
+            style={{color: '#868686'}}
+            className={className}
+          />
+        );
       default:
         throw new Error(`Unrecognized status ${status}`);
     }
@@ -53,7 +72,8 @@ const BuildStatusIcon = ({status, className}) => {
 };
 
 BuildStatusIcon.propTypes = {
-  status: PropTypes.oneOf(Object.values(TestStatus)).isRequired,
+  status: PropTypes.oneOf([...Object.values(TestStatus), YET_TO_RUN])
+    .isRequired,
   // eslint-disable-next-line react/forbid-prop-types
   className: PropTypes.string,
 };

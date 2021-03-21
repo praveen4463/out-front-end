@@ -3,24 +3,14 @@ import Box from '@material-ui/core/Box';
 import {makeStyles, withStyles} from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
-import CodeIcon from '@material-ui/icons/CodeOutlined';
 import PropTypes from 'prop-types';
 import Link from '@material-ui/core/Link';
 import ButtonBase from '@material-ui/core/ButtonBase';
 import DescriptionIcon from '@material-ui/icons/DescriptionOutlined';
 import WallpaperIcon from '@material-ui/icons/WallpaperOutlined';
 import ViewCarouselIcon from '@material-ui/icons/ViewCarouselOutlined';
-import Dialog from '@material-ui/core/Dialog';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import DialogContent from '@material-ui/core/DialogContent';
-import Slide from '@material-ui/core/Slide';
-import MuiSkeleton from '@material-ui/lab/Skeleton';
-import CloseIcon from '@material-ui/icons/Close';
-import ErrorIcon from '@material-ui/icons/Error';
-import clsx from 'clsx';
 import axios from 'axios';
-import {CompletedBuildDetailsObj} from '../model';
-import Tooltip from '../TooltipCustom';
+import {CompletedBuildDetailsObj, BuildDialogState} from '../model';
 import {
   TestStatus,
   Browsers,
@@ -35,7 +25,6 @@ import {
   getOsIcon,
   getBrowserDisplayName,
   getBrowserIcon,
-  getVersionNamePath,
   handleApiError,
   getDriverLogsEndpoint,
   getPerformanceLogsEndpoint,
@@ -45,23 +34,22 @@ import {
   getCapturedGlobalVarsEndpoint,
   getNewIntlComparer,
   getRunnerPreferencesEndpoint,
-  getVersionOutputDetailsEndpoint,
-  getBuildOutputDetailsEndpoint,
-  getCapturedCodeEndpoint,
 } from '../common';
 import ShotsViewer from './ShotsViewer';
 import Application from '../config/application';
-import {convertMillisIntoTimeText} from '../buildsCommon';
+import {
+  convertMillisIntoTimeText,
+  DlgOpenerType,
+  SHOT_LABEL,
+} from '../buildsCommon';
 import BuildStatusIcon from './BuildStatusIcon';
-import CodeViewer from './CodeViewer';
 import {formatTimestamp} from '../utils';
-
-const Skeleton = withStyles((theme) => ({
-  root: {
-    backgroundColor: theme.palette.background.contrastText,
-    margin: theme.spacing(1),
-  },
-}))(MuiSkeleton);
+import TitleDialog from './TitleDialog';
+import BuildPagesDlgTitle from './BuildPagesDlgTitle';
+import BuildOutput from './BuildOutput';
+import ErrorMessageWithIcon from './ErrorMessageWithIcon';
+import Loader from './Loader';
+import TestVersionDetailsView from './TestVersionDetailsView';
 
 const Label = withStyles((theme) => ({
   root: {
@@ -111,11 +99,6 @@ ViewRow.defaultProps = {
   className: '',
 };
 
-const Transition = React.forwardRef(function Transition(props, ref) {
-  // eslint-disable-next-line react/jsx-props-no-spreading
-  return <Slide direction="down" ref={ref} {...props} />;
-});
-
 const useStyles = makeStyles((theme) => ({
   icons: {
     padding: 0,
@@ -127,12 +110,9 @@ const useStyles = makeStyles((theme) => ({
   marginR4: {
     marginRight: theme.spacing(0.5),
   },
-  marginL16: {
-    marginLeft: theme.spacing(2),
-  },
   error: {
     fontSize: '0.8rem',
-    color: theme.palette.error.light,
+    color: theme.palette.error.main,
   },
   borderSuccess: {
     borderLeft: '3px solid #4caf50',
@@ -158,29 +138,11 @@ const useStyles = makeStyles((theme) => ({
   borderLightBottom: {
     borderBottom: `1px solid ${theme.palette.border.light}`,
   },
-  testsHeading: {
-    color: theme.palette.text.medium,
-    backgroundColor: theme.palette.background.paperContrast,
-  },
   contrastText: {
     color: theme.palette.background.contrastText,
   },
-  dlgRoot: {
-    backgroundColor: theme.palette.background.paperOnDefault,
-    height: '90%',
-    color: theme.palette.background.contrastText,
-  },
-  dlgTitle: {
-    margin: 0,
-    padding: theme.spacing(2),
-    borderBottom: `1px solid ${theme.palette.border.light}`,
-    backgroundColor: theme.palette.background.navigations,
-  },
   fadedColor: {
     color: theme.palette.text.hint,
-  },
-  dlgContentNoPadding: {
-    padding: 0,
   },
   outputPanelContent: {
     display: 'flex',
@@ -195,13 +157,6 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.background.contrastText,
     margin: theme.spacing(1, 0),
   },
-  outputError: {
-    color: theme.palette.error.light,
-    marginTop: 0,
-  },
-  noOutput: {
-    color: theme.palette.background.contrastText,
-  },
   hoverOver: {
     '&:hover': {
       backgroundColor: theme.palette.action.hover,
@@ -215,19 +170,8 @@ const useStyles = makeStyles((theme) => ({
       backgroundColor: theme.palette.action.hover,
     },
   },
-  textValue: {
-    fontSize: theme.typography.pxToRem(14),
-    color: theme.palette.text.main,
-  },
-  testNameSeparator: {
-    fontSize: theme.typography.pxToRem(18),
-    color: theme.palette.text.light,
-    margin: theme.spacing(0, 0.5),
-    fontWeight: '800',
-  },
 }));
 
-const SHOT_LABEL = 'Screenshots & Playback';
 const LOG_TYPE = {
   DRIVER: 'DRIVER',
   PERF: 'PERF',
@@ -237,32 +181,12 @@ const VAR_TYPE = {
   BUILD: 'BUILD',
 };
 
-const DlgOpenerType = {
-  LOG: 'LOG',
-  SCREENSHOT: 'SCREENSHOT',
-  ELEMENT_SHOT: 'ELEMENT_SHOT',
-  DATA: 'DATA',
-  CODE: 'CODE',
-};
-
-function DialogState(
-  open = false,
-  title = null,
-  content = null,
-  openerType = null
-) {
-  this.open = open;
-  this.title = title;
-  this.content = content;
-  this.openerType = openerType;
-}
-
 const boolText = (val) => {
   return val ? 'Yes' : 'No';
 };
 
 const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
-  const [dlg, setDlg] = useState(new DialogState());
+  const [dlg, setDlg] = useState(new BuildDialogState());
   const classes = useStyles();
 
   const getBorderByStatus = (status) => {
@@ -273,32 +197,6 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
       return classes.borderFailure;
     }
     return classes.borderNeutral;
-  };
-
-  const getErrorTypeMsg = (msg) => {
-    return (
-      <>
-        <ErrorIcon color="error" className={classes.marginR4} />
-        <Typography variant="body1" className={classes.error}>
-          {msg}
-        </Typography>
-      </>
-    );
-  };
-
-  const getLoader = (key) => {
-    return (
-      <Box
-        display="flex"
-        flexDirection="column"
-        flex={1}
-        key={key ?? ''}
-        alignItems="center">
-        {[1, 2, 3, 4, 5, 6].map((k) => (
-          <Skeleton variant="text" width="80%" height={15} key={k} />
-        ))}
-      </Box>
-    );
   };
 
   const getViewRow = (label, value, labelBases) => {
@@ -339,36 +237,17 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
   };
 
   const closeDlg = () => {
-    setDlg(() => new DialogState());
+    setDlg(() => new BuildDialogState());
   };
 
-  const getDlgTitle = (title, versionId, fileName, testName, versionName) => {
+  const getDlgTitle = (title, testVersionDetails) => {
     return (
-      <Box display="flex" alignItems="center" color="text.medium">
-        {title ? (
-          <Typography variant="body1" style={{fontWeight: 600}}>
-            {title}
-          </Typography>
-        ) : null}
-        <Typography
-          variant="body1"
-          className={clsx(
-            title && classes.marginL16
-          )}>{`# ${cbd.buildId}`}</Typography>
-        {versionId ? (
-          <Typography variant="body1" className={classes.marginL16}>
-            {getVersionNamePath(fileName, testName, versionName)}
-          </Typography>
-        ) : null}
-        <Box flex={1} />
-        <IconButton
-          aria-label="Close"
-          onClick={closeDlg}
-          title="Close"
-          color="inherit">
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </Box>
+      <BuildPagesDlgTitle
+        buildId={cbd.buildId}
+        title={title}
+        testVersionDetails={testVersionDetails}
+        closeDlg={closeDlg}
+      />
     );
   };
 
@@ -378,7 +257,12 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
     );
     setDlg(
       () =>
-        new DialogState(true, getDlgTitle(), content, DlgOpenerType.SCREENSHOT)
+        new BuildDialogState(
+          true,
+          getDlgTitle(),
+          content,
+          DlgOpenerType.SCREENSHOT
+        )
     );
   };
 
@@ -404,19 +288,11 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
     }
   };
 
-  const errorOnDlg = (error) => {
-    return (
-      <Box mt="10%" display="flex" justifyContent="center">
-        {error}
-      </Box>
-    );
-  };
-
   const handleLogs = (logType) => {
     const setDlgState = (output) => {
       setDlg(
         () =>
-          new DialogState(
+          new BuildDialogState(
             true,
             getDlgTitle(getLogText(logType)),
             output,
@@ -452,13 +328,13 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
       } catch (error) {
         handleApiError(
           error,
-          (errorMsg) => setDlgState(errorOnDlg(getErrorTypeMsg(errorMsg))),
+          (errorMsg) => setDlgState(<ErrorMessageWithIcon msg={errorMsg} />),
           "Couldn't fetch logs"
         );
       }
     }
     getLogs();
-    setDlgState(getLoader());
+    setDlgState(<Loader rows={6} />);
   };
 
   const handleDriverLogs = () => {
@@ -475,7 +351,7 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
     const setDlgState = (output) => {
       setDlg(
         () =>
-          new DialogState(
+          new BuildDialogState(
             true,
             getDlgTitle('Element Screenshots'),
             output,
@@ -507,13 +383,13 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
       } catch (error) {
         handleApiError(
           error,
-          (errorMsg) => setDlgState(errorOnDlg(getErrorTypeMsg(errorMsg))),
+          (errorMsg) => setDlgState(<ErrorMessageWithIcon msg={errorMsg} />),
           "Couldn't fetch element screenshots"
         );
       }
     }
     getElementShots();
-    setDlgState(getLoader());
+    setDlgState(<Loader rows={6} />);
   };
 
   const getOs = (formatText = true) => {
@@ -550,7 +426,7 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
     const setDlgState = (output) => {
       setDlg(
         () =>
-          new DialogState(
+          new BuildDialogState(
             true,
             getDlgTitle('Build Capabilities'),
             output,
@@ -632,20 +508,20 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
       } catch (error) {
         handleApiError(
           error,
-          (errorMsg) => setDlgState(errorOnDlg(getErrorTypeMsg(errorMsg))),
+          (errorMsg) => setDlgState(<ErrorMessageWithIcon msg={errorMsg} />),
           "Couldn't fetch build capabilities"
         );
       }
     }
     getCapturedBuildCaps();
-    setDlgState(getLoader());
+    setDlgState(<Loader rows={6} />);
   };
 
   const handleVars = (varType) => {
     const setDlgState = (output) => {
       setDlg(
         () =>
-          new DialogState(
+          new BuildDialogState(
             true,
             getDlgTitle(getVarText(varType)),
             output,
@@ -676,13 +552,13 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
       } catch (error) {
         handleApiError(
           error,
-          (errorMsg) => setDlgState(errorOnDlg(getErrorTypeMsg(errorMsg))),
+          (errorMsg) => setDlgState(<ErrorMessageWithIcon msg={errorMsg} />),
           "Couldn't fetch variables"
         );
       }
     }
     getVars();
-    setDlgState(getLoader());
+    setDlgState(<Loader rows={6} />);
   };
 
   const handleBuildVars = () => {
@@ -697,7 +573,7 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
     const setDlgState = (output) => {
       setDlg(
         () =>
-          new DialogState(
+          new BuildDialogState(
             true,
             getDlgTitle("Runner's Preferences"),
             output,
@@ -740,132 +616,25 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
       } catch (error) {
         handleApiError(
           error,
-          (errorMsg) => setDlgState(errorOnDlg(getErrorTypeMsg(errorMsg))),
+          (errorMsg) => setDlgState(<ErrorMessageWithIcon msg={errorMsg} />),
           "Couldn't fetch runner's preferences"
         );
       }
     }
     getRunnerPrefs();
-    setDlgState(getLoader());
-  };
-
-  const handleVersionShots = (versionId, fileName, testName, versionName) => {
-    const content = (
-      <ShotsViewer
-        buildId={cbd.buildId}
-        shotBucket={cbd.shotBucket}
-        versionId={versionId}
-        fileName={fileName}
-        testName={testName}
-        versionName={versionName}
-      />
-    );
-    setDlg(
-      () =>
-        new DialogState(
-          true,
-          getDlgTitle(null, versionId, fileName, testName, versionName),
-          content,
-          DlgOpenerType.SCREENSHOT
-        )
-    );
-  };
-
-  const getOutput = (buildOutputDetailsByVersionList) => {
-    const anyOutput = buildOutputDetailsByVersionList.some(
-      (bod) => bod.outputsWithLineBreak || bod.error
-    );
-    return (
-      <>
-        <Box className={classes.outputPanelContent} flex={1}>
-          {buildOutputDetailsByVersionList.map((bod) => (
-            <Box
-              display="flex"
-              flexDirection="column"
-              px={1}
-              key={bod.versionId}>
-              <pre className={classes.output}>
-                {bod.outputsWithLineBreak || ''}
-              </pre>
-              <pre className={clsx(classes.output, classes.outputError)}>
-                {bod.error || ''}
-              </pre>
-            </Box>
-          ))}
-        </Box>
-        {!anyOutput ? (
-          <Box mt="10%" display="flex" justifyContent="center">
-            <Typography variant="body1" className={classes.noOutput}>
-              No Output recorded
-            </Typography>
-          </Box>
-        ) : null}
-      </>
-    );
-  };
-
-  const handleOutput = (dlgTitle, versionId = null) => {
-    const setDlgState = (output) => {
-      setDlg(() => new DialogState(true, dlgTitle, output, DlgOpenerType.LOG));
-    };
-    const endpoint = versionId
-      ? getVersionOutputDetailsEndpoint(cbd.buildId, versionId)
-      : getBuildOutputDetailsEndpoint(cbd.buildId);
-    axios(endpoint)
-      .then(({data}) => {
-        setDlgState(getOutput(Array.isArray(data) ? data : [data]));
-      })
-      .catch((error) => {
-        handleApiError(
-          error,
-          (errorMsg) => setDlgState(errorOnDlg(getErrorTypeMsg(errorMsg))),
-          "Couldn't fetch output"
-        );
-      });
-    setDlgState(getLoader());
+    setDlgState(<Loader rows={6} />);
   };
 
   const handleBuildOutput = () => {
-    handleOutput(getDlgTitle());
-  };
-
-  const handleVersionOutput = (testVersionDetails) => {
-    const {versionId, fileName, testName, versionName} = testVersionDetails;
-    handleOutput(
-      getDlgTitle(null, versionId, fileName, testName, versionName),
-      versionId
+    setDlg(
+      () =>
+        new BuildDialogState(
+          true,
+          getDlgTitle(),
+          <BuildOutput buildId={cbd.buildId} />,
+          DlgOpenerType.LOG
+        )
     );
-  };
-
-  const formatCode = (code) => {
-    return <CodeViewer rawCode={code} />;
-  };
-
-  const handleCode = (testVersionDetails) => {
-    const {versionId, fileName, testName, versionName} = testVersionDetails;
-    const setDlgState = (code) => {
-      setDlg(
-        () =>
-          new DialogState(
-            true,
-            getDlgTitle(null, versionId, fileName, testName, versionName),
-            code,
-            DlgOpenerType.CODE
-          )
-      );
-    };
-    axios(getCapturedCodeEndpoint(cbd.buildId, versionId))
-      .then(({data}) => {
-        setDlgState(formatCode(data));
-      })
-      .catch((error) => {
-        handleApiError(
-          error,
-          (errorMsg) => setDlgState(errorOnDlg(getErrorTypeMsg(errorMsg))),
-          "Couldn't fetch output"
-        );
-      });
-    setDlgState(getLoader());
   };
 
   return (
@@ -891,9 +660,9 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
               style={{fontWeight: 500}}>
               {getTestStatusDisplayName(cbd.finalStatus)}
             </Typography>
-            {cbd.finalStatus === TestStatus.ABORTED
-              ? getErrorTypeMsg('Build aborted due to an unexpected exception')
-              : null}
+            {cbd.finalStatus === TestStatus.ABORTED ? (
+              <ErrorMessageWithIcon msg="Build aborted due to an unexpected exception" />
+            ) : null}
           </Box>
           <Box display="flex" p={1}>
             <Box
@@ -1040,126 +809,22 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
             </Box>
           </Box>
         </Box>
-        <Box mt={1} display="flex" flexDirection="column" boxShadow={3}>
-          <Box
-            p={1}
-            boxShadow={1}
-            display="flex"
-            className={clsx(classes.borderNeutral, classes.testsHeading)}
-            fontSize="body2.fontSize"
-            fontWeight={500}
-            color="text.medium">
-            <Box flexBasis="5%" />
-            <Box flexBasis="70%">Tests</Box>
-            <Box flexBasis="18%">Duration</Box>
-            <Box display="flex" flexBasis="7%" />
-          </Box>
-          {cbd.testVersionDetailsList.map((testVersionDetails) => {
-            const {
-              versionId,
-              status,
-              timeTakenMillis,
-              fileName,
-              testName,
-              versionName,
-            } = testVersionDetails;
-            return (
-              <Box
-                p={1}
-                boxShadow={3}
-                display="flex"
-                key={versionId}
-                className={clsx(
-                  getBorderByStatus(status),
-                  classes.contrastText
-                )}>
-                <Box flexBasis="5%" display="flex" alignItems="center">
-                  <BuildStatusIcon
-                    status={status}
-                    className={classes.marginR4}
-                  />
-                </Box>
-                <Box flexBasis="70%" display="flex" alignItems="center">
-                  <span className={classes.textValue}>{fileName}</span>
-                  <span className={classes.testNameSeparator}>&gt;</span>
-                  <span className={classes.textValue}>{testName}</span>
-                  <span className={classes.testNameSeparator}>&gt;</span>
-                  <span className={classes.textValue}>{versionName}</span>
-                </Box>
-                <Box flexBasis="18%" display="flex" alignItems="center">
-                  <TextValue>
-                    {convertMillisIntoTimeText(timeTakenMillis)}
-                  </TextValue>
-                </Box>
-                <Box
-                  display="flex"
-                  flexBasis="7%"
-                  justifyContent="space-evenly"
-                  alignItems="center">
-                  <Tooltip title={SHOT_LABEL}>
-                    <IconButton
-                      aria-label={SHOT_LABEL}
-                      onClick={() =>
-                        handleVersionShots(
-                          versionId,
-                          fileName,
-                          testName,
-                          versionName
-                        )
-                      }
-                      color="inherit"
-                      className={classes.icons}>
-                      <ViewCarouselIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Output">
-                    <IconButton
-                      aria-label="Output"
-                      onClick={() => handleVersionOutput(testVersionDetails)}
-                      color="inherit"
-                      className={classes.icons}
-                      disabled={
-                        timeTakenMillis === 0 &&
-                        (status === TestStatus.STOPPED ||
-                          status === TestStatus.ABORTED)
-                      }>
-                      <DescriptionIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Code">
-                    <IconButton
-                      aria-label="Code"
-                      onClick={() => handleCode(testVersionDetails)}
-                      color="inherit"
-                      className={classes.icons}>
-                      <CodeIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </Box>
-            );
-          })}
-        </Box>
+        <TestVersionDetailsView
+          buildId={cbd.buildId}
+          shotBucket={cbd.shotBucket}
+          testVersionDetailsList={cbd.testVersionDetailsList}
+        />
       </Box>
-      <Dialog
-        TransitionComponent={Transition}
-        onClose={closeDlg}
-        fullWidth
-        maxWidth="lg"
-        open={dlg.open}
-        classes={{paper: classes.dlgRoot}}>
-        <DialogTitle disableTypography className={classes.dlgTitle}>
-          {dlg.title}
-        </DialogTitle>
-        <DialogContent
-          className={clsx(
-            (dlg.openerType === DlgOpenerType.SCREENSHOT ||
-              dlg.openerType === DlgOpenerType.CODE) &&
-              classes.dlgContentNoPadding
-          )}>
-          {dlg.content}
-        </DialogContent>
-      </Dialog>
+      <TitleDialog
+        showDialog={dlg.open}
+        closeDialog={closeDlg}
+        titleContent={dlg.title}
+        dlgContentNoPadding={
+          dlg.openerType === DlgOpenerType.SCREENSHOT ||
+          dlg.openerType === DlgOpenerType.CODE
+        }>
+        {dlg.content}
+      </TitleDialog>
     </>
   );
 };

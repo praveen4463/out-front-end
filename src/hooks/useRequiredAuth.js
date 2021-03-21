@@ -20,10 +20,10 @@ const useRequiredAuth = (beforeRedirectFn = null, redirectTo = null) => {
 
   useEffect(() => {
     if (!auth.authStateLoaded) {
-      console.log('auth not yet loaded');
+      // console.log('auth not yet loaded');
       return;
     }
-    console.log('auth user', auth.user);
+    // console.log('auth user', auth.user);
     if (!auth.user || auth.user.isAnonymous) {
       if (beforeRedirectFn) {
         beforeRedirectFn();

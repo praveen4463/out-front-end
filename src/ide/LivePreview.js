@@ -17,18 +17,21 @@ import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import axios from 'axios';
-import {captureMessage} from '@sentry/react';
 import {IdeBuildContext, IdeDispatchContext, IdeLPContext} from './Contexts';
 import {LP_START, LP_END} from './actionTypes';
-import {ShotIdentifiers, OFFLINE_MSG} from '../Constants';
-import {LivePreviewConstants} from './Constants';
-import Application from '../config/application';
 import {
   getLatestShotEndpoint,
   getShotName,
+  getShotUri,
   getUserFromLocalStorage,
   handleApiError,
 } from '../common';
+import {
+  SHOT_ID_TMPL,
+  startPreview,
+  getShotIdFromName,
+  LivePreviewConstants,
+} from '../buildsCommon';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -74,8 +77,6 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const SHOT_ID_TMPL = '##ID##';
-
 // !! TODO: for now even when fullscreen, there are close and exit button that
 // take up top space, change this to buttons over image just like in shotsviewer
 const LivePreview = ({closeHandler}) => {
@@ -99,13 +100,6 @@ const LivePreview = ({closeHandler}) => {
       SHOT_ID_TMPL
     );
   }, [livePreview.buildKey, livePreview.sessionId]);
-
-  const getShotIdFromName = useCallback((shotName) => {
-    return shotName.substring(
-      shotName.lastIndexOf('-') + 1,
-      shotName.lastIndexOf('.')
-    );
-  }, []);
 
   const getInfoTypeStatusMsg = (msg) => {
     return <Typography variant="body1">{msg}</Typography>;
@@ -156,157 +150,6 @@ const LivePreview = ({closeHandler}) => {
     [closeHandler, dispatch, getErrorTypeStatusMsg, unmounted]
   );
 
-  const endIfLastShot = useCallback(
-    (stringShotId) => {
-      if (stringShotId === ShotIdentifiers.EOS) {
-        onPreviewEnd();
-        return true;
-      }
-      return false;
-    },
-    [onPreviewEnd]
-  );
-
-  // !! default null to latestShotIdentifier is important so that when converting
-  // to number we get a 0 rather than NaN
-  const startPreview = useCallback(
-    (shotUriTemplate, latestShotIdentifier = null) => {
-      let numberShotId = Number(latestShotIdentifier);
-      if (Number.isNaN(numberShotId) && endIfLastShot(latestShotIdentifier)) {
-        return;
-      }
-      numberShotId += 1;
-
-      // !!! TODO: currently the logic to detect an END depends on trying shots
-      // that may be unavailable on storage which will lead to 404 errors on
-      // browser console. Customer may worry what they are and complain, thus
-      // it would be good to mention it somewhere to either ignore those 404 or
-      // filter them out in console, tell this to user. Currently we're relying
-      // on this method only, and fix later if possible.
-      let totalPollsNotFound = 0;
-      const show = (stringShotId) => {
-        if (unmounted.current) {
-          return;
-        }
-        const img = new Image();
-        // when image was in cache, onload doesn't invoke if src is mentioned
-        // before that, but here in live preview, content can't be in cache as
-        // all builds are unique.
-        const src = shotUriTemplate.replace(
-          SHOT_ID_TMPL,
-          stringShotId ?? numberShotId
-        );
-        img.onload = () => {
-          // console.log(`image ${src} loaded`);
-          if (stringShotId && endIfLastShot(stringShotId)) {
-            return;
-          }
-          if (totalPollsNotFound > 0) {
-            totalPollsNotFound = 0;
-          }
-          setImageSrc(src);
-          numberShotId += 1;
-          if (unmounted.current) {
-            return;
-          }
-          show(); // move to next immediately, no wait because all shots are taken
-          // and uploaded within the runtime of the test. When we try one shot,
-          // client take sometime downloading it and at the same time server is
-          // uploading next ones.
-        };
-        img.src = src;
-        img.onerror = () => {
-          if (unmounted.current) {
-            return;
-          }
-          // console.log(`image ${src} has error`);
-          // error because we're offline
-          if (!navigator.onLine) {
-            // when offline, either preview will end of resume from current shot
-            const offlineStart = Date.now();
-            // show offline message, set image to null for showing a status
-            setImageSrc(null);
-            // console.log('set offline msg');
-            setStatusMsg(getErrorTypeStatusMsg(OFFLINE_MSG));
-            const offlineCheckInterval = setInterval(() => {
-              if (navigator.onLine) {
-                // console.log('back online');
-                clearInterval(offlineCheckInterval);
-                show(stringShotId); // we're online, try showing the current shot
-                return;
-              }
-              if (
-                Date.now() - offlineStart >
-                LivePreviewConstants.OFFLINE_RECOVERY_TIME
-              ) {
-                clearInterval(offlineCheckInterval);
-                // console.log('offline limit reached');
-                captureMessage(
-                  'live preview ended with error as user was offline',
-                  {
-                    tags: {
-                      type: 'warning',
-                    },
-                  }
-                );
-                onPreviewEnd(`Unable to deliver live preview, Network error.`);
-              }
-              // console.log('offline interval invoked');
-            }, 500);
-            return;
-          }
-          // error occurred when online, don't show any message as it may be an
-          // end of shots.
-
-          // if we couldn't find eos in storage, that indicate of some
-          // storage or server error, let's just show generic error and fix that.
-          // don't look into db for error shot, even if it's there we're going to
-          // tell use the same error message.
-          if (
-            totalPollsNotFound === LivePreviewConstants.MAX_POLL_AFTER_NOT_FOUND
-          ) {
-            captureMessage(
-              `${src} couldn't be found within max allowed poll time, live preview will end with error`,
-              {
-                tags: {
-                  type: 'error',
-                },
-              }
-            );
-            onPreviewEnd(LivePreviewConstants.ERROR_SHOT_FOUND_TEXT);
-            return;
-          }
-          // let's try finding 'actual shot' > eos sequentially for
-          // MAX_POLL_AFTER_NOT_FOUND times waiting for POLL_TIME_WHEN_NOT_FOUND
-          // in between reattempts.
-          // console.log('stringShotId', stringShotId);
-          if (!stringShotId) {
-            // console.log(`${ShotIdentifiers.EOS} will be tried`);
-            // current shot is an actual shot, try if an eos shot is there
-            show(ShotIdentifiers.EOS);
-            return;
-          }
-          if (stringShotId === ShotIdentifiers.EOS) {
-            // console.log('actual shot will be tried after waiting');
-            // current shot is an error, wait and try if the actual shot is now there
-            setTimeout(() => {
-              totalPollsNotFound += 1;
-              return show();
-            }, LivePreviewConstants.POLL_TIME_WHEN_NOT_FOUND); // I don't want to
-            // wait exponentially, because most of times next shot should be found
-            // in 1-2 reattempts of the same poll duration. Take a short poll time
-            // as I don't want to wait long if it's a little network blockage at
-            // server. If there is really very slow network speed at server, we
-            // are better off not showing live preview, I am sure this won't happen
-            // many times.
-          }
-        };
-      };
-      show();
-    },
-    [endIfLastShot, onPreviewEnd, getErrorTypeStatusMsg, unmounted]
-  );
-
   // !!Order of effect is precise based on sequence of events.
   useEffect(() => {
     return () => {
@@ -339,7 +182,6 @@ const LivePreview = ({closeHandler}) => {
     build.sessionId,
     livePreview.completed,
     livePreview.runId,
-    onPreviewEnd,
     dispatch,
     closeHandler,
   ]);
@@ -363,9 +205,9 @@ const LivePreview = ({closeHandler}) => {
     };
   }, [build.runOngoing, dispatch, livePreview.completed, livePreview.runId]);
 
-  // In contrast to the above, this runs when panel is opened after build ends,
-  // mark it completed. This depends on checking that preview is not running which
-  // is true when panel is opened when no build is running.
+  // In contrast to the above, this runs when panel is opened after build ends.
+  // we should mark it completed. This depends on checking that preview is not
+  // running which is true when panel is opened when no build is running.
   useEffect(() => {
     if (
       !build.runOngoing &&
@@ -405,11 +247,22 @@ const LivePreview = ({closeHandler}) => {
   const gatherDataAndStartPreview = useCallback(
     (latestShotIdentifier) => {
       getUserFromLocalStorage().then((user) => {
-        const shotUriTemplate = `${Application.STORAGE_HOST}/${user.shotBucketSessionStorage}/${shotNameTemplate}`;
-        startPreview(shotUriTemplate, latestShotIdentifier);
+        const shotUriTemplate = getShotUri(
+          user.shotBucketSessionStorage,
+          shotNameTemplate
+        );
+        startPreview(
+          unmounted,
+          setStatusMsg,
+          getErrorTypeStatusMsg,
+          setImageSrc,
+          onPreviewEnd,
+          shotUriTemplate,
+          latestShotIdentifier
+        );
       });
     },
-    [shotNameTemplate, startPreview]
+    [getErrorTypeStatusMsg, onPreviewEnd, shotNameTemplate]
   );
 
   // start/resume preview for this build, this effect should run only on new
@@ -457,10 +310,8 @@ const LivePreview = ({closeHandler}) => {
     build.runOngoing,
     livePreview.completed,
     livePreview.runId,
-    startPreview,
     onPreviewEnd,
     build.buildId,
-    getShotIdFromName,
     gatherDataAndStartPreview,
   ]);
 

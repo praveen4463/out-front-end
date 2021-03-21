@@ -137,6 +137,8 @@ function SnackbarAlertProps(
 function TestVersionDetails(
   versionId,
   versionName,
+  totalLines,
+  currentLine,
   status,
   timeTakenMillis,
   fileName,
@@ -144,6 +146,8 @@ function TestVersionDetails(
 ) {
   this.versionId = versionId;
   this.versionName = versionName;
+  this.totalLines = totalLines;
+  this.currentLine = currentLine;
   this.status = status;
   this.timeTakenMillis = timeTakenMillis;
   this.fileName = fileName;
@@ -188,6 +192,68 @@ function CompletedBuildDetailsObj(
   this.testVersionDetailsList = testVersionDetailsList;
 }
 
+function RunningBuildObj(
+  buildId,
+  buildKey,
+  buildName,
+  shotBucket,
+  os,
+  browserName
+) {
+  this.buildId = buildId;
+  this.buildKey = buildKey;
+  this.buildName = buildName;
+  this.shotBucket = shotBucket;
+  this.os = os;
+  this.browserName = browserName;
+}
+
+function RunningBuildSummary(
+  buildId,
+  sessionKey,
+  acquiringSession,
+  newSessionFail,
+  newSessionFailureError,
+  allDone,
+  runningForMillis,
+  finalStatus,
+  testVersionDetailsList
+) {
+  this.buildId = buildId;
+  this.sessionKey = sessionKey;
+  this.acquiringSession = acquiringSession;
+  this.newSessionFail = newSessionFail;
+  this.newSessionFailureError = newSessionFailureError;
+  this.allDone = allDone;
+  this.runningForMillis = runningForMillis;
+  this.finalStatus = finalStatus;
+  this.testVersionDetailsList = testVersionDetailsList;
+}
+
+function BuildOutputDetailsByVersion(
+  buildId,
+  versionId,
+  outputsWithLineBreak,
+  error
+) {
+  this.buildId = buildId;
+  this.versionId = versionId;
+  this.outputsWithLineBreak = outputsWithLineBreak;
+  this.error = error;
+}
+
+function BuildDialogState(
+  open = false,
+  title = null,
+  content = null,
+  openerType = null
+) {
+  this.open = open;
+  this.title = title;
+  this.content = content;
+  this.openerType = openerType;
+}
+
 export {
   BuildConfig,
   BuildCapabilities,
@@ -195,4 +261,8 @@ export {
   SnackbarAlertProps,
   CompletedBuildDetailsObj,
   TestVersionDetails,
+  RunningBuildObj,
+  RunningBuildSummary,
+  BuildOutputDetailsByVersion,
+  BuildDialogState,
 };

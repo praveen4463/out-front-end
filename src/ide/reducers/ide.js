@@ -149,7 +149,8 @@ const pushCompletedBuilds = (draft, payload) => {
     completedBuildVersions,
     versionIds
   );
-  completedBuilds.push(completedBuild);
+  // push new completed builds on top of array
+  completedBuilds.unshift(completedBuild);
 };
 
 const versionCodeSaveInProgress = (draft, payload) => {

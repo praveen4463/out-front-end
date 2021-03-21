@@ -123,6 +123,9 @@ export const getNoOfLines = (text) => {
   return lines.length + 1; // the last line doesn't have a new line char so adding that
 };
 
+export const getShotUri = (bucket, shotName) =>
+  `${Application.STORAGE_HOST}/${bucket}/${shotName}`;
+
 export const getShotName = (sessionId, buildKey, id) =>
   `${sessionId}-${buildKey}-${id}.png`;
 
@@ -188,6 +191,11 @@ export const isInteger = (value) => {
   return Number.isInteger(num);
 };
 
+const getApiErrorDeducedMsg = (userErrorMsg, apiErrorMsg) =>
+  userErrorMsg && userErrorMsg.trim().length
+    ? `${userErrorMsg}, ${apiErrorMsg}`
+    : apiErrorMsg;
+
 /**
  * Should be invoked in the onError handler of every firebase request to show an
  * appropriate message to user. When errors are detected on the handler, this
@@ -223,17 +231,17 @@ export const handleAuthError = (error, showError, message) => {
       errorMsg =
         "An unexpected error occurred and we're working on to fix it. Please contact us if the issue persists.";
   }
-  showError(
-    message && message.trim().length ? `${message}, ${errorMsg}` : errorMsg
-  );
+  showError(getApiErrorDeducedMsg(message, errorMsg));
 };
 
 /**
  * Should be invoked in the onError handler of every Zylitics api request to show an
  * appropriate message to user.
  * @param {*} error The axios error object
- * @param {*} showError Function to be invoked with the deduced error message
+ * @param {*} showError Optional function to be invoked with the deduced error message,
+ * if null, deduced error message will be returned.
  * @param {*} message message you want appended with the deduced error messages
+ * @returns {*} deduced error message if showError is null otherwise null
  */
 export const handleApiError = (error, showError, message) => {
   console.log('handleApiError', error.response, error.request);
@@ -252,10 +260,14 @@ export const handleApiError = (error, showError, message) => {
           throw new Error('Got blank error message in response');
       }
     }
-    showError(
-      message && message.trim().length ? `${message}, ${errorMsg}` : errorMsg
-    );
-  } else if (error.request) {
+    const deducedErrorMsg = getApiErrorDeducedMsg(message, errorMsg);
+    if (!showError) {
+      return deducedErrorMsg;
+    }
+    showError(deducedErrorMsg);
+    return null;
+  }
+  if (error.request) {
     captureException(error);
     // !NOTE: Any error thrown within axios, like timeout error will land up here as well,
     // but we're shown server unreachable error. This may be fine for now but keep
@@ -271,22 +283,24 @@ export const handleApiError = (error, showError, message) => {
       errorMsg =
         'Server is unreachable. Please try in a few minutes or contact us.';
     }
-    showError(
-      message && message.trim().length ? `${message}, ${errorMsg}` : errorMsg
-    );
-  } else {
-    // log this with tags and see whether wee need to redirect user to a custom
-    // error page if this happens because error boundary won't catch it.
-    captureException(error, {
-      tags: {
-        throwing: true,
-        unrecoverable: true,
-        location: 'HandleApiError',
-      },
-    });
-    // throw as this is unrecoverable error.
-    throw new Error(error.message);
+    const deducedErrorMsg = getApiErrorDeducedMsg(message, errorMsg);
+    if (!showError) {
+      return deducedErrorMsg;
+    }
+    showError(deducedErrorMsg);
+    return null;
   }
+  // log this with tags and see whether wee need to redirect user to a custom
+  // error page if this happens because error boundary won't catch it.
+  captureException(error, {
+    tags: {
+      throwing: true,
+      unrecoverable: true,
+      location: 'HandleApiError',
+    },
+  });
+  // throw as this is unrecoverable error.
+  throw new Error(error.message);
 };
 
 export const prepareEndpoint = (endpoint, projectId, pathVar) => {
@@ -306,6 +320,18 @@ export const prepareEndpoint = (endpoint, projectId, pathVar) => {
 export const getNewBuildEndpoint = (projectId) =>
   Endpoints.NEW_BUILD.replace(PROJECT_ID_ENDPOINT_VAR_TEMPLATE, projectId);
 
+export const getNewBuildWithoutSessionEndpoint = (projectId) =>
+  Endpoints.NEW_BUILD_WITHOUT_SESSION.replace(
+    PROJECT_ID_ENDPOINT_VAR_TEMPLATE,
+    projectId
+  );
+
+export const reRunBuildEndpoint = (buildId) =>
+  Endpoints.RE_RUN_BUILD.replace(BUILD_ID_ENDPOINT_VAR_TEMPLATE, buildId);
+
+export const newSessionEndpoint = (buildId) =>
+  Endpoints.NEW_SESSION.replace(BUILD_ID_ENDPOINT_VAR_TEMPLATE, buildId);
+
 export const getCompletedBuildSummaryEndpoint = (projectId) =>
   Endpoints.COMPLETED_BUILD_SUMMARY.replace(
     PROJECT_ID_ENDPOINT_VAR_TEMPLATE,
@@ -318,8 +344,14 @@ export const getCompletedBuildDetailsEndpoint = (buildId) =>
     buildId
   );
 
-export const reRunBuildEndpoint = (buildId) =>
-  Endpoints.RE_RUN_BUILD.replace(BUILD_ID_ENDPOINT_VAR_TEMPLATE, buildId);
+export const getRunningBuildsEndpoint = (projectId) =>
+  Endpoints.RUNNING_BUILDS.replace(PROJECT_ID_ENDPOINT_VAR_TEMPLATE, projectId);
+
+export const getRunningBuildSummaryEndpoint = (buildId) =>
+  Endpoints.RUNNING_BUILD_SUMMARY.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  );
 
 export const getStopBuildEndpoint = (buildId) =>
   Endpoints.STOP_BUILD.replace(BUILD_ID_ENDPOINT_VAR_TEMPLATE, buildId);

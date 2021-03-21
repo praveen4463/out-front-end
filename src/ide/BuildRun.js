@@ -754,7 +754,7 @@ const BuildRun = ({closeHandler}) => {
       }
       return (
         <CircularProgress
-          variant="static"
+          variant="determinate"
           size={theme.spacing(2)}
           value={Math.round((currentLine / totalLines) * 100)}
           className={classes.testStatusRunningIcon}

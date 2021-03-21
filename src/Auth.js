@@ -162,7 +162,7 @@ const useProvideAuth = (onSignIn, onSignOut, showGlobalError) => {
   // signed in or user just signed in.
   useEffect(() => {
     const unsubscribe = firebase.auth().onAuthStateChanged((u) => {
-      console.log('onAuthStateChanged invoked', u);
+      // console.log('onAuthStateChanged invoked', u);
       // !!order is precise
       // when there is a user:
       // if it's anonymous don't do anything, we don't need anything from observer
