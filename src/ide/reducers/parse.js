@@ -1,5 +1,5 @@
 import produce from 'immer';
-import {random} from 'lodash-es';
+import random from 'lodash-es/random';
 import {PARSE_START_RUN, PARSE_COMPLETE_RUN} from '../actionTypes';
 
 const startRun = (draft, payload) => {

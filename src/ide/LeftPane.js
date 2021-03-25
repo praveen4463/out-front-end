@@ -35,7 +35,7 @@ const LeftPane = ({closeHandler, selected}) => {
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        overflowY: 'scroll',
+        overflowY: 'auto',
       }}>
       <Box flex={1}>
         {selected === LeftNavs.EXPLORER && (

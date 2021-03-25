@@ -13,23 +13,20 @@ import Checkbox from '@material-ui/core/Checkbox';
 import Chip from '@material-ui/core/Chip';
 import Button from '@material-ui/core/Button';
 import clsx from 'clsx';
-import {normalize} from 'normalizr';
 import {useSpring, animated} from 'react-spring/web.cjs'; // web.cjs is required for IE 11 support
 import Loader from '../../components/Loader';
 import ColoredItemIcon from '../../components/ColoredItemIcon';
 import {ExplorerItemType} from '../Constants';
 import {
   handleApiError,
-  getNewIntlComparer,
   getFilesWithTests,
-  fromJson,
+  filesWithTestsApiDataToNormalizedSorted,
 } from '../../common';
 import {
   IdeDispatchContext,
   IdeFilesContext,
   IdeProjectIdContext,
 } from '../Contexts';
-import {filesSchema, File, Test, Version} from './model';
 import TitleDialog from '../../components/TitleDialog';
 import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 import {EXP_LOAD_FILES} from '../actionTypes';
@@ -248,20 +245,7 @@ const LoadFiles = React.memo(({showDialog, setShowDialog}) => {
           return;
         }
         // data is files
-        const filesWithTests = data.map((f) => fromJson(File, f));
-        filesWithTests.sort((a, b) => getNewIntlComparer()(a.name, b.name));
-        filesWithTests.forEach((f) => {
-          // eslint-disable-next-line no-param-reassign
-          f.tests = f.tests.map((t) => fromJson(Test, t));
-          f.tests.sort((a, b) => getNewIntlComparer()(a.name, b.name));
-          f.tests.forEach((t) => {
-            // eslint-disable-next-line no-param-reassign
-            t.versions = t.versions.map((v) => fromJson(Version, v));
-            t.versions.sort((a, b) => getNewIntlComparer()(a.name, b.name));
-          });
-        });
-
-        const filesToLoad = normalize(filesWithTests, filesSchema);
+        const filesToLoad = filesWithTestsApiDataToNormalizedSorted(data);
         Object.assign(cloned.entities.files, filesToLoad.entities.files);
         Object.assign(cloned.entities.tests, filesToLoad.entities.tests);
         Object.assign(cloned.entities.versions, filesToLoad.entities.versions);

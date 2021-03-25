@@ -9,7 +9,7 @@ import Typography from '@material-ui/core/Typography';
 import MuiSkeleton from '@material-ui/lab/Skeleton';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
-import {pull} from 'lodash-es';
+import pull from 'lodash-es/pull';
 import axios from 'axios';
 import {useQuery, useMutation, useQueryClient} from 'react-query';
 import {

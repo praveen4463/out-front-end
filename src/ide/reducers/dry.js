@@ -1,5 +1,5 @@
 import produce from 'immer';
-import {random} from 'lodash-es';
+import random from 'lodash-es/random';
 import {
   DRY_UPDATE_BY_PROP,
   DRY_START_RUN,

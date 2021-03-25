@@ -10,7 +10,7 @@ import {ThemeProvider, makeStyles} from '@material-ui/core/styles';
 import Backdrop from '@material-ui/core/Backdrop';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import {normalize} from 'normalizr';
-import {intersection} from 'lodash-es';
+import intersection from 'lodash-es/intersection';
 import axios from 'axios';
 import {useLocation, useHistory} from 'react-router-dom';
 import TopNavigation from './TopNavigation';

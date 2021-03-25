@@ -79,7 +79,7 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.error.light,
   },
   buildsContainer: {
-    overflowY: 'scroll',
+    overflowY: 'auto',
   },
 }));
 

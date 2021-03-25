@@ -1,13 +1,17 @@
 import axios from 'axios';
+import {normalize} from 'normalizr';
 import {Endpoints} from '../Constants';
 import {
+  filesWithTestsApiDataToNormalizedSorted,
   fromJson,
   getBuildOutputDetailsEndpoint,
   getCompletedBuildDetailsEndpoint,
+  getFilesWithTestsEndpoint,
   getNewIntlComparer,
   getRunningBuildSummaryEndpoint,
   getUserFromLocalStorage,
   getVersionOutputDetailsEndpoint,
+  prepareEndpoint,
   transformApiBrowserData,
 } from '../common';
 import {
@@ -16,6 +20,7 @@ import {
   RunningBuildSummary,
   TestVersionDetails,
 } from '../model';
+import {BuildVars, buildVarsSchema} from '../variables/model';
 
 export const projectsFetch = async () => {
   const {data} = await axios(Endpoints.PROJECTS);
@@ -60,4 +65,38 @@ export const buildOutputFetch = async ({queryKey}) => {
   const {data} = await axios(endpoint);
   const toArray = Array.isArray(data) ? data : [data];
   return toArray.map((d) => fromJson(BuildOutputDetailsByVersion, d));
+};
+
+export const filesWithTestsFetch = async ({queryKey}) => {
+  const [, projectId, config, fileIds] = queryKey;
+  const params = {};
+  if (fileIds) {
+    params.fileIdsFilter = fileIds;
+  }
+  if (config) {
+    // config is FilesWithTestsApiConfig
+    const {excludeCode, excludeNoCodeTests} = config;
+    if (excludeCode) {
+      params.excludeCode = excludeCode;
+    }
+    if (excludeNoCodeTests) {
+      params.excludeNoCodeTests = excludeNoCodeTests;
+    }
+  }
+  const {data} = await axios(getFilesWithTestsEndpoint(projectId), {params});
+  return filesWithTestsApiDataToNormalizedSorted(data);
+};
+
+export const buildVarsFetch = async ({queryKey}) => {
+  const [, projectId] = queryKey;
+  const {data} = await axios(prepareEndpoint(Endpoints.BUILD_VARS, projectId));
+  const buildVars = data.map((b) => fromJson(BuildVars, b));
+  buildVars.sort((a, b) => getNewIntlComparer()(a.key, b.key));
+  return normalize(buildVars, buildVarsSchema);
+};
+
+export const buildCapabilitiesFetch = async () => {
+  const {data} = await axios(Endpoints.BUILD_CAPABILITIES);
+  data.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+  return data;
 };

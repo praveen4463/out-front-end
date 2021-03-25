@@ -88,6 +88,7 @@ export const BuildCapsKeys = {
 };
 
 export const BuildConfigKeys = {
+  NAME: 'NAME',
   BCAP: 'BCAP',
   SV: 'SV',
   DR: 'DR',
@@ -129,6 +130,7 @@ export const BuildCapsFields = {
 };
 
 export const BuildConfigFields = {
+  NAME: 'buildName',
   BCAP: 'buildCapabilityId',
   SV: 'selectedVersions',
   DR: 'displayResolution',
@@ -166,6 +168,7 @@ export const BuildCapsLabels = {
 };
 
 export const BuildConfigLabels = {
+  NAME: 'Name (Optional)',
   BCAP: 'Build Capability',
   SV: 'Tests',
   DR: 'Display Resolution',
@@ -238,6 +241,10 @@ export const BuildCapsInfo = {
 };
 
 export const BuildConfigInfo = {
+  NAME:
+    'An optional name for the build. If not given, builds are displayed' +
+    ' using their build id. You may assign it a git commit message, committer username or ' +
+    ' any other useful information.',
   SV:
     'Select tests that need to run as a suite in builds. Tests can' +
     ' be from across files and can include any versions. Giving a' +
@@ -359,6 +366,8 @@ export const QueryKeys = {
   RUNNING_BUILDS: 'runningBuilds',
   RUNNING_BUILD_SUMMARY: 'runningBuildSummary',
   BUILD_OUTPUT: 'buildOutput',
+  FILES_WITH_TESTS: 'filesWithTests',
+  BUILD_VARS: 'buildVars',
 };
 
 export const PROJECT_ID_ENDPOINT_VAR_TEMPLATE = '{projectId}';

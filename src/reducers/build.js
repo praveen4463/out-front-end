@@ -1,5 +1,6 @@
 import produce from 'immer';
-import {intersection, random} from 'lodash-es';
+import intersection from 'lodash-es/intersection';
+import random from 'lodash-es/random';
 import {
   BUILD_UPDATE_BY_PROP,
   BUILD_NEW_RUN,

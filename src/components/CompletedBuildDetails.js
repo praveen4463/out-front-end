@@ -147,7 +147,7 @@ const useStyles = makeStyles((theme) => ({
   outputPanelContent: {
     display: 'flex',
     flexDirection: 'column',
-    overflowY: 'scroll',
+    overflowY: 'auto',
   },
   output: {
     fontFamily: "'Fira Mono', 'Courier New', Courier, monospace",
@@ -163,7 +163,7 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   buildsContainer: {
-    overflowY: 'scroll',
+    overflowY: 'auto',
   },
   viewRow: {
     '&:hover': {

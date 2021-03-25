@@ -8,7 +8,8 @@ import Typography from '@material-ui/core/Typography';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import Box from '@material-ui/core/Box';
 import clsx from 'clsx';
-import {truncate, groupBy} from 'lodash-es';
+import truncate from 'lodash-es/truncate';
+import groupBy from 'lodash-es/groupBy';
 import Button from '@material-ui/core/Button';
 import PropTypes from 'prop-types';
 
@@ -73,7 +74,7 @@ const getFormattedValue = (rawValue) => {
 };
 
 const SelectBuildVars = React.memo(
-  ({varBuild, selectedBuildVarIdPerKey, onSelect}) => {
+  ({varBuild, selectedBuildVarIdPerKey, onSelect, accordionClasses}) => {
     const buildVars = varBuild ? varBuild.entities.buildVars : null;
     const groupedData = useMemo(
       () =>
@@ -99,7 +100,7 @@ const SelectBuildVars = React.memo(
 
     return (
       <div className={classes.root}>
-        <Accordion>
+        <Accordion classes={accordionClasses}>
           <AccordionSummary
             expandIcon={<ExpandMoreIcon />}
             aria-controls="selectBuildVars-content"
@@ -121,7 +122,8 @@ const SelectBuildVars = React.memo(
                         expanded={expanded === key}
                         onChange={handleChange(key)}
                         key={keyResolveTo.id}
-                        data-testid="keyGroup">
+                        data-testid="keyGroup"
+                        classes={accordionClasses}>
                         <AccordionSummary
                           expandIcon={<ExpandMoreIcon />}
                           aria-controls={`${keyResolveTo.id}-content`}
@@ -200,7 +202,8 @@ const SelectBuildVars = React.memo(
               </>
             ) : (
               <Typography variant="body2">
-                No build variable exists yet, use edit menu to add some.
+                No build variable exists yet, use IDE &gt; Edit Menu to add
+                some.
               </Typography>
             )}
           </AccordionDetails>
@@ -224,10 +227,13 @@ SelectBuildVars.propTypes = {
     id: PropTypes.number,
   }).isRequired,
   onSelect: PropTypes.func.isRequired,
+  // eslint-disable-next-line react/forbid-prop-types
+  accordionClasses: PropTypes.object,
 };
 
 SelectBuildVars.defaultProps = {
   varBuild: null,
+  accordionClasses: {},
 };
 
 export default SelectBuildVars;

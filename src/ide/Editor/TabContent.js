@@ -1,7 +1,7 @@
 import React, {useContext} from 'react';
 import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
-import {truncate} from 'lodash-es';
+import truncate from 'lodash-es/truncate';
 import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
 import CloseIcon from '@material-ui/icons/Close';

@@ -6,12 +6,7 @@ import AccordionDetails from '@material-ui/core/AccordionDetails';
 import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
 import Button from '@material-ui/core/Button';
-import InputLabel from '@material-ui/core/InputLabel';
 import InfoIcon from '@material-ui/icons/Info';
-import FormControl from '@material-ui/core/FormControl';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Switch from '@material-ui/core/Switch';
-import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import {makeStyles} from '@material-ui/core/styles';
@@ -19,7 +14,6 @@ import FormHelperText from '@material-ui/core/FormHelperText';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import {useQuery} from 'react-query';
-import axios from 'axios';
 import TooltipCustom from '../../TooltipCustom';
 import TestSelect from '../../components/TestSelect';
 import {
@@ -29,11 +23,7 @@ import {
   BUILD_START_RUN,
   BUILD_CANCEL_RUN,
 } from '../../actions/actionTypes';
-import {
-  getContextObjShape,
-  handleApiError,
-  getNewIntlComparer,
-} from '../../common';
+import {getContextObjShape, handleApiError} from '../../common';
 import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 import {
   BuildConfigLabels,
@@ -41,20 +31,19 @@ import {
   BuildConfigInfo,
   BuildConfigKeys,
   QueryKeys,
-  Endpoints,
 } from '../../Constants';
 import resolutions from '../../config/desktopResolution.json';
 import timezones from '../../config/timezones.json';
 import SelectBuildVars from '../../components/SelectBuildVars';
+import StyledSelect from '../../components/StyledSelect';
+import StyledSwitch from '../../components/StyledSwitch';
+import {buildCapabilitiesFetch} from '../../api/fetches';
 
 const useStyles = makeStyles((theme) => ({
   root: {
     width: '100%',
     color: theme.palette.background.contrastText,
     height: '100%',
-  },
-  formControl: {
-    width: '50%',
   },
   testSelect: {
     maxHeight: 500,
@@ -64,46 +53,22 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: theme.palette.background.paper,
     overflow: 'auto',
   },
-  filledNoPad: {
-    backgroundColor: theme.palette.background.paperContrast,
-    '&:focus': {
-      backgroundColor: theme.palette.background.paperContrast,
-    },
-    boxShadow: theme.shadows[1],
-  },
-  filled: {
-    backgroundColor: theme.palette.background.paperContrast,
-    padding: '15px 12px 14px',
-    '&:focus': {
-      backgroundColor: theme.palette.background.paperContrast,
-    },
-    boxShadow: theme.shadows[1],
-  },
-  input: {
-    backgroundColor: theme.palette.background.paperContrast,
-    fontSize: '0.875rem',
-    color: theme.palette.background.contrastText,
-  },
-  iconFilled: {
-    right: '14px',
-  },
-  list: {
-    minHeight: theme.spacing(8),
-  },
   infoLabel: {
     marginLeft: '4px',
     fontSize: '1rem',
     color: theme.palette.background.contrastText,
     cursor: 'pointer',
   },
+  notesIcon: {
+    marginRight: '4px',
+    fontSize: '1rem',
+    color: theme.palette.background.contrastText,
+  },
   label: {
     color: theme.palette.text.secondary,
   },
   labelPadding: {
     paddingBottom: theme.spacing(1),
-  },
-  switchLabel: {
-    color: theme.palette.text.secondary,
   },
   button: {
     marginLeft: theme.spacing(1),
@@ -118,25 +83,12 @@ const useStyles = makeStyles((theme) => ({
     left: 0,
     width: '100%',
   },
-  switchFormControlTop: {
-    marginLeft: 0,
-    alignItems: 'flex-start',
-  },
-  switchLabelTop: {
-    marginLeft: `-${theme.spacing(1.1)}px`,
-  },
-  switch: {
-    marginLeft: 0,
-  },
   accordionDetail: {
     flexDirection: 'column',
   },
   text: {
     fontSize: '0.875rem',
     color: theme.palette.background.contrastText,
-  },
-  selectError: {
-    marginLeft: 0,
   },
   error: {
     border: `1px solid ${theme.palette.error.main}`,
@@ -153,67 +105,6 @@ const ElementRow = ({children}) => {
 
 ElementRow.propTypes = {
   children: PropTypes.node.isRequired,
-};
-
-const StyledSelect = ({
-  id,
-  selected,
-  label,
-  onChange,
-  disabled,
-  error,
-  children,
-}) => {
-  const classes = useStyles();
-
-  return (
-    <FormControl
-      variant="filled"
-      className={classes.formControl}
-      error={Boolean(error)}>
-      {label ? (
-        <InputLabel id={`label-${id}`} classes={{root: classes.input}}>
-          {label}
-        </InputLabel>
-      ) : null}
-      <Select
-        labelId={label ? `label-${id}` : ''}
-        id={id}
-        name={id}
-        value={selected ?? ''}
-        onChange={onChange}
-        classes={{
-          root: classes.input,
-          filled: label ? classes.filledNoPad : classes.filled,
-          iconFilled: classes.iconFilled,
-        }}
-        className={clsx(Boolean(error) && classes.error)}
-        MenuProps={{classes: {list: classes.list}}}
-        IconComponent={ExpandMoreIcon}
-        disabled={disabled}
-        disableUnderline>
-        {children}
-      </Select>
-      <FormHelperText className={classes.selectError}>{error}</FormHelperText>
-    </FormControl>
-  );
-};
-
-StyledSelect.propTypes = {
-  id: PropTypes.string.isRequired,
-  selected: PropTypes.string.isRequired,
-  label: PropTypes.string,
-  onChange: PropTypes.func.isRequired,
-  disabled: PropTypes.bool,
-  error: PropTypes.string,
-  children: PropTypes.node,
-};
-
-StyledSelect.defaultProps = {
-  label: null,
-  error: null,
-  disabled: false,
-  children: null,
 };
 
 const ValidatedFields = {
@@ -243,11 +134,10 @@ const BuildConfig = ({
   const [setSnackbarErrorMsg, snackbarTypeError] = useSnackbarTypeError();
   const classes = useStyles();
 
-  const buildCapsQuery = useQuery(QueryKeys.BUILD_CAPABILITIES, async () => {
-    const {data} = await axios(Endpoints.BUILD_CAPABILITIES);
-    data.sort((a, b) => getNewIntlComparer()(a.name, b.name));
-    return data;
-  });
+  const buildCapsQuery = useQuery(
+    QueryKeys.BUILD_CAPABILITIES,
+    buildCapabilitiesFetch
+  );
 
   const buildCaps = buildCapsQuery.data;
 
@@ -274,6 +164,9 @@ const BuildConfig = ({
       // validate all versions parse status, I've chosen not to disabled item
       // selector in TestSelect as I may have to disabled whole files when error
       // is in just a version even if that's not latest.
+      // if some version has no parse status, we don't parse that here but later
+      // after submission, build run does that and parses all of them and declines
+      // if some have error.
       const versionIds = Array.from(buildConfig[BuildConfigFields.SV]);
       if (
         versionIds.some((v) => {
@@ -282,7 +175,7 @@ const BuildConfig = ({
         })
       ) {
         errors[ValidatedFields.TESTS] =
-          "Can't start build, there are parse errors in some of selected test(s)";
+          "Can't start build, there are parse errors in some of selected file(s) (marked as red).";
       }
     }
     return errors;
@@ -377,46 +270,34 @@ const BuildConfig = ({
     );
   };
 
+  const getNotesLabel = (text) => (
+    <Box
+      display="flex"
+      alignItems="center"
+      className={classes.labelPadding}
+      fontSize="body2.fontSize"
+      color="text.secondary">
+      <InfoIcon fontSize="small" className={classes.notesIcon} />
+      {text}
+    </Box>
+  );
+
   const getSwitch = (
     name,
     isChecked,
     label,
     helpText,
     labelPlacement = 'top'
-  ) => {
-    return (
-      <FormControlLabel
-        classes={{labelPlacementTop: classes.switchFormControlTop}}
-        control={
-          <Switch
-            checked={isChecked}
-            onChange={handleChange}
-            name={name}
-            classes={{
-              root:
-                labelPlacement === 'top'
-                  ? classes.switchLabelTop
-                  : classes.switch,
-            }}
-          />
-        }
-        labelPlacement={labelPlacement}
-        label={
-          <Box display="flex" alignItems="center">
-            <Typography
-              variant="body2"
-              component="span"
-              className={classes.switchLabel}>
-              {label}
-            </Typography>
-            <TooltipCustom title={helpText} placement="right">
-              <InfoIcon fontSize="small" className={classes.infoLabel} />
-            </TooltipCustom>
-          </Box>
-        }
-      />
-    );
-  };
+  ) => (
+    <StyledSwitch
+      name={name}
+      isChecked={isChecked}
+      label={label}
+      helpText={helpText}
+      handleChange={handleChange}
+      labelPlacement={labelPlacement}
+    />
+  );
 
   const getBuildCapsLabel = () => {
     if (!buildCaps) {
@@ -486,6 +367,9 @@ const BuildConfig = ({
             ) && (
               <ElementRow>
                 {getInfoLabel(BuildConfigKeys.SV, 'testSelect')}
+                {getNotesLabel(
+                  'Only file(s) that are loaded into explorer will be shown below.'
+                )}
                 <Box
                   className={clsx(
                     classes.testSelect,
@@ -495,7 +379,10 @@ const BuildConfig = ({
                     files={files}
                     onItemSelectionChange={handleTestSelectionChange}
                     selectedVersions={buildConfig[BuildConfigFields.SV]}
-                    noTestMsg="No test found, add/load some test(s) from explorer."
+                    noTestMsg={
+                      'No test found. Either add new test from explorer' +
+                      " or load existing ones using the '+' icon on top right of explorer"
+                    }
                   />
                 </Box>
                 <FormHelperText error>

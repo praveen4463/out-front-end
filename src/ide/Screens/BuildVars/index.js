@@ -1,7 +1,7 @@
 /* eslint-disable react/jsx-props-no-spreading */
 /* eslint-disable react/prop-types */
 import React, {useContext, useMemo, useState, useCallback} from 'react';
-import {truncate} from 'lodash-es';
+import truncate from 'lodash-es/truncate';
 import TextField from '@material-ui/core/TextField';
 import {makeStyles} from '@material-ui/core/styles';
 import Radio from '@material-ui/core/Radio';

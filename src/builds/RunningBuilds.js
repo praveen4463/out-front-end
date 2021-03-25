@@ -93,8 +93,23 @@ const RunningBuilds = () => {
     if (!data?.length) {
       return;
     }
-    // push the new builds on top of array
-    setBuilds((b) => [...data, ...b]);
+    // push the new builds on top of array, check that the build doesn't already
+    // exist. Altho it is checked that api doesn't return a build that already exist
+    // but I've seen sometimes that builds are duplicating may be due to race conditions
+    // in which some api call's response doesn't set into state immediately, another
+    // request returns the same build(s) as we've not used 'after' and then this
+    // effect runs for both responses, thus it is important we check for existence
+    // before pushing anything into builds so there are zero chances of duplicate
+    // builds showing as running.
+    setBuilds((bz) => {
+      const result = [];
+      data.forEach((d) => {
+        if (!bz.some((bu) => bu.buildId === d.buildId)) {
+          result.push(d);
+        }
+      });
+      return [...result, ...bz];
+    });
   }, [data]);
 
   const removeBuild = useCallback(

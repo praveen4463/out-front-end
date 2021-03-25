@@ -15,7 +15,7 @@ import EditIcon from '@material-ui/icons/EditOutlined';
 import IconButton from '@material-ui/core/IconButton';
 import Typography from '@material-ui/core/Typography';
 import {useGlobalFilter, useSortBy, useTable} from 'react-table';
-import {pull} from 'lodash-es';
+import pull from 'lodash-es/pull';
 import axios from 'axios';
 import PropTypes from 'prop-types';
 import {makeStyles} from '@material-ui/core/styles';

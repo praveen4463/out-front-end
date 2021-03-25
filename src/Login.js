@@ -75,11 +75,11 @@ const Login = () => {
       return;
     }
     if (!auth.authStateLoaded) {
-      console.log('login: auth not loaded');
+      // console.log('login: auth not loaded');
       return;
     }
     if (auth.user && !auth.user.isAnonymous) {
-      console.log('login: auth user found');
+      // console.log('login: auth user found');
       // redirect to where we were as a user exists
       history.replace(locationInState || PageUrl.HOME);
     }
@@ -155,6 +155,7 @@ const Login = () => {
           (ex) => {
             handleApiError(ex, setSnackbarAlertError, "Couldn't finish login");
             auth.signOut();
+            setLogging(false);
           }
         );
       },

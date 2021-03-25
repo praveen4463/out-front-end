@@ -7,7 +7,7 @@ import {
   CONFIG_BUILD_ON_BUILD_CAPS_DELETE,
   CONFIG_BUILD_ON_BUILD_VAR_DELETE,
 } from '../actions/actionTypes';
-import {ExplorerItemType} from '../ide/Constants';
+import {updateBuildConfigSelectedVersions} from '../common';
 import {addBuildVar, onBuildVarDelete} from './common';
 
 const updateByProp = (draft, payload) => {
@@ -34,55 +34,13 @@ const updateSelectedVersions = (draft, payload) => {
   const {files, itemType, itemId, isSelected} = payload;
   // selectedVersions is a Set
   const {selectedVersions} = draft.config.build;
-  switch (itemType) {
-    case ExplorerItemType.VERSION: {
-      if (isSelected) {
-        selectedVersions.add(itemId);
-      } else {
-        selectedVersions.delete(itemId);
-      }
-      break;
-    }
-    case ExplorerItemType.TEST: {
-      if (isSelected) {
-        // when a test is selected, add it's current version only.
-        selectedVersions.add(
-          files.entities.tests[itemId].versions.find(
-            (v) => files.entities.versions[v].isCurrent
-          )
-        );
-      } else {
-        // when a test is deselected, delete all it's versions that exists
-        files.entities.tests[itemId].versions.forEach((vid) =>
-          selectedVersions.delete(vid)
-        );
-      }
-      break;
-    }
-    case ExplorerItemType.FILE: {
-      if (isSelected) {
-        // when a file is selected, add all it's tests' current versions
-        files.entities.files[itemId].tests.forEach((tid) =>
-          selectedVersions.add(
-            files.entities.tests[tid].versions.find(
-              (v) => files.entities.versions[v].isCurrent
-            )
-          )
-        );
-        break;
-      } else {
-        // when a files is deselected, delete all it's tests' version that exists
-        files.entities.files[itemId].tests.forEach((tid) =>
-          files.entities.tests[tid].versions.forEach((vid) =>
-            selectedVersions.delete(vid)
-          )
-        );
-        break;
-      }
-    }
-    default:
-      throw new Error(`Unrecognized itemType ${itemType}`);
-  }
+  updateBuildConfigSelectedVersions(
+    selectedVersions,
+    files,
+    itemType,
+    itemId,
+    isSelected
+  );
 };
 
 const onVersionsDelete = (draft, payload) => {

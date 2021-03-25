@@ -9,6 +9,7 @@ export default function Browser(name, version) {
 }
 
 function BuildConfig(
+  buildName = null,
   buildCapabilityId = null,
   selectedVersions = new Set(), // set of versionIds, name should be changed to selectedVersionIds
   displayResolution,
@@ -21,6 +22,7 @@ function BuildConfig(
   aetDeleteAllCookies = true,
   openLessOften = false
 ) {
+  this.buildName = buildName;
   this.buildCapabilityId = buildCapabilityId;
   /*
   the stored versions may not necessarily be in the order they're supposed to run
@@ -254,6 +256,11 @@ function BuildDialogState(
   this.openerType = openerType;
 }
 
+function FilesWithTestsApiConfig(excludeCode, excludeNoCodeTests) {
+  this.excludeCode = excludeCode;
+  this.excludeNoCodeTests = excludeNoCodeTests;
+}
+
 export {
   BuildConfig,
   BuildCapabilities,
@@ -265,4 +272,5 @@ export {
   RunningBuildSummary,
   BuildOutputDetailsByVersion,
   BuildDialogState,
+  FilesWithTestsApiConfig,
 };

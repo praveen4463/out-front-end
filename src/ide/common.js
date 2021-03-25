@@ -5,12 +5,11 @@ import {LastRunError} from './Explorer/model';
 import {
   RunType,
   Endpoints,
-  VERSION_IDS_ENDPOINT_VAR_TEMPLATE,
   VERSION_ID_ENDPOINT_VAR_TEMPLATE,
   PROJECT_ID_ENDPOINT_VAR_TEMPLATE,
 } from '../Constants';
 import {PARSE_SUCCESS_MSG, ExplorerItemType} from './Constants';
-import {prepareEndpoint, handleApiError} from '../common';
+import {prepareEndpoint, handleApiError, getParseEndpoint} from '../common';
 
 const versionsHaveLastParseStatus = (etVersions, versionIds) => {
   return versionIds.every((vid) => etVersions[vid].lastParseRun);
@@ -81,10 +80,6 @@ const getVersionCodeUpdateAndParseEndpoint = (versionId) => {
     VERSION_ID_ENDPOINT_VAR_TEMPLATE,
     versionId
   );
-};
-
-const getParseEndpoint = (versionIds) => {
-  return Endpoints.PARSE.replace(VERSION_IDS_ENDPOINT_VAR_TEMPLATE, versionIds);
 };
 
 const getDryRunEndpoint = (projectId, versionId) => {

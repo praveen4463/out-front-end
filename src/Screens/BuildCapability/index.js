@@ -17,7 +17,7 @@ import EditIcon from '@material-ui/icons/Edit';
 import DeleteIcon from '@material-ui/icons/Delete';
 import Button from '@material-ui/core/Button';
 import LinearProgress from '@material-ui/core/LinearProgress';
-import {pull} from 'lodash-es';
+import pull from 'lodash-es/pull';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import {useQuery} from 'react-query';

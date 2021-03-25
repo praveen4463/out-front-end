@@ -1,10 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {truncate} from 'lodash-es';
+import truncate from 'lodash-es/truncate';
 import axios from 'axios';
 import {captureException} from '@sentry/react';
 import queryString from 'query-string';
 import localforage from 'localforage';
+import {normalize} from 'normalizr';
 import {
   Os,
   Browsers,
@@ -20,6 +21,7 @@ import {
   PASSWORD_RESET_ID_ENDPOINT_VAR_TEMPLATE,
   EMAIL_CHANGE_ID_ENDPOINT_VAR_TEMPLATE,
   Role,
+  VERSION_IDS_ENDPOINT_VAR_TEMPLATE,
 } from './Constants';
 import chrome from './icons/chrome.png';
 import firefox from './icons/firefox.png';
@@ -27,6 +29,8 @@ import ie from './icons/ie.png';
 import windowsIcon from './icons/windows.png';
 import Application from './config/application';
 import {UserInLocalStorage} from './model';
+import {File, filesSchema, Test, Version} from './ide/Explorer/model';
+import {ExplorerItemType} from './ide/Constants';
 
 // detects runtime's locale while building collator.
 export const getNewIntlComparer = () => new Intl.Collator().compare;
@@ -244,7 +248,7 @@ export const handleAuthError = (error, showError, message) => {
  * @returns {*} deduced error message if showError is null otherwise null
  */
 export const handleApiError = (error, showError, message) => {
-  console.log('handleApiError', error.response, error.request);
+  // console.log('handleApiError', error.response, error.request);
   if (error.response) {
     captureException(error);
     let errorMsg = error.response.data.message;
@@ -446,13 +450,20 @@ export const getChangeEmailEndpoint = (emailChangeId) =>
 export const getRenameProjectEndpoint = (projectId) =>
   Endpoints.RENAME_PROJECT.replace(PROJECT_ID_ENDPOINT_VAR_TEMPLATE, projectId);
 
+export const getFilesWithTestsEndpoint = (projectId) =>
+  prepareEndpoint(Endpoints.FILES_WITH_TESTS, projectId);
+
+export const getParseEndpoint = (versionIds) => {
+  return Endpoints.PARSE.replace(VERSION_IDS_ENDPOINT_VAR_TEMPLATE, versionIds);
+};
+
 /**
  * Fetches files with tests from api filtered by te given fileIds
  * @param {fileIds} fileIds Must be comma separated string if multiple, otherwise integer
  * @param {projectId} projectId The zl projectId
  */
 export const getFilesWithTests = (fileIds, projectId) =>
-  axios(prepareEndpoint(Endpoints.FILES_WITH_TESTS, projectId), {
+  axios(getFilesWithTestsEndpoint(projectId), {
     params: {
       fileIdsFilter: fileIds,
     },
@@ -673,5 +684,82 @@ export const getRoleDisplayName = (role) => {
 export const keyUpHandler = (handler) => (e) => {
   if (e.key === 'Enter') {
     handler();
+  }
+};
+
+export const filesWithTestsApiDataToNormalizedSorted = (data) => {
+  if (!Array.isArray(data)) {
+    throw new TypeError('data must be an array of files with tests');
+  }
+  const filesWithTests = data.map((f) => fromJson(File, f));
+  filesWithTests.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+  filesWithTests.forEach((f) => {
+    // eslint-disable-next-line no-param-reassign
+    f.tests = f.tests.map((t) => fromJson(Test, t));
+    f.tests.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+    f.tests.forEach((t) => {
+      // eslint-disable-next-line no-param-reassign
+      t.versions = t.versions.map((v) => fromJson(Version, v));
+      t.versions.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+    });
+  });
+  return normalize(filesWithTests, filesSchema);
+};
+
+export const updateBuildConfigSelectedVersions = (
+  selectedVersions,
+  files,
+  itemType,
+  itemId,
+  isSelected
+) => {
+  switch (itemType) {
+    case ExplorerItemType.VERSION: {
+      if (isSelected) {
+        selectedVersions.add(itemId);
+      } else {
+        selectedVersions.delete(itemId);
+      }
+      break;
+    }
+    case ExplorerItemType.TEST: {
+      if (isSelected) {
+        // when a test is selected, add it's current version only.
+        selectedVersions.add(
+          files.entities.tests[itemId].versions.find(
+            (v) => files.entities.versions[v].isCurrent
+          )
+        );
+      } else {
+        // when a test is deselected, delete all it's versions that exists
+        files.entities.tests[itemId].versions.forEach((vid) =>
+          selectedVersions.delete(vid)
+        );
+      }
+      break;
+    }
+    case ExplorerItemType.FILE: {
+      if (isSelected) {
+        // when a file is selected, add all it's tests' current versions
+        files.entities.files[itemId].tests.forEach((tid) =>
+          selectedVersions.add(
+            files.entities.tests[tid].versions.find(
+              (v) => files.entities.versions[v].isCurrent
+            )
+          )
+        );
+        break;
+      } else {
+        // when a files is deselected, delete all it's tests' version that exists
+        files.entities.files[itemId].tests.forEach((tid) =>
+          files.entities.tests[tid].versions.forEach((vid) =>
+            selectedVersions.delete(vid)
+          )
+        );
+        break;
+      }
+    }
+    default:
+      throw new Error(`Unrecognized itemType ${itemType}`);
   }
 };

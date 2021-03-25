@@ -1,5 +1,5 @@
 import produce from 'immer';
-import {pull} from 'lodash-es';
+import pull from 'lodash-es/pull';
 import {
   EDR_EXP_VERSIONS_DELETED,
   EDR_EXP_VERSION_CLICK,

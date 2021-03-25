@@ -71,6 +71,7 @@ import CompletedBuild from './CompletedBuild';
 import BuildStatusIconSet from '../components/BuildStatusIconSet';
 import BuildStatusIcon from '../components/BuildStatusIcon';
 import RunningBuilds from './RunningBuilds';
+import NewBuild from './NewBuild';
 
 const ALL = 'ALL';
 
@@ -1110,7 +1111,7 @@ const Builds = () => {
                 <RunningBuilds />
               </Route>
               <Route path={`${path}${PageUrl.CREATE}`}>
-                <h1>New Build</h1>
+                <NewBuild />
               </Route>
               <Route path={`${path}${PageUrl.GET}`}>
                 <CompletedBuild />

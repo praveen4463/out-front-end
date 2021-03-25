@@ -22,7 +22,7 @@ import IconButton from '@material-ui/core/IconButton';
 import PropTypes from 'prop-types';
 import SplitPane from 'react-split-pane';
 import clsx from 'clsx';
-import {intersection} from 'lodash-es';
+import intersection from 'lodash-es/intersection';
 import Tooltip from '../TooltipCustom';
 import {getNodeId, getBrokenNodeId} from './Explorer/internal';
 import {
@@ -61,10 +61,10 @@ const useStyles = makeStyles((theme) => ({
   outputPanelContent: {
     display: 'flex',
     flexDirection: 'column',
-    overflowY: 'scroll',
+    overflowY: 'auto',
   },
   statusPanelContent: {
-    overflowY: 'scroll',
+    overflowY: 'auto',
   },
   header: {
     minHeight: theme.spacing(3),

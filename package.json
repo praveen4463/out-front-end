@@ -42,10 +42,12 @@
     "react-table": "^7.6.3",
     "react-window": "^1.8.6",
     "scheduler": "^0.19.1",
+    "source-map-explorer": "^2.5.2",
     "tiny-invariant": "^1.1.0",
     "validator": "^13.5.2"
   },
   "scripts": {
+    "analyze": "source-map-explorer 'build/static/js/*.js'",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jest-environment-jsdom-sixteen",

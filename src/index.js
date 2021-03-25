@@ -33,7 +33,9 @@ import '@fontsource/source-code-pro/latin-300-italic.css';
 enableMapSet();
 
 // **environment variables =======================================================
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction =
+  process.env.NODE_ENV === 'production' &&
+  document.location.hostname !== 'localhost';
 
 // **Sentry ======================================================================
 // https://docs.sentry.io/platforms/javascript/guides/react/configuration/filtering/
@@ -89,16 +91,18 @@ init({
 
 // **Axios =======================================================================
 // Note that auth header is set in the callback to authStateChange
+// when not in production, assign hostname from location rather than localhost
+// so that another network computer could access api
 axios.defaults.baseURL = isProduction
   ? Application.PRODUCTION_API_BASE_URL
-  : Application.LOCAL_API_BASE_URL;
+  : Application.LOCAL_API_URL_TEMPLATE.replace(
+      'HOST',
+      document.location.hostname
+    );
 axios.defaults.timeout = 5000;
 
 // **React-Query =================================================================
 // configure react-query
-// TODO: refetch on window focus is disabled for now to keep resource usage in budget as we don't have good
-// caching strategy at api level, otherwise there will be lot of db hits. Once we're up for some month, think
-// about it. Components that badly need it can enable at query level.
 const queryClient = new QueryClient({
   defaultOptions: {
     // The staleTime, refetchOnMount, refetchOnWindowFocus should be used per query not globally.

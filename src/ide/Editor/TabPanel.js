@@ -21,7 +21,8 @@ import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import BuildIcon from '@material-ui/icons/Build';
 import Portal from '@material-ui/core/Portal';
 import axios from 'axios';
-import {debounce, uniq} from 'lodash-es';
+import debounce from 'lodash-es/debounce';
+import uniq from 'lodash-es/uniq';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/addon/dialog/dialog.css';
 import './show-hint.css';
@@ -87,7 +88,7 @@ const useStyle = makeStyles((theme) => ({
     display: 'flex',
     flexDirection: 'column',
     height: theme.spacing(25),
-    overflowY: 'scroll',
+    overflowY: 'auto',
     borderTop: `1px solid ${theme.palette.border.light}`,
   },
   fontSizeSmall: {

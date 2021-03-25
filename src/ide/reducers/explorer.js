@@ -1,5 +1,5 @@
 import produce from 'immer';
-import {pull} from 'lodash-es';
+import pull from 'lodash-es/pull';
 import {ExplorerItemType} from '../Constants';
 import {Version, Test, File} from '../Explorer/model';
 import {
