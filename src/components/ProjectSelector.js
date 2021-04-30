@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef} from 'react';
+import React, {useEffect, useMemo, useRef, useCallback} from 'react';
 import Box from '@material-ui/core/Box';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -83,19 +83,34 @@ const ProjectSelector = () => {
   }, [projectId, projects]);
   // console.log('projectIdExists, projectId', projectIdExists, projectId);
 
-  useEffect(() => {
-    if (
-      projectId &&
-      (isFetching ||
-        projectIdExists ||
-        location.pathname.startsWith(PageUrl.MANAGE_PROJECTS))
-    ) {
-      return;
-    }
+  const goSelectProject = useCallback(() => {
     history.push(
       getLocation(PageUrl.SELECT_PROJECT, location.search, {location})
     );
-  }, [history, projects, isFetching, location, projectIdExists, projectId]);
+  }, [history, location]);
+
+  // decide whether to send user to select a project page
+  useEffect(() => {
+    // if we're fetching, wait as we can't decide anything
+    // if we've a projectId that exists in user's project, return
+    if (isFetching || projectIdExists) {
+      return;
+    }
+    // either user supplied no projectId in query, or it's invalid or they've no project
+    // check whether user has projects, if so, we should send them back to select one
+    // of the project
+    if (projects?.length) {
+      goSelectProject();
+    }
+    // user has no projects, check whether they're at manage project page, if so
+    // let them stay here as they may be adding new one or creating/deleting something.
+    // in this case, this component won't render
+    if (location.pathname.startsWith(PageUrl.MANAGE_PROJECTS)) {
+      return;
+    }
+    // send back in all other cases.
+    goSelectProject();
+  }, [goSelectProject, isFetching, location, projectIdExists, projects]);
 
   if (!projectIdExists) {
     return null;

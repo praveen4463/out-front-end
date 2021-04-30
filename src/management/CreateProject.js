@@ -116,19 +116,16 @@ const CreateProject = () => {
       )
     );
     if (projects.length === 0 && locationInState) {
-      // first refetch query before redirecting to location with new project
+      // issue a refetch before redirecting to location with new project
       // otherwise the projectSelector doesn't refetch immediately on render
       // and again redirect to 'selectAProject' finding the new project no-existent.
-      refetch({throwOnError: true}).then(() => {
-        // when this is the first project created, we should append projectId in
-        // location search and redirect to what is in state.
-        updateInSearchQuery(
-          locationInState,
-          history,
-          SearchKeys.PROJECT_QS,
-          id
-        );
-      });
+      // don't wait for refetch to completed and immediately send to location otherwise
+      // if projectSelector re-renders upon fetch success, it finds no projectId and
+      // redirects to 'selectAProject'
+      refetch({throwOnError: true});
+      // when this is the first project created, we should append projectId in
+      // location search and redirect to what is in state.
+      updateInSearchQuery(locationInState, history, SearchKeys.PROJECT_QS, id);
       return;
     }
     goInitiator();
