@@ -1,5 +1,7 @@
 import {immerable} from 'immer';
 import {BuildCapsTimeouts, Defaults} from './Constants';
+// Note: our resolutions list is taken from GCP's virtual display's supported
+// resolution fetched using qres.exe /L
 import resolutions from './config/desktopResolution.json';
 
 // doesn't have to be immer draftable as we set the whole object.
@@ -37,8 +39,15 @@ function BuildConfig(
   this.selectedVersions = selectedVersions;
   if (!displayResolution) {
     const screenRes = `${window.screen.width}x${window.screen.height}`;
-    this.displayResolution =
-      resolutions.indexOf(screenRes) >= 0 ? screenRes : Defaults.DESKTOP_RES;
+    if (resolutions.includes(screenRes)) {
+      this.displayResolution = screenRes;
+    } else if (resolutions.includes(Defaults.DESKTOP_RES)) {
+      this.displayResolution = Defaults.DESKTOP_RES;
+    } else {
+      throw new Error(
+        "Couldn't find default resolution in our supported resolutions"
+      );
+    }
   }
   this.timezone = timezone;
   this.selectedBuildVarIdPerKey = selectedBuildVarIdPerKey;
