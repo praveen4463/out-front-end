@@ -306,7 +306,19 @@ const BuildCapability = React.memo(
 
     const addBuildCaps = useCallback((buildCaps) => {
       const id = buildCaps[BuildCapsFields.ID];
+      const buildCapsState = new BuildCapsState(
+        id,
+        buildCaps[BuildCapsFields.NAME],
+        buildCaps,
+        null
+      );
       setCaps((c) => {
+        if (!c) {
+          return {
+            [DATA]: {[id]: buildCapsState},
+            [SORTED_IDS]: [id],
+          };
+        }
         const newData = {
           ...c[DATA],
           [id]: new BuildCapsState(

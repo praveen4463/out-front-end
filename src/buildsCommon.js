@@ -1,6 +1,8 @@
 import {captureMessage} from '@sentry/react';
 import getDayOfYear from 'date-fns/getDayOfYear';
 import axios from 'axios';
+import queryString from 'query-string';
+import random from 'lodash-es/random';
 import {
   OFFLINE_MSG,
   ShotIdentifiers,
@@ -141,10 +143,17 @@ export const startPreview = (
     // when image was in cache, onload doesn't invoke if src is mentioned
     // before that, but here in live preview, content can't be in cache as
     // all builds are unique.
-    const src = shotUriTemplate.replace(
-      SHOT_ID_TMPL,
-      stringShotId ?? numberShotId
+    const parsedUrl = queryString.parseUrl(
+      shotUriTemplate.replace(SHOT_ID_TMPL, stringShotId ?? numberShotId)
     );
+    // ! Firefox caches 404 responses. When an image is not yet on storage, browser
+    // gets a 404 and if cached by browser, later request to same image is served
+    // from cache, thus a 404 is returned even if later image is stored.
+    // As a workaround, adding up a random number as qs param
+    // we're adding up a radom number inn query to image src so that a firefox
+    // problem
+    parsedUrl.query.rnd = random(111111, 999999);
+    const src = queryString.stringifyUrl(parsedUrl);
     // console.log('going to get livePreview image', src);
     img.onload = () => {
       // console.log(`image ${src} loaded`);
