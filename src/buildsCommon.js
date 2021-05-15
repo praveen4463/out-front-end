@@ -101,8 +101,15 @@ export const getShotIdFromName = (shotName) => {
 };
 
 const endIfLastShot = (stringShotId, onPreviewEnd) => {
-  if (stringShotId === ShotIdentifiers.EOS) {
-    onPreviewEnd();
+  if (
+    stringShotId === ShotIdentifiers.EOS ||
+    stringShotId === ShotIdentifiers.ERROR
+  ) {
+    onPreviewEnd(
+      stringShotId === ShotIdentifiers.ERROR
+        ? LivePreviewConstants.ERROR_SHOT_FOUND_TEXT
+        : ''
+    );
     return true;
   }
   return false;
@@ -277,7 +284,7 @@ export const newSessionInBackground = (
   // Running builds page will pickup this new build.
   axios
     .post(newSessionEndpoint(buildId), null, {
-      timeout: Timeouts.API_TIMEOUT_X_LONG,
+      timeout: Timeouts.API_TIMEOUT_LONG,
     })
     .catch((ex) => {
       handleApiError(

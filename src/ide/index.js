@@ -822,7 +822,7 @@ const Ide = () => {
             versionIds: state.buildRun.versionIds,
           },
           {
-            timeout: Timeouts.API_TIMEOUT_X_LONG,
+            timeout: Timeouts.API_TIMEOUT_LONG,
           }
         );
         // setup test progress interval

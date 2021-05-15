@@ -115,11 +115,11 @@ const getBuildResultStatus = (completedBuildVersions) => {
   // !! This logic should match what is in BuildRunHandler.updateBuildOnFinish
   if (totalSuccess === cbvValues.length) {
     buildStatus = TestStatus.SUCCESS;
-  } else if (totalError) {
-    buildStatus = TestStatus.STOPPED;
   } else if (totalStopped) {
-    buildStatus = TestStatus.ABORTED;
+    buildStatus = TestStatus.STOPPED;
   } else if (totalAborted) {
+    buildStatus = TestStatus.ABORTED;
+  } else if (totalError) {
     buildStatus = TestStatus.ERROR;
   } else {
     throw new Error("Couldn't get a status");

@@ -130,8 +130,17 @@ const firebaseConfig = {
   measurementId: 'G-KG989GGTNL',
 };
 
+const firebaseLocalConfig = {
+  apiKey: 'AIzaSyCvjdNXfPTfvSFIKfu3sWB0SsZAQIZkSig',
+  authDomain: 'zl-front-end-dev.firebaseapp.com',
+  projectId: 'zl-front-end-dev',
+  storageBucket: 'zl-front-end-dev.appspot.com',
+  messagingSenderId: '780550079910',
+  appId: '1:780550079910:web:0b2cd7c931f1ab2c0e3b67',
+};
+
 if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
+  firebase.initializeApp(isProduction ? firebaseConfig : firebaseLocalConfig);
 }
 
 ReactDOM.render(

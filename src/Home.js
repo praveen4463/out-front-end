@@ -28,6 +28,7 @@ import Settings from './settings/Settings';
 import {HomeLinearProgressContext} from './contexts/index';
 import Builds from './builds/Builds';
 import NotFound from './NotFound';
+import Application from './config/application';
 
 function ListItemLink(props) {
   return (
@@ -156,8 +157,10 @@ const Home = () => {
   const [progress, setProgress] = useState(false);
   const [progressValue, setProgressValue] = useState(0);
   const progressTimerRef = useRef(null);
-  const auth = useRequiredAuth();
   const location = useLocation();
+  const auth = useRequiredAuth(() => {
+    window.location = Application.ABOUT_ZYLITICS_URL;
+  });
   const getSearchLocation = useMemo(
     () => filterSearchQuery(location.search, [SearchKeys.PROJECT_QS]),
     [location.search]

@@ -315,13 +315,12 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
       }
       try {
         const {data} = await axios(endpointFunc(cbd.buildId));
-        if (!data) {
-          throw new Error('No logs received despite build being done');
-        }
         setDlgState(
           <Box className={classes.outputPanelContent} flex={1}>
             <Box display="flex" flexDirection="column" px={1}>
-              <pre className={classes.output}>{data}</pre>
+              <pre className={classes.output}>
+                {data || 'Nothing written to log.'}
+              </pre>
             </Box>
           </Box>
         );

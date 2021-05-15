@@ -236,6 +236,14 @@ const ShotsViewer = ({
         }
         const {firstShot, lastShot} = data;
         const [sId, bKey, firstShotId] = getShotNameParts(firstShot);
+        // if first shot is an error, there was an error
+        if (firstShotId === ShotIdentifiers.ERROR) {
+          setMsg(
+            'There was an error processing screenshots for this build. ' +
+              'If you see similar problem with other builds, please contact us.'
+          );
+          return;
+        }
         // if first shot was EOS, we have nothing to show.
         if (firstShotId === ShotIdentifiers.EOS) {
           setMsg(noShotExistMsg);
@@ -243,8 +251,14 @@ const ShotsViewer = ({
         }
         const [, , lastShotId] = getShotNameParts(lastShot);
         let totalShots = ts;
-        // if last shot is an EOS, total shots displayable are one less
-        if (lastShotId === ShotIdentifiers.EOS) {
+        // if last shot is EOS/ERROR, total shots displayable are one less
+        // TODO: we're not showing any error such as 'error occurred after this shot'
+        // even if an error shot was last, let's keep it as is and watch logs
+        // if we ever get such error, and later come back here to put something.
+        if (
+          lastShotId === ShotIdentifiers.EOS ||
+          lastShotId === ShotIdentifiers.ERROR
+        ) {
           totalShots -= 1;
         }
         sessionIdRef.current = sId;

@@ -171,6 +171,12 @@ const HelpMenu = () => {
           aria-label="Documentation">
           Documentation
         </MenuItem>
+        <MenuItem
+          component="a"
+          href={`mailto:${Application.SUPPORT_EMAIL}`}
+          aria-label="Email Us">
+          {`Email Us (${Application.SUPPORT_EMAIL})`}
+        </MenuItem>
       </Menu>
       <Dialog
         TransitionComponent={Transition}

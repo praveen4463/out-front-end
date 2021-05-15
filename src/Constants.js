@@ -439,8 +439,9 @@ export const LocalStorageKeys = {
 
 export const Timeouts = {
   API_TIMEOUT_SMALL: 60000,
+  // if anything takes more than this timeout, we should investigate it as it'd
+  // not not be feasible. The same timeout is set at our nginx config at api.
   API_TIMEOUT_LONG: 300000,
-  API_TIMEOUT_X_LONG: 600000,
   SYNC_EMAIL_SENDER: 10000,
 };
 
