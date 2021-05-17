@@ -560,6 +560,13 @@ export const getUserFromLocalStorage = () =>
     });
   });
 
+export const anyUserExistInLocalStorage = () =>
+  new Promise((resolve) => {
+    localforage.getItem(LocalStorageKeys.USER).then((value) => {
+      resolve(!!value);
+    });
+  });
+
 export const getUserDisplayName = (firstName, lastName) =>
   `${firstName} ${lastName}`;
 

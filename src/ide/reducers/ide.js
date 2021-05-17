@@ -13,6 +13,7 @@ import getDeepClonedFiles from './common';
 import {LastRunError, LastRun} from '../Explorer/model';
 import {CompletedBuild, CompletedBuildVersion} from '../model';
 import {RunType} from '../../Constants';
+import {MaxLengths} from '../Constants';
 
 // !!if no reference if kept to the files sent via payload, there is no need to
 // deep clone files, remove it once we're using api to load data.
@@ -149,6 +150,10 @@ const pushCompletedBuilds = (draft, payload) => {
     completedBuildVersions,
     versionIds
   );
+  if (completedBuilds.length === MaxLengths.COMPLETED_BUILDS) {
+    // when we reach max limit, remove one from the end.
+    completedBuilds.pop();
+  }
   // push new completed builds on top of array
   completedBuilds.unshift(completedBuild);
 };

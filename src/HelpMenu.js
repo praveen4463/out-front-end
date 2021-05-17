@@ -177,6 +177,14 @@ const HelpMenu = () => {
           aria-label="Email Us">
           {`Email Us (${Application.SUPPORT_EMAIL})`}
         </MenuItem>
+        <MenuItem
+          component="a"
+          href={Application.ABOUT_ZYLITICS_URL}
+          rel="noopener"
+          target="_blank"
+          aria-label="About">
+          About
+        </MenuItem>
       </Menu>
       <Dialog
         TransitionComponent={Transition}

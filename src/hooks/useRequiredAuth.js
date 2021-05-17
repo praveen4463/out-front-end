@@ -7,12 +7,10 @@ import {AppSnackbarContext} from '../contexts';
 
 /**
  * Redirects to a given url when there is no logged in user
- * @param {() => any} beforeRedirectFn synchronous function to call before
- * redirecting to url when there is no logged in user.
- * @param {string} redirectTo Url of the page to redirect when there is no
- * logged in user
+ * @param {() => any} redirectFn Provide an optional function to redirect user
+ * when they are not authorized or logged in.
  */
-const useRequiredAuth = (beforeRedirectFn = null, redirectTo = null) => {
+const useRequiredAuth = (redirectFn = null) => {
   const auth = useAuthContext();
   const history = useHistory();
   const location = useLocation();
@@ -25,21 +23,19 @@ const useRequiredAuth = (beforeRedirectFn = null, redirectTo = null) => {
     }
     // console.log('auth user', auth.user);
     if (!auth.user || auth.user.isAnonymous) {
-      if (beforeRedirectFn) {
-        beforeRedirectFn();
+      if (redirectFn) {
+        redirectFn();
+      } else {
+        history.push(getLocation(PageUrl.LOGIN, location.search, {location}));
       }
-      history.push(
-        getLocation(redirectTo || PageUrl.LOGIN, location.search, {location})
-      );
     }
   }, [
     auth.authStateLoaded,
     auth.user,
     history,
     location,
-    redirectTo,
+    redirectFn,
     setSnackbarAlertProps,
-    beforeRedirectFn,
   ]);
 
   return auth;

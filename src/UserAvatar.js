@@ -58,6 +58,9 @@ const UserAvatar = React.memo(() => {
   };
 
   const signOut = () => {
+    // TODO: later set a message to let user know they are logged out, using some query
+    // so that auth listeners on pages know it's a logout and don't overwrite the
+    // message with something like 'you need to be logged in to continue'
     auth.signOut(() =>
       history.push(getLocation(PageUrl.LOGIN, location.search, {location}))
     );

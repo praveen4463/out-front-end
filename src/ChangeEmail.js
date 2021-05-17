@@ -1,9 +1,9 @@
 import React, {useState, useEffect, useRef, useContext} from 'react';
+import {useParams, useHistory, useLocation} from 'react-router-dom';
 import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
 import {makeStyles} from '@material-ui/core/styles';
 import Alert from '@material-ui/lab/Alert';
-import {useParams, useHistory} from 'react-router-dom';
 import axios from 'axios';
 import BlankCentered from './layouts/BlankCentered';
 import {
@@ -14,6 +14,7 @@ import {
 } from './Constants';
 import {
   getChangeEmailEndpoint,
+  getLocation,
   getValidateEmailChangeEndpoint,
   handleApiError,
 } from './common';
@@ -30,25 +31,31 @@ const useStyles = makeStyles((theme) => ({
 
 const ChangeEmail = () => {
   const {code} = useParams();
+  const history = useHistory();
+  const location = useLocation();
+  const cancelRequiredAuthRef = useRef(false);
   const [setSnackbarAlertProps] = useContext(AppSnackbarContext);
-  const auth = useRequiredAuth(() =>
+  const auth = useRequiredAuth(() => {
+    if (cancelRequiredAuthRef.current) {
+      return;
+    }
     setSnackbarAlertProps(
       new SnackbarAlertProps(
         'You need to be logged in before email change proceeds, please login with your current email.',
         SnackbarType.INFO,
         SnackbarVerPos.TOP,
         SnackbarHorPos.CENTER,
-        10000
+        20000
       )
-    )
-  );
+    );
+    history.push(getLocation(PageUrl.LOGIN, location.search, {location}));
+  });
   const [changeValidationResponse, setChangeValidationResponse] = useState(
     null
   );
   const [error, setError] = useState(null);
   const validationCallInitiatedRef = useRef(false);
   const emailChangeCallInitiatedRef = useRef(false);
-  const history = useHistory();
 
   const classes = useStyles();
 
@@ -73,6 +80,9 @@ const ChangeEmail = () => {
       .patch(getChangeEmailEndpoint(changeValidationResponse))
       .then(() => {
         // When email is changed, ask user to login again
+        cancelRequiredAuthRef.current = true; // cancel redirection triggered by
+        // the hook so that when we sign out, we have complete control over redirection
+        // and any messages shown to user.
         auth.signOut(() => {
           setSnackbarAlertProps(
             new SnackbarAlertProps(

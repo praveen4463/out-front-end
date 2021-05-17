@@ -16,3 +16,17 @@ bug fixes, minor additions and dependency updates.
 - Added Email to in help menu.
 - Configured home page so that when someone lands on root domain and not logged in, they are redirected to about site.
 - Added separate firebase project for dev environment.
+
+## 0.2.5 (2021-05-17)
+
+bug fixes, minor additions.
+
+#### :bug: Bug Fix
+
+- In ChangeEmail, when user was already logged in and triggers email change, the change email confirmation message was being replaced by the message that ask to login before email change can take place. This was happening because when we sign user out, the requiredAuth hook runs too and shows it's message. This is fixed by cancelling requiredAuth hook redirection if we are signing user out post email change. requiredAuth hook is changed so that the redirectFn takes care of all redirection if given and if not, only then the hook redirects to login.
+- There was a bug when redirecting a user to marketing site when they land of home page and not logged in. It was ok if user comes to home page not being logged in, but when user was signing out using the user-info menu, or changes password that triggers a sign out, they were also being redirected to marketing site which is not correct. Now, we will redirect them to marketing site only if they are previously unknown to zylitics i.e having no record in browser storage which will happen to only unregistered users. Once they start using the app, we will never redirect them to marketing site.
+
+#### :nail_care: Enhancement
+
+- added an about link in help menu
+- completed builds now shows most recent 15 builds only so that they tab doesn't get overloaded that slows it down.

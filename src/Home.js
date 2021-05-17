@@ -7,7 +7,13 @@ import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
-import {Switch, Route, useLocation, Link as RouterLink} from 'react-router-dom';
+import {
+  Switch,
+  Route,
+  useLocation,
+  useHistory,
+  Link as RouterLink,
+} from 'react-router-dom';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import DashboardIcon from '@material-ui/icons/DashboardOutlined';
 import BuildIcon from '@material-ui/icons/BuildOutlined';
@@ -22,7 +28,11 @@ import useRequiredAuth from './hooks/useRequiredAuth';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
 import {PageUrl, SearchKeys} from './Constants';
 import TopBar from './layouts/TopBar';
-import {filterSearchQuery, getLocation} from './common';
+import {
+  anyUserExistInLocalStorage,
+  filterSearchQuery,
+  getLocation,
+} from './common';
 import Management from './management/Management';
 import Settings from './settings/Settings';
 import {HomeLinearProgressContext} from './contexts/index';
@@ -157,9 +167,21 @@ const Home = () => {
   const [progress, setProgress] = useState(false);
   const [progressValue, setProgressValue] = useState(0);
   const progressTimerRef = useRef(null);
+  const history = useHistory();
   const location = useLocation();
   const auth = useRequiredAuth(() => {
-    window.location = Application.ABOUT_ZYLITICS_URL;
+    // when a user lands on root domain and they never had an account with us,
+    // redirect them to about page otherwise login page.
+    // when an existing user is logged out, or try logging in using root domain,
+    // we will show login page rather than about.
+    // This part runs only when user is not currently logged in.
+    anyUserExistInLocalStorage().then((exists) => {
+      if (!exists && location.pathname === PageUrl.HOME) {
+        window.location = Application.ABOUT_ZYLITICS_URL;
+      } else {
+        history.push(getLocation(PageUrl.LOGIN, location.search, {location}));
+      }
+    });
   });
   const getSearchLocation = useMemo(
     () => filterSearchQuery(location.search, [SearchKeys.PROJECT_QS]),

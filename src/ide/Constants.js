@@ -28,6 +28,7 @@ const MaxLengths = {
   VAR_KEY: 100,
   IDE_TEST_HOST_ACQUIRE_TIME_STAGE1: 30000,
   IDE_TEST_HOST_ACQUIRE_TIME_STAGE2: 50000,
+  COMPLETED_BUILDS: 15,
 };
 
 const ExplorerEditOperationType = {
