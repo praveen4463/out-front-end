@@ -10,6 +10,7 @@ import {ReactQueryDevtools} from 'react-query/devtools';
 import firebase from 'firebase/app';
 import {BrowserRouter as Router} from 'react-router-dom';
 import localforage from 'localforage';
+import {HelmetProvider} from 'react-helmet-async';
 import Application from './config/application';
 import './index.css';
 import App from './App';
@@ -148,7 +149,9 @@ ReactDOM.render(
     <ThemeProvider theme={theme}>
       <QueryClientProvider client={queryClient}>
         <Router>
-          <App />
+          <HelmetProvider>
+            <App />
+          </HelmetProvider>
         </Router>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>

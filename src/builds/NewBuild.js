@@ -23,6 +23,7 @@ import {useQuery, useQueryClient} from 'react-query';
 import axios from 'axios';
 import PropTypes from 'prop-types';
 import {useLocation, useHistory} from 'react-router-dom';
+import {Helmet} from 'react-helmet-async';
 import TooltipCustom from '../TooltipCustom';
 import TestSelect from '../components/TestSelect';
 import {
@@ -33,6 +34,7 @@ import {
   getParseEndpoint,
   updateBuildConfigSelectedVersions,
   getNewBuildWithoutSessionEndpoint,
+  composePageTitle,
 } from '../common';
 import {
   BuildConfigLabels,
@@ -548,6 +550,7 @@ const NewBuild = () => {
 
   return (
     <Box display="flex" flexDirection="column" className={classes.root}>
+      <Helmet title={composePageTitle('New build')} />
       <Box pb={2} display="flex" alignItems="center">
         <Typography variant="h4">New Build</Typography>
         <Box flex={1} />

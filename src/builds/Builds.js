@@ -38,9 +38,11 @@ import isBefore from 'date-fns/isBefore';
 import intervalToDuration from 'date-fns/intervalToDuration';
 import clsx from 'clsx';
 import queryString from 'query-string';
+import {Helmet} from 'react-helmet-async';
 import {
   addInSearchQuery,
   addMultipleInSearchQuery,
+  composePageTitle,
   filterSearchQuery,
   getBrowserDisplayName,
   getBrowserIcon,
@@ -734,6 +736,7 @@ const Default = ({url}) => {
 
   return (
     <Box display="flex" flexDirection="column" className={classes.root}>
+      <Helmet title={composePageTitle('Builds')} />
       <Box pb={2} display="flex" alignItems="center">
         <Typography variant="h4">Completed Builds</Typography>
         <Box flex={1} />

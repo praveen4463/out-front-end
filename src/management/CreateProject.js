@@ -13,6 +13,7 @@ import Button from '@material-ui/core/Button';
 import axios from 'axios';
 import {useHistory, useLocation, useParams} from 'react-router-dom';
 import {useQuery, useMutation} from 'react-query';
+import {Helmet} from 'react-helmet-async';
 import {equalIgnoreCase} from '../utils';
 import {
   Endpoints,
@@ -28,6 +29,7 @@ import {
   getRenameProjectEndpoint,
   handleApiError,
   updateInSearchQuery,
+  composePageTitle,
 } from '../common';
 import {SnackbarAlertProps} from '../model';
 import {
@@ -62,6 +64,7 @@ const useStyles = makeStyles((theme) => ({
 
 const CreateProject = () => {
   const existProjectId = useParams().id;
+  const caption = existProjectId ? 'Edit project' : 'Create a project';
   // query disabled when we're editing as we want cached, immediately available data
   const {data: projects, error, refetch} = useQuery(
     QueryKeys.PROJECTS,
@@ -237,10 +240,9 @@ const CreateProject = () => {
 
   return (
     <Box display="flex" flexDirection="column" className={classes.root}>
+      <Helmet title={composePageTitle(caption)} />
       <Box pb={4}>
-        <Typography variant="h5">
-          {existProjectId ? 'Edit project' : 'Create a project'}
-        </Typography>
+        <Typography variant="h5">{caption}</Typography>
       </Box>
       <Box
         className={classes.content}

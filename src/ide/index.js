@@ -13,6 +13,7 @@ import {normalize} from 'normalizr';
 import intersection from 'lodash-es/intersection';
 import axios from 'axios';
 import {useLocation, useHistory} from 'react-router-dom';
+import {Helmet} from 'react-helmet-async';
 import TopNavigation from './TopNavigation';
 import Content from './Content';
 import darkTheme from './Themes';
@@ -1063,6 +1064,7 @@ const Ide = () => {
 
   return (
     <ThemeProvider theme={darkTheme}>
+      <Helmet title="Zylitics IDE: write, parse, debug, and run tests." />
       <IdeDispatchContext.Provider value={dispatch}>
         <IdeStateContext.Provider value={state}>
           <IdeProjectIdContext.Provider value={state.projectId}>

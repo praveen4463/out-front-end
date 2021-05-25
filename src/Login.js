@@ -14,6 +14,7 @@ import {makeStyles} from '@material-ui/core/styles';
 import Alert from '@material-ui/lab/Alert';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import {useHistory, useLocation, Link as RouterLink} from 'react-router-dom';
+import {Helmet} from 'react-helmet-async';
 import BlankCentered from './layouts/BlankCentered';
 import {useAuthContext} from './Auth';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
@@ -22,6 +23,7 @@ import {
   getFromApiAndStoreUser,
   handleApiError,
   handleAuthError,
+  composePageTitle,
 } from './common';
 import Application from './config/application';
 import {AppSnackbarContext} from './contexts';
@@ -202,6 +204,7 @@ const Login = () => {
 
   return (
     <BlankCentered width="35%">
+      <Helmet title={composePageTitle('Sign in')} />
       <Box
         display="flex"
         flexDirection="column"

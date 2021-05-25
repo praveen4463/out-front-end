@@ -32,6 +32,8 @@ import {UserInLocalStorage} from './model';
 import {File, filesSchema, Test, Version} from './ide/Explorer/model';
 import {ExplorerItemType} from './ide/Constants';
 
+export const composePageTitle = (text) => `${text} . ${Application.ORG}`;
+
 // detects runtime's locale while building collator.
 export const getNewIntlComparer = () => new Intl.Collator().compare;
 
@@ -210,7 +212,7 @@ const getApiErrorDeducedMsg = (userErrorMsg, apiErrorMsg) =>
  */
 export const handleAuthError = (error, showError, message) => {
   captureException(error);
-  console.log('handleAuthError', error);
+  // console.log('handleAuthError', error);
   let errorMsg;
   switch (error.code) {
     case 'auth/invalid-user-token':
@@ -602,7 +604,7 @@ export const getLocation = (pathname, search, state = {}) => ({
 
 export const getZyliticsLogo = () => (
   <img
-    src={getStaticImageUrl('zylitics_logo.svg')}
+    src={getStaticImageUrl('zylitics_logo_v5.svg')}
     alt="Zylitics Logo"
     style={{width: '120px', height: '36px'}}
   />

@@ -24,12 +24,14 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 import Typography from '@material-ui/core/Typography';
 import Divider from '@material-ui/core/Divider';
 import {makeStyles} from '@material-ui/core/styles';
+import {Helmet} from 'react-helmet-async';
 import useRequiredAuth from './hooks/useRequiredAuth';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
 import {PageUrl, SearchKeys} from './Constants';
 import TopBar from './layouts/TopBar';
 import {
   anyUserExistInLocalStorage,
+  composePageTitle,
   filterSearchQuery,
   getLocation,
 } from './common';
@@ -147,6 +149,7 @@ const Default = () => {
 
   return (
     <Box className={classes.defaultRoot}>
+      <Helmet title={composePageTitle('Dashboard')} />
       <Typography variant="h3">Welcome to Zylitics!</Typography>
       <Typography variant="body1">
         Use our fully managed platform to create, run, and manage your browsers

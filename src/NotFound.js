@@ -3,11 +3,14 @@ import Box from '@material-ui/core/Box';
 import {Link as RouterLink} from 'react-router-dom';
 import Button from '@material-ui/core/Button';
 import Typography from '@material-ui/core/Typography';
+import {Helmet} from 'react-helmet-async';
 import {PageUrl} from './Constants';
+import {composePageTitle} from './common';
 
 const NotFound = () => {
   return (
     <Box display="flex" flexDirection="column" width="100%" alignItems="center">
+      <Helmet title={composePageTitle('404 not found')} />
       <Box pt={6}>
         <Typography variant="h3">404</Typography>
       </Box>

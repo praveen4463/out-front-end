@@ -12,8 +12,10 @@ import {makeStyles} from '@material-ui/core/styles';
 import {Link as RouterLink, useLocation} from 'react-router-dom';
 import {useQuery} from 'react-query';
 import axios from 'axios';
+import {Helmet} from 'react-helmet-async';
 import {
   addInSearchQuery,
+  composePageTitle,
   fromJson,
   getLocation,
   getNumberParamFromUrl,
@@ -132,6 +134,7 @@ const RunningBuilds = () => {
 
   return (
     <Box display="flex" flexDirection="column" className={classes.root}>
+      <Helmet title={composePageTitle('Running builds')} />
       <Box pb={2} display="flex" alignItems="center">
         <Typography variant="h4">Running Builds</Typography>
         <Box flex={1} />

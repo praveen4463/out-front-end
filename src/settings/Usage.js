@@ -6,11 +6,12 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 import Typography from '@material-ui/core/Typography';
 import Divider from '@material-ui/core/Divider';
 import {useQuery} from 'react-query';
+import {Helmet} from 'react-helmet-async';
 import Loader from '../components/Loader';
 import {SettingsSnackbarContext} from '../contexts';
 import {PlanType, QueryKeys} from '../Constants';
 import {userInStorageFetch, userPlanFetch} from '../api/fetches';
-import {handleApiError} from '../common';
+import {composePageTitle, handleApiError} from '../common';
 import {formatTimestamp} from '../utils';
 
 // TODO: this page is incomplete and built for just free plans. Once we enter
@@ -84,6 +85,7 @@ const Usage = () => {
 
   return (
     <Box display="flex" flexDirection="column" className={classes.root}>
+      <Helmet title={composePageTitle('Usage quota')} />
       <Box>{getText('Usage', false, 'h4')}</Box>
       <Box pb={4}>
         {getText(

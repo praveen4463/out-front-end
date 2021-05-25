@@ -1,9 +1,9 @@
 {
-  "short_name": "Zylitics Front End",
-  "name": "Zylitics End to End Browser Testing App",
+  "short_name": "Zylitics",
+  "name": "Zylitics: a fully managed end to end browser test platform.",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "favicon.png",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     }

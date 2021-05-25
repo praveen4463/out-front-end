@@ -6,10 +6,15 @@ import Typography from '@material-ui/core/Typography';
 import {makeStyles} from '@material-ui/core/styles';
 import Alert from '@material-ui/lab/Alert';
 import LinearProgress from '@material-ui/core/LinearProgress';
+import {Helmet} from 'react-helmet-async';
 import {useAuthContext} from './Auth';
 import BlankCentered from './layouts/BlankCentered';
 import {Endpoints, Timeouts} from './Constants';
-import {handleApiError, invokeApiWithAnonymousAuth} from './common';
+import {
+  composePageTitle,
+  handleApiError,
+  invokeApiWithAnonymousAuth,
+} from './common';
 
 const useStyles = makeStyles((theme) => ({
   label: {
@@ -87,6 +92,7 @@ const ForgotPassword = () => {
 
   return (
     <BlankCentered width="35%">
+      <Helmet title={composePageTitle('Forgot password')} />
       <Box
         display="flex"
         flexDirection="column"

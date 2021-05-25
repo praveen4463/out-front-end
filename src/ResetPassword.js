@@ -14,6 +14,7 @@ import Alert from '@material-ui/lab/Alert';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import {useParams, useHistory} from 'react-router-dom';
 import axios from 'axios';
+import {Helmet} from 'react-helmet-async';
 import {useAuthContext} from './Auth';
 import BlankCentered from './layouts/BlankCentered';
 import {
@@ -24,6 +25,7 @@ import {
   SnackbarVerPos,
 } from './Constants';
 import {
+  composePageTitle,
   getRestPasswordEndpoint,
   getValidatePasswordResetEndpoint,
   handleApiError,
@@ -173,6 +175,7 @@ const ResetPassword = () => {
 
   return (
     <BlankCentered width="35%">
+      <Helmet title={composePageTitle('Reset password')} />
       {resetValidationResponse ? (
         <Box
           display="flex"

@@ -2,6 +2,8 @@ import CodeMirror from 'codemirror';
 import 'codemirror/addon/mode/simple';
 import {ZwlLexer} from '../../ide/Constants';
 
+// Note: !! The same file is used at docs and marketing apps, replicate any changes
+// there too.
 CodeMirror.defineSimpleMode('zwl', {
   // The start state contains the rules that are intially used
   start: [

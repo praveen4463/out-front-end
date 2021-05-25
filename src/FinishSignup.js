@@ -13,9 +13,11 @@ import Alert from '@material-ui/lab/Alert';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import {useParams, useHistory} from 'react-router-dom';
 import {captureMessage} from '@sentry/react';
+import {Helmet} from 'react-helmet-async';
 import BlankCentered from './layouts/BlankCentered';
 import useSnackbarTypeError from './hooks/useSnackbarTypeError';
 import {
+  composePageTitle,
   getValidateEmailVerificationEndpoint,
   handleApiError,
   invokeApiWithAnonymousAuth,
@@ -245,6 +247,7 @@ const FinishSignup = () => {
   return (
     <>
       <BlankCentered width="60%">
+        <Helmet title={composePageTitle('Create new account')} />
         {emailVerificationResponse ? (
           <Box
             display="flex"

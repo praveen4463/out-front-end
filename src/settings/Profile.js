@@ -8,6 +8,7 @@ import {makeStyles} from '@material-ui/core/styles';
 import axios from 'axios';
 import {Link as RouterLink, useLocation} from 'react-router-dom';
 import {useQuery, useMutation, useQueryClient} from 'react-query';
+import {Helmet} from 'react-helmet-async';
 import {HomeLinearProgressContext, SettingsSnackbarContext} from '../contexts';
 import {
   getRoleDisplayName,
@@ -16,6 +17,7 @@ import {
   getLocation,
   fromJson,
   keyUpHandler,
+  composePageTitle,
 } from '../common';
 import {SnackbarAlertProps, UserInLocalStorage} from '../model';
 import {
@@ -229,6 +231,7 @@ const Profile = () => {
 
   return (
     <Box display="flex" flexDirection="column" className={classes.root}>
+      <Helmet title={composePageTitle('My profile')} />
       <Box pb={4}>
         <Typography variant="h4">My Profile</Typography>
       </Box>

@@ -1,4 +1,5 @@
 - Follow [format](https://raw.githubusercontent.com/facebook/create-react-app/master/CHANGELOG.md) and markdown
+
 ## 0.2.4 (2021-05-15)
 
 bug fixes, minor additions and dependency updates.
@@ -30,3 +31,14 @@ bug fixes, minor additions.
 
 - added an about link in help menu
 - completed builds now shows most recent 15 builds only so that they tab doesn't get overloaded that slows it down.
+
+## 0.2.6 (2021-05-25)
+
+minor additions.
+
+#### :nail_care: Enhancement
+
+- Updated title, meta tags, metadata file
+- Enabled on-save from editor functionality in prettier, it then formatted some css, jss files
+- added new zylitics logos, favicon
+- added react helmet and titles to all pages

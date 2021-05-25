@@ -7,6 +7,7 @@ import {makeStyles} from '@material-ui/core/styles';
 import Alert from '@material-ui/lab/Alert';
 import axios from 'axios';
 import {useHistory} from 'react-router-dom';
+import {Helmet} from 'react-helmet-async';
 import {AppSnackbarContext, HomeLinearProgressContext} from '../contexts';
 import {useAuthContext} from '../Auth';
 import {
@@ -18,7 +19,12 @@ import {
   SnackbarVerPos,
   Timeouts,
 } from '../Constants';
-import {handleApiError, handleAuthError, keyUpHandler} from '../common';
+import {
+  composePageTitle,
+  handleApiError,
+  handleAuthError,
+  keyUpHandler,
+} from '../common';
 import {SnackbarAlertProps} from '../model';
 
 const CUR_PWD = 'Current password';
@@ -204,6 +210,7 @@ const Password = () => {
 
   return (
     <Box display="flex" flexDirection="column" className={classes.root}>
+      <Helmet title={composePageTitle('Change password')} />
       <Box pb={4}>
         <Typography variant="h4">Change password</Typography>
       </Box>

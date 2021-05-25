@@ -25,12 +25,6 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.background.contrastText,
     opacity: theme.textOpacity.highEmphasis,
   },
-  content: {
-    backgroundColor: '#fff',
-    display: 'flex',
-    alignItems: 'center',
-    padding: `${theme.spacing(1)} 0`,
-  },
   elementMargin: {
     marginRight: theme.spacing(2),
   },

@@ -98,7 +98,7 @@ const HelpMenu = () => {
       new HelpMenuState(
         null,
         true,
-        'Report Bug, Feature Request or Feedback',
+        'Feature request or feedback',
         DEFAULT_WIDTH_DIALOG,
         MenuItems.ISSUE
       )
@@ -157,8 +157,16 @@ const HelpMenu = () => {
           vertical: 'top',
           horizontal: 'left',
         }}>
+        <MenuItem
+          component="a"
+          href={Application.COMMUNITY_ZYLITICS_URL}
+          rel="noopener"
+          target="_blank"
+          aria-label="Documentation">
+          Ask questions, report and discuss issues with community
+        </MenuItem>
         <MenuItem onClick={handleClickIssue}>
-          Report Bug, Feature Request or Feedback
+          Feature request or feedback
         </MenuItem>
         <MenuItem onClick={handleClickKeyShortcuts}>
           Keyboard shortcuts

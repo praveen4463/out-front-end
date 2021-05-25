@@ -7,9 +7,10 @@ import {makeStyles} from '@material-ui/core/styles';
 import Alert from '@material-ui/lab/Alert';
 import axios from 'axios';
 import isEmail from 'validator/lib/isEmail';
+import {Helmet} from 'react-helmet-async';
 import {AppSnackbarContext, HomeLinearProgressContext} from '../contexts';
 import {Endpoints, Timeouts} from '../Constants';
-import {handleApiError, keyUpHandler} from '../common';
+import {composePageTitle, handleApiError, keyUpHandler} from '../common';
 import {equalIgnoreCase} from '../utils';
 import {useAuthContext} from '../Auth';
 
@@ -138,6 +139,7 @@ const Email = () => {
 
   return (
     <Box display="flex" flexDirection="column" className={classes.root}>
+      <Helmet title={composePageTitle('Change email')} />
       <Box pb={4}>
         <Typography variant="h4">Change email</Typography>
       </Box>

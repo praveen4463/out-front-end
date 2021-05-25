@@ -76,7 +76,7 @@ const Issue = () => {
       await axios.post(Endpoints.ISSUE, body);
       setStatus(
         new Status(
-          "Thank you for taking the time to write this. We've received it and will be getting back very soon.",
+          'Thank you for taking the time to write a feedback. Please allow us a day to respond.',
           true
         )
       );

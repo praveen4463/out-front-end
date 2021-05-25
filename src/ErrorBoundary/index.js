@@ -78,7 +78,30 @@ const RootErrorFallback = ({resetErrorBoundary}) => {
             title="Home">
             <SvgIcon fontSize="small">
               {/* TODO: replace with our 24x24 logo */}
-              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 256 256"
+                fill="none">
+                <g clipPath="url(#clip0)">
+                  <circle cx="42.65" cy="42.65" r="42.65" fill="#FED10A" />
+                  <circle cx="212.65" cy="42.65" r="42.65" fill="#399DBD" />
+                  <circle cx="127.65" cy="42.65" r="42.65" fill="#F27039" />
+                  <circle cx="43.65" cy="212.65" r="42.65" fill="#399DBD" />
+                  <circle cx="128.65" cy="212.65" r="42.65" fill="#F27039" />
+                  <circle cx="213.65" cy="212.65" r="42.65" fill="#FED10A" />
+                  <path
+                    d="M73.379 182.621L117.993 170.667L85.3334 138.007L73.379 182.621ZM183.494 72.5061L138.88 84.4605L171.54 117.12L183.494 72.5061ZM101.663 159.994L160.866 100.79L155.21 95.1335L96.0064 154.337L101.663 159.994Z"
+                    fill="#663399"
+                  />
+                </g>
+                <defs>
+                  <clipPath id="clip0">
+                    <rect width="256" height="256" fill="white" />
+                  </clipPath>
+                </defs>
+              </svg>
             </SvgIcon>
           </Link>
         </Box>

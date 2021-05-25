@@ -13,6 +13,7 @@ import {
   useLocation,
   Link as RouterLink,
 } from 'react-router-dom';
+import {Helmet} from 'react-helmet-async';
 import {filterSearchQuery, getLocation} from '../common';
 import {PageUrl, SearchKeys} from '../Constants';
 import ManageProjects from './ManageProjects';
@@ -61,6 +62,7 @@ const Default = () => {
 
   return (
     <Box className={classes.defaultRoot}>
+      <Helmet title="Manage projects, capabilities, variables, and more." />
       <Typography variant="h4">Zylitics management</Typography>
       <Typography variant="body1">
         Manage projects, capabilities, variables, and more.

@@ -8,9 +8,11 @@ import ButtonBase from '@material-ui/core/ButtonBase';
 import Link from '@material-ui/core/Link';
 import {useHistory, useLocation, Link as RouterLink} from 'react-router-dom';
 import {useQuery} from 'react-query';
+import {Helmet} from 'react-helmet-async';
 import {PageUrl, QueryKeys, SearchKeys} from './Constants';
 import {projectsFetch} from './api/fetches';
 import {
+  composePageTitle,
   getLocation,
   getZyliticsLogo,
   handleApiError,
@@ -94,6 +96,7 @@ const SelectAProject = () => {
 
   return (
     <>
+      <Helmet title={composePageTitle('Select a project')} />
       <Box
         display="flex"
         flexDirection="column"

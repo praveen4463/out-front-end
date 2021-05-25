@@ -27,10 +27,12 @@ import {
   Link as RouterLink,
 } from 'react-router-dom';
 import {useQuery, useMutation, useQueryClient} from 'react-query';
+import {Helmet} from 'react-helmet-async';
 import GlobalFilter from '../components/GlobalFilter';
 import CreateProject from './CreateProject';
 import {Endpoints, PageUrl, QueryKeys, SearchKeys} from '../Constants';
 import {
+  composePageTitle,
   filterSearchQuery,
   getLocation,
   getNewIntlComparer,
@@ -206,6 +208,7 @@ const Default = () => {
   );
   return (
     <Box display="flex" flexDirection="column" className={classes.root}>
+      <Helmet title={composePageTitle('All projects')} />
       <Box pb={1}>
         <Typography variant="h5">Projects</Typography>
       </Box>

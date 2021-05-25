@@ -82,7 +82,23 @@ const LeftNavigation = (props) => {
           title="Home">
           <SvgIcon fontSize="small">
             {/* TODO: replace with our 24x24 logo */}
-            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none">
+              <circle cx="4" cy="4" r="3.5" stroke="white" />
+              <circle cx="20" cy="4" r="3.5" stroke="white" />
+              <circle cx="12" cy="4" r="3.5" stroke="white" />
+              <circle cx="4" cy="20" r="3.5" stroke="white" />
+              <circle cx="20" cy="20" r="3.5" stroke="white" />
+              <circle cx="12" cy="20" r="3.5" stroke="white" />
+              <path
+                d="M7 17.1744L12.529 15.5119L8.32469 11.5549L7 17.1744ZM16.8317 6.72819L11.3028 8.39071L15.507 12.3477L16.8317 6.72819ZM10.4482 14.2402L14.1117 10.3478L13.3835 9.66241L9.72004 13.5548L10.4482 14.2402Z"
+                fill="white"
+              />
+            </svg>
           </SvgIcon>
         </Link>
       </Box>

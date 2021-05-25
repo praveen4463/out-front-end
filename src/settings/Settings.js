@@ -13,7 +13,8 @@ import {
   useLocation,
   Link as RouterLink,
 } from 'react-router-dom';
-import {filterSearchQuery, getLocation} from '../common';
+import {Helmet} from 'react-helmet-async';
+import {composePageTitle, filterSearchQuery, getLocation} from '../common';
 import {PageUrl, SearchKeys} from '../Constants';
 import Profile from './Profile';
 import useSnackbarAlert from '../hooks/useSnackbarAlert';
@@ -64,6 +65,7 @@ const Default = () => {
 
   return (
     <Box className={classes.defaultRoot}>
+      <Helmet title={composePageTitle('Settings')} />
       <Typography variant="h4">Zylitics settings</Typography>
       <Typography variant="body1">
         Edit your profile, view or change billing, usage quotas, and more.
