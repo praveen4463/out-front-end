@@ -42,3 +42,16 @@ minor additions.
 - Enabled on-save from editor functionality in prettier, it then formatted some css, jss files
 - added new zylitics logos, favicon
 - added react helmet and titles to all pages
+
+## 0.2.7 (2021-05-30)
+
+bug fixes, minor additions.
+
+#### :bug: Bug Fix
+
+- Resolved a bug that would delete the token after dot operator when it's completed
+
+#### :nail_care: Enhancement
+
+- While suggesting functions, action functions will have a tag for this to indicate that its an actionFunction.
+- We will not put entire function definition on a suggestion's selection because user has to one by one replace arguments with actual values using mouse or keys, which looks additional work.

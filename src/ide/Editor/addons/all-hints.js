@@ -84,10 +84,10 @@ const allHints = (editor, options) => {
     }
     return {
       list: getConstantHints(tokBeforeDot.string, options),
-      from: CodeMirror.Pos(cur.line, tok.start + 1),
       // + 1 cause we don't want to complete the dot but put the completion after
       // dot, if +1 is not given, completion replaced dot.
-      to: CodeMirror.Pos(cur.line, tok.end + 1),
+      from: CodeMirror.Pos(cur.line, tok.start + 1),
+      to: CodeMirror.Pos(cur.line, tok.end),
     };
   }
 
@@ -122,14 +122,13 @@ const allHints = (editor, options) => {
   const hintZwlFunctions = (functions) => {
     functions.forEach((fn) => {
       const name = fn.match(FUNC_NAME);
-      if (name && name[0].lastIndexOf(curVariable, 0) === 0) {
-        preciseList.add(fn);
-      }
-    });
-    functions.forEach((fn) => {
-      const name = fn.match(FUNC_NAME);
-      if (name && matches(name[0], curVariable) && !preciseList.has(fn)) {
-        fuzzyList.add(fn);
+      if (name) {
+        const nameOnly = name[0];
+        if (nameOnly.lastIndexOf(curVariable, 0) === 0) {
+          preciseList.add({text: nameOnly, displayText: fn});
+        } else if (matches(nameOnly, curVariable)) {
+          fuzzyList.add({text: nameOnly, displayText: fn});
+        }
       }
     });
   };
@@ -141,10 +140,7 @@ const allHints = (editor, options) => {
     elements.forEach((el) => {
       if (el.lastIndexOf(curVariable, 0) === 0) {
         preciseList.add(el);
-      }
-    });
-    elements.forEach((el) => {
-      if (matches(el, curVariable) && !preciseList.has(el)) {
+      } else if (matches(el, curVariable)) {
         fuzzyList.add(el);
       }
     });
