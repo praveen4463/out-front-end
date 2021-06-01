@@ -7,7 +7,7 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import Button from '@material-ui/core/Button';
 import PropTypes from 'prop-types';
-import {TextField} from '@material-ui/core';
+import TextField from '@material-ui/core/TextField';
 import clsx from 'clsx';
 
 const useStyle = makeStyles((theme) => ({

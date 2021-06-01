@@ -7,7 +7,7 @@ import Typography from '@material-ui/core/Typography';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
-import {FormHelperText} from '@material-ui/core';
+import FormHelperText from '@material-ui/core/FormHelperText';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import {Os} from '../Constants';

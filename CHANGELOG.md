@@ -55,3 +55,12 @@ bug fixes, minor additions.
 
 - While suggesting functions, action functions will have a tag for this to indicate that its an actionFunction.
 - We will not put entire function definition on a suggestion's selection because user has to one by one replace arguments with actual values using mouse or keys, which looks additional work.
+
+## 0.2.8 (2021-06-01)
+
+minor additions.
+
+#### :nail_care: Enhancement
+
+- Refactored some of imports that were not directly importing components
+- added security headers in firebase

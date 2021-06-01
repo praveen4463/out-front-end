@@ -10,7 +10,7 @@ import Button from '@material-ui/core/Button';
 import clsx from 'clsx';
 import axios from 'axios';
 import PropTypes from 'prop-types';
-import {FormHelperText} from '@material-ui/core';
+import FormHelperText from '@material-ui/core/FormHelperText';
 import useSnackbarTypeError from '../hooks/useSnackbarTypeError';
 import Browser from '../model';
 import {
