@@ -12,6 +12,7 @@ import FinishSignup from './FinishSignup';
 import {ProvideAuth} from './Auth';
 import NotFound from './NotFound';
 import Login from './Login';
+import SSO from './SSO';
 import SendBetaInvitations from './admin/SendBetaInvitations';
 import {PageUrl, SearchKeys} from './Constants';
 import ForgotPassword from './ForgotPassword';
@@ -119,6 +120,9 @@ const App = () => {
             <Switch>
               <Route path={PageUrl.SELECT_PROJECT}>
                 <SelectAProject />
+              </Route>
+              <Route path={PageUrl.SSO}>
+                <SSO />
               </Route>
               <Route path={PageUrl.LOGIN}>
                 <Login />

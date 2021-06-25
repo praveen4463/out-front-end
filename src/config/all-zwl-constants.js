@@ -1,46 +1,12 @@
 // !! Maintain the sort order while changing.
 // !! All values must be a valid identifier, see Constants.ZwlLexer.IDENTIFIER
+// !! Note that exceptions constant has been removed from here
+//  as I didn't think they're required for users. They were primarily built for
+//  internal testing.
 import {Browsers, Platforms} from '../Constants';
 
-export const exceptions = [
-  'assertionFailedEx',
-  'dateTimeFormatEx',
-  'elemClickInterceptedEx',
-  'elemNotInteractableEx',
-  'elemNotSelectableEx',
-  'elemNotVisibleEx',
-  'evalEx',
-  'illegalArgumentEx',
-  'illegalIdentifierEx',
-  'illegalStringFormatEx',
-  'indexOutOfRangeEx',
-  'insufficientArgsEx',
-  'invalidArgumentEx',
-  'invalidCookieDomainEx',
-  'invalidCoordinatesEx',
-  'invalidElemStateEx',
-  'invalidRegexEx',
-  'invalidSelectorEx',
-  'invalidTypeEx',
-  'jsEx',
-  'moveTargetOutOfBoundsEx',
-  'noAlertPresentEx',
-  'noSuchContextEx',
-  'noSuchCookieEx',
-  'noSuchElemEx',
-  'noSuchFrameEx',
-  'noSuchMapKeyEx',
-  'noSuchVariableEx',
-  'noSuchWindowEx',
-  'scriptTimeoutEx',
-  'staleElemEx',
-  'timeoutEx',
-  'unableToSetCookieEx',
-  'unhandledAlertEx',
-  'unknownDateTimeEx',
-];
-
 export const by = [
+  'ariaLabel',
   'className',
   'cssSelector',
   'id',
@@ -284,7 +250,6 @@ export const maps = {
   buildVars: 'buildVars',
   by: 'by',
   colors: 'colors',
-  exceptions: 'exceptions',
   globals: 'globals',
   keys: 'keys',
   platforms: 'platforms',

@@ -98,7 +98,7 @@ const HelpMenu = () => {
       new HelpMenuState(
         null,
         true,
-        'Feature request or feedback',
+        'Feedback',
         DEFAULT_WIDTH_DIALOG,
         MenuItems.ISSUE
       )
@@ -165,9 +165,7 @@ const HelpMenu = () => {
           aria-label="Documentation">
           Ask questions, report and discuss issues with community
         </MenuItem>
-        <MenuItem onClick={handleClickIssue}>
-          Feature request or feedback
-        </MenuItem>
+        <MenuItem onClick={handleClickIssue}>Feedback</MenuItem>
         <MenuItem onClick={handleClickKeyShortcuts}>
           Keyboard shortcuts
         </MenuItem>

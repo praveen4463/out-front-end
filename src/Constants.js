@@ -210,7 +210,9 @@ export const BuildCapsInfo = {
     ' interactivity before beginning test.',
   UPB:
     'Indicates whether webdriver handles JS alerts implicitly or leave on test to handle' +
-    ' when one appears. See documentation for explanation of each option.',
+    ' when one appears. Ignore lets test handle the alert, Dismiss will press Cancel button ' +
+    ' on alerts automatically and Accept will press OK button automatically. Notify options will' +
+    ' automatically cancel or accept but will throw an error leading to test failure.',
   IEESB:
     'Indicates whether IE webdriver when scrolls an element into viewport, align it to' +
     ' top or bottom of the viewport before interacting.',
@@ -431,6 +433,7 @@ export const Endpoints = {
   SEND_EMAIL_CHANGE: '/emailChanges',
   VALIDATE_EMAIL_CHANGE: `/emailChanges/${CODE_ENDPOINT_VAR_TEMPLATE}/validate`,
   CHANGE_EMAIL: `/emailChanges/${EMAIL_CHANGE_ID_ENDPOINT_VAR_TEMPLATE}/changeEmail`,
+  DISCOURSE_SSO: '/discourseSSO/getUserDetailForSSO',
 };
 
 export const LocalStorageKeys = {
@@ -455,6 +458,7 @@ export const PageUrl = {
   HOME: '/',
   BUILDS: '/builds',
   RUNNING_BUILDS: '/running',
+  SSO: '/sso',
   LOGIN: '/login',
   SIGNUP: '/signup',
   FINISH_SIGNUP: '/finish-signup/:code',

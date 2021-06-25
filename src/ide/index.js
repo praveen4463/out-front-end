@@ -723,7 +723,7 @@ const Ide = () => {
           // we can save the process and retry from here.
           // don't use the error message produced by handleApiError, as we want
           // custom made function and know that api returns a similar one cause
-          // it's an apis unexpected exception.
+          // it's an APIs unexpected exception.
           handleApiError(
             error,
             () =>

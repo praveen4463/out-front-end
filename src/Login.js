@@ -15,10 +15,11 @@ import Alert from '@material-ui/lab/Alert';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import {useHistory, useLocation, Link as RouterLink} from 'react-router-dom';
 import {Helmet} from 'react-helmet-async';
+import axios from 'axios';
 import BlankCentered from './layouts/BlankCentered';
 import {useAuthContext} from './Auth';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
-import {PageUrl} from './Constants';
+import {Endpoints, PageUrl} from './Constants';
 import {
   getFromApiAndStoreUser,
   handleApiError,
@@ -32,6 +33,26 @@ const EMAIL = 'Email';
 const PWD = 'Password';
 
 const useStyles = makeStyles((theme) => ({
+  root: {
+    border: `1px solid ${theme.palette.border.light}`,
+    backgroundColor: '#FFFFFF',
+    [theme.breakpoints.up('lg')]: {
+      width: '35%',
+      padding: theme.spacing(4, 2),
+    },
+    [theme.breakpoints.only('md')]: {
+      width: '50%',
+      padding: theme.spacing(4, 2),
+    },
+    [theme.breakpoints.only('sm')]: {
+      width: '60%',
+      padding: theme.spacing(2, 1),
+    },
+    [theme.breakpoints.only('xs')]: {
+      width: '95%',
+      padding: theme.spacing(1, 0.5),
+    },
+  },
   label: {
     fontWeight: 600,
     paddingBottom: theme.spacing(1),
@@ -72,6 +93,35 @@ const Login = () => {
 
   const classes = useStyles();
 
+  const goLocation = useCallback(() => {
+    history.replace(locationInState || PageUrl.HOME);
+  }, [history, locationInState]);
+
+  const redirectOnLogin = useCallback(() => {
+    if (location.state?.discourseSSO) {
+      // this is a sign in request from discourse
+      const {params} = location.state;
+      axios
+        .get(Endpoints.DISCOURSE_SSO, {
+          params,
+        })
+        .then((response) => {
+          const {data} = response;
+          window.location = `${Application.COMMUNITY_ZYLITICS_URL}/session/sso_login?sso=${data.sso}&sig=${data.sig}`;
+        })
+        .catch((ex) => {
+          handleApiError(ex, setSnackbarAlertError);
+          // even if this login request came from discourse, redirect to home
+          // in case an error occurs during logon and show error.
+          goLocation();
+        });
+    } else {
+      // this else block is necessary because we're making api request for discourse
+      // check. In absence of this, page would first move to home.
+      goLocation();
+    }
+  }, [location, goLocation, setSnackbarAlertError]);
+
   useEffect(() => {
     if (userAlreadyLoggedInCheckedRef.current) {
       return;
@@ -83,10 +133,10 @@ const Login = () => {
     if (auth.user && !auth.user.isAnonymous) {
       // console.log('login: auth user found');
       // redirect to where we were as a user exists
-      history.replace(locationInState || PageUrl.HOME);
+      redirectOnLogin();
     }
     userAlreadyLoggedInCheckedRef.current = true;
-  }, [auth.authStateLoaded, auth.user, history, locationInState]);
+  }, [auth.authStateLoaded, auth.user, history, redirectOnLogin]);
 
   const getLabel = (label, forId) => {
     return (
@@ -152,14 +202,11 @@ const Login = () => {
       () => {
         // storing logging-in user's data is vital, thus we don't allow login
         // until we've put user's data
-        getFromApiAndStoreUser(
-          () => history.replace(locationInState || PageUrl.HOME),
-          (ex) => {
-            handleApiError(ex, setSnackbarAlertError, "Couldn't finish login");
-            auth.signOut();
-            setLogging(false);
-          }
-        );
+        getFromApiAndStoreUser(redirectOnLogin, (ex) => {
+          handleApiError(ex, setSnackbarAlertError, "Couldn't finish login");
+          auth.signOut();
+          setLogging(false);
+        });
       },
       (ex) => {
         let errorMsg = null;
@@ -203,13 +250,15 @@ const Login = () => {
   }
 
   return (
-    <BlankCentered width="35%">
-      <Helmet title={composePageTitle('Sign in')} />
+    <BlankCentered>
+      <Helmet title={composePageTitle('Sign in')}>
+        <meta name="description" content="Sign in to Zylitics" />
+      </Helmet>
       <Box
         display="flex"
         flexDirection="column"
         alignItems="center"
-        width="100%">
+        className={classes.root}>
         <Box pb={3}>
           <Typography variant="h5">Sign in to Zylitics</Typography>
         </Box>

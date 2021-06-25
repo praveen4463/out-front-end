@@ -1,13 +1,12 @@
 // exported from zl-zwl/lang-funcs-definition.yaml
+// !! Note that assertThrows and assertDoesNotThrow have been removed from here
+//  as I didn't think they're required for users. They were primarily built for
+//  internal testing.
 const all = [
   'abs(number)',
   'addTo(list, value)',
-  'assertDoesNotThrow(expOrBlock)',
-  'assertDoesNotThrow(expOrBlock, failureMsg)',
   'assertFalse(boolean)',
   'assertFalse(boolean, failureMsg)',
-  'assertThrows(ex, expOrBlock)',
-  'assertThrows(ex, expOrBlock, failureMsg)',
   'assertTrue(boolean)',
   'assertTrue(boolean, failureMsg)',
   'ceil(number)',

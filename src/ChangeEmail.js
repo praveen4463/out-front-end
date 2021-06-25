@@ -27,6 +27,26 @@ const useStyles = makeStyles((theme) => ({
   alert: {
     padding: `0 ${theme.spacing(2)}px`,
   },
+  root: {
+    border: `1px solid ${theme.palette.border.light}`,
+    backgroundColor: '#FFFFFF',
+    [theme.breakpoints.up('lg')]: {
+      width: '35%',
+      padding: theme.spacing(4, 2),
+    },
+    [theme.breakpoints.only('md')]: {
+      width: '50%',
+      padding: theme.spacing(4, 2),
+    },
+    [theme.breakpoints.only('sm')]: {
+      width: '60%',
+      padding: theme.spacing(2, 1),
+    },
+    [theme.breakpoints.only('xs')]: {
+      width: '95%',
+      padding: theme.spacing(1, 0.5),
+    },
+  },
 }));
 
 const ChangeEmail = () => {
@@ -105,8 +125,8 @@ const ChangeEmail = () => {
     );
   }
   return (
-    <BlankCentered width="35%">
-      <Box width="100%">
+    <BlankCentered>
+      <Box className={classes.root}>
         <Alert variant="filled" className={classes.alert} severity="error">
           <Typography variant="body1">{error}</Typography>
         </Alert>

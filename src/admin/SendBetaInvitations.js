@@ -15,6 +15,26 @@ import PageLoadingIndicator from '../components/PageLoadingIndicator';
 import BlankCentered from '../layouts/BlankCentered';
 
 const useStyles = makeStyles((theme) => ({
+  root: {
+    border: `1px solid ${theme.palette.border.light}`,
+    backgroundColor: '#FFFFFF',
+    [theme.breakpoints.up('lg')]: {
+      width: '50%',
+      padding: theme.spacing(4, 2),
+    },
+    [theme.breakpoints.only('md')]: {
+      width: '60%',
+      padding: theme.spacing(4, 2),
+    },
+    [theme.breakpoints.only('sm')]: {
+      width: '70%',
+      padding: theme.spacing(2, 1),
+    },
+    [theme.breakpoints.only('xs')]: {
+      width: '95%',
+      padding: theme.spacing(1, 0.5),
+    },
+  },
   alert: {
     padding: `0 ${theme.spacing(2)}px`,
   },
@@ -134,9 +154,9 @@ const SendBetaInvitations = () => {
   }
 
   return (
-    <BlankCentered width="40%" linkOnLogo>
+    <BlankCentered linkOnLogo>
       <Box
-        width="100%"
+        className={classes.root}
         display="flex"
         flexDirection="column"
         alignItems="center">

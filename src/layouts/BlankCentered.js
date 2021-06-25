@@ -1,37 +1,45 @@
 import React from 'react';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import Box from '@material-ui/core/Box';
-import Container from '@material-ui/core/Container';
 import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
 import {Link as RouterLink, useLocation} from 'react-router-dom';
 import Link from '@material-ui/core/Link';
 import {getLocation, getZyliticsLogo} from '../common';
 import {PageUrl} from '../Constants';
+import Application from '../config/application';
 
 const useStyles = makeStyles((theme) => ({
   root: {
     backgroundColor: theme.palette.background.default,
-    width: '100vw',
-    height: '100vh',
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    left: 0,
+    bottom: 0,
   },
   contentBox: {
-    border: `1px solid ${theme.palette.border.light}`,
-    backgroundColor: '#FFFFFF',
     display: 'flex',
-    justifyContent: 'center',
-    padding: `${theme.spacing(4)}px ${theme.spacing(2)}px`,
+    flexDirection: 'column',
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: '1280px',
   },
 }));
 
-const BlankCentered = ({width, linkOnLogo, children}) => {
+const BlankCentered = ({linkOnLogo, children}) => {
   const location = useLocation();
   const classes = useStyles();
   return (
     <>
       <CssBaseline />
-      <Container classes={{root: classes.root}}>
-        <Box display="flex" flexDirection="column" alignItems="center">
+      <Box classes={{root: classes.root}}>
+        <Box
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          width="100%"
+          style={{margin: '0 auto'}}>
           <Box pt={5} pb={3}>
             {linkOnLogo ? (
               <Link
@@ -45,17 +53,41 @@ const BlankCentered = ({width, linkOnLogo, children}) => {
               getZyliticsLogo()
             )}
           </Box>
-          <Box className={classes.contentBox} width={width}>
+          <Box className={classes.contentBox}>
             {children}
+            <Box pt={2}>
+              <Link
+                variant="body2"
+                href={Application.ABOUT_ZYLITICS_URL}
+                aria-label="About zylitics"
+                title="About zylitics">
+                About
+              </Link>
+              {'  .  '}
+              <Link
+                variant="body2"
+                href={`${Application.ABOUT_ZYLITICS_URL}/contact`}
+                aria-label="Contact zylitics"
+                title="Contact zylitics">
+                Contact
+              </Link>
+              {'  .  '}
+              <Link
+                variant="body2"
+                href={Application.COMMUNITY_ZYLITICS_URL}
+                aria-label="Community"
+                title="Community">
+                Community
+              </Link>
+            </Box>
           </Box>
         </Box>
-      </Container>
+      </Box>
     </>
   );
 };
 
 BlankCentered.propTypes = {
-  width: PropTypes.string.isRequired,
   linkOnLogo: PropTypes.bool,
   children: PropTypes.node.isRequired,
 };

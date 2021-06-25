@@ -646,8 +646,12 @@ const TabPanel = React.memo(
         // than one key needs to be mapped to same function.
         extraKeys: {
           Tab: (cm) => {
-            const spaces = Array(cm.getOption('indentUnit') + 1).join(' ');
-            cm.replaceSelection(spaces);
+            if (cm.somethingSelected()) {
+              cm.indentSelection('add');
+            } else {
+              const spaces = Array(cm.getOption('indentUnit') + 1).join(' ');
+              cm.replaceSelection(spaces);
+            }
           },
           'Cmd-F': 'findPersistent',
           'Ctrl-F': 'findPersistent',

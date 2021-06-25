@@ -31,6 +31,7 @@ import Application from './config/application';
 import {UserInLocalStorage} from './model';
 import {File, filesSchema, Test, Version} from './ide/Explorer/model';
 import {ExplorerItemType} from './ide/Constants';
+import logo from './assets/logo.svg';
 
 export const composePageTitle = (text) => `${text} . ${Application.ORG}`;
 
@@ -496,12 +497,6 @@ export const fromJson = (Ctor, json) => Object.assign(new Ctor(), json);
 export const isBlank = (text) =>
   !text || !text.replace(/[\s\n\r\t]*/, '').length;
 
-export const getStaticImageUrl = (imgName) =>
-  Application.STATIC_ASSETS_URL_TEMPLATE.replace(
-    Application.IMG_NAME_TEMPLATE,
-    imgName
-  );
-
 /**
  * must be invoked on every login
  */
@@ -604,7 +599,7 @@ export const getLocation = (pathname, search, state = {}) => ({
 
 export const getZyliticsLogo = () => (
   <img
-    src={getStaticImageUrl('zylitics_logo_v5.svg')}
+    src={logo}
     alt="Zylitics Logo"
     style={{width: '120px', height: '36px'}}
   />

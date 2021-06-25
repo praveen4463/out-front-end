@@ -74,12 +74,7 @@ const Issue = () => {
     }
     try {
       await axios.post(Endpoints.ISSUE, body);
-      setStatus(
-        new Status(
-          'Thank you for taking the time to write a feedback. Please allow us a day to respond.',
-          true
-        )
-      );
+      setStatus(new Status('Thanks for your feedback.', true));
       // reset when report sent so that another could be sent
       setDescription('');
       uploadedFileNameRef.current = null;

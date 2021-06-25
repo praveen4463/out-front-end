@@ -64,3 +64,19 @@ minor additions.
 
 - Refactored some of imports that were not directly importing components
 - added security headers in firebase
+
+## 0.2.9 (2021-06-25)
+
+Additions and bug fixes.
+
+#### :nail_care: Enhancement
+
+- Updated title and desc
+- Added discourse sso
+- Getting logo locally
+- Updated text of help in `Unhandled Prompt Behavior` at Build Caps page.
+
+#### :bug: Bug Fix
+
+- Fixed all pages that using BlankCentered to be mobile friendly so that if anyone visits those pages on phone, they can interact.
+- Fixed multi selection tab that was deleting text

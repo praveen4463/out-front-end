@@ -36,6 +36,26 @@ import {AppSnackbarContext} from './contexts';
 import {SnackbarAlertProps} from './model';
 
 const useStyles = makeStyles((theme) => ({
+  root: {
+    border: `1px solid ${theme.palette.border.light}`,
+    backgroundColor: '#FFFFFF',
+    [theme.breakpoints.up('lg')]: {
+      width: '35%',
+      padding: theme.spacing(4, 2),
+    },
+    [theme.breakpoints.only('md')]: {
+      width: '50%',
+      padding: theme.spacing(4, 2),
+    },
+    [theme.breakpoints.only('sm')]: {
+      width: '60%',
+      padding: theme.spacing(2, 1),
+    },
+    [theme.breakpoints.only('xs')]: {
+      width: '95%',
+      padding: theme.spacing(1, 0.5),
+    },
+  },
   label: {
     fontWeight: 600,
     paddingBottom: theme.spacing(1),
@@ -174,14 +194,14 @@ const ResetPassword = () => {
   }
 
   return (
-    <BlankCentered width="35%">
+    <BlankCentered>
       <Helmet title={composePageTitle('Reset password')} />
       {resetValidationResponse ? (
         <Box
           display="flex"
           flexDirection="column"
           alignItems="center"
-          width="100%">
+          className={classes.root}>
           <Box pb={2}>
             <Typography variant="h5">Reset password</Typography>
           </Box>

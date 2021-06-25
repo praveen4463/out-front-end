@@ -40,6 +40,37 @@ const ORG = 'Organization';
 const TERMS = 'Terms';
 
 const useStyles = makeStyles((theme) => ({
+  root: {
+    border: `1px solid ${theme.palette.border.light}`,
+    backgroundColor: '#FFFFFF',
+    [theme.breakpoints.up('lg')]: {
+      width: '60%',
+      padding: theme.spacing(4, 2),
+    },
+    [theme.breakpoints.only('md')]: {
+      width: '75%',
+      padding: theme.spacing(4, 2),
+    },
+    [theme.breakpoints.only('sm')]: {
+      width: '80%',
+      padding: theme.spacing(2, 1),
+    },
+    [theme.breakpoints.only('xs')]: {
+      width: '95%',
+      padding: theme.spacing(1, 0.5),
+    },
+  },
+  submit: {
+    [theme.breakpoints.up('md')]: {
+      width: '50%',
+    },
+    [theme.breakpoints.up('sm')]: {
+      width: '60%',
+    },
+    [theme.breakpoints.down('xs')]: {
+      width: '95%',
+    },
+  },
   label: {
     fontWeight: 600,
     paddingBottom: theme.spacing(1),
@@ -246,14 +277,14 @@ const FinishSignup = () => {
 
   return (
     <>
-      <BlankCentered width="60%">
+      <BlankCentered>
         <Helmet title={composePageTitle('Create new account')} />
         {emailVerificationResponse ? (
           <Box
             display="flex"
             flexDirection="column"
             alignItems="center"
-            width="100%">
+            className={classes.root}>
             <Box pb={2}>
               <Typography variant="h5">
                 {emailVerificationResponse.emailVerificationUserType ===
@@ -395,7 +426,7 @@ const FinishSignup = () => {
                 <FormHelperText>{error[TERMS] ?? ''}</FormHelperText>
               </FormControl>
             </Box>
-            <Box display="flex" width="50%" height={40}>
+            <Box display="flex" height={40} className={classes.submit}>
               <Button
                 color="primary"
                 variant="contained"

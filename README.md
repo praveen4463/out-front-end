@@ -3,6 +3,18 @@ Zylitics Main App - The user facing app for Zylitics.
 Notes: timezones.json keeps just timezones accepted by win server, when we have
 mac, make arrangements to either show separate timezones based on platform.
 
+Steps to deploy
+
+1. If the additions/updates depends on external changes such as in kube cluster, openapi,
+   front api, infra api.. make sure those updates are completed, pushed, tested before
+   proceeding.
+2. Deploy to staging and run desired e2e tests from zylitics (once we've written pending tests)
+3. Write CHANGELOG, bump up version in package.json
+4. Push and create tag
+5. npm run build followed by firebase deploy
+
+## Following are notes from CRA
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts

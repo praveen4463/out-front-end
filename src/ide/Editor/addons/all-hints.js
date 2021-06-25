@@ -43,9 +43,6 @@ const getConstantHints = (constant, options, toFilterStartingValue = '') => {
     case maps.colors:
       hints = filter(Constants.colors);
       break;
-    case maps.exceptions:
-      hints = filter(Constants.exceptions);
-      break;
     case maps.globals:
       hints = filter(options.globals);
       break;
