@@ -152,13 +152,14 @@ const Default = () => {
       <Helmet title={composePageTitle('Dashboard')} />
       <Typography variant="h3">Welcome to Zylitics!</Typography>
       <Typography variant="body1">
-        Use our fully managed platform to create, run, and manage your browsers
-        tests written in ZWL.
+        Write, run, debug and watch your end to end tests using our easy to use
+        platform.
       </Typography>
       <Divider variant="fullWidth" className={classes.divider} />
       <Typography variant="body2" color="textSecondary">
-        Use sidebar to navigate to IDE to write, run and debug new tests or head
-        to Builds to view completed runs or to run new builds.
+        Use sidebar and navigate to IDE for writing, running and debugging
+        tests. For viewing previously completed builds or running new, head over
+        to Builds.
       </Typography>
     </Box>
   );

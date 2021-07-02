@@ -92,3 +92,11 @@ Additions and bug fixes.
 #### :bug: Bug Fix
 
 - Fixed a typo in dashboard page text
+
+## 0.2.11 (2021-07-02)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Improved text in dashboard
