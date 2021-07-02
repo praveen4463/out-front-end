@@ -157,8 +157,8 @@ const Default = () => {
       </Typography>
       <Divider variant="fullWidth" className={classes.divider} />
       <Typography variant="body2" color="textSecondary">
-        Use sidebar to navigate to IDE to write, test and debug new tests or
-        head to Builds to view completed runs or to run new builds.
+        Use sidebar to navigate to IDE to write, run and debug new tests or head
+        to Builds to view completed runs or to run new builds.
       </Typography>
     </Box>
   );

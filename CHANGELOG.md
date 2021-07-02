@@ -80,3 +80,15 @@ Additions and bug fixes.
 
 - Fixed all pages that using BlankCentered to be mobile friendly so that if anyone visits those pages on phone, they can interact.
 - Fixed multi selection tab that was deleting text
+
+## 0.2.10 (2021-07-02)
+
+Additions and bug fixes.
+
+#### :nail_care: Enhancement
+
+- Added discord in help
+
+#### :bug: Bug Fix
+
+- Fixed a typo in dashboard page text

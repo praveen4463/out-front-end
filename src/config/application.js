@@ -10,6 +10,7 @@ const Application = {
   ABOUT_ZYLITICS_URL: 'https://about.zylitics.io',
   DOCS_ZYLITICS_URL: 'https://docs.zylitics.io',
   COMMUNITY_ZYLITICS_URL: 'https://community.zylitics.io',
+  DISCORD_INVITE: 'https://discord.gg/MutZHJXvwZ',
   TERMS_PAGE: '/terms',
   PRIVACY_PAGE: '/privacy',
 };

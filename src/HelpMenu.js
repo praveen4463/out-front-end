@@ -165,6 +165,14 @@ const HelpMenu = () => {
           aria-label="Documentation">
           Ask questions, report and discuss issues with community
         </MenuItem>
+        <MenuItem
+          component="a"
+          href={Application.DISCORD_INVITE}
+          rel="noopener"
+          target="_blank"
+          aria-label="Chat on discord">
+          Chat on discord
+        </MenuItem>
         <MenuItem onClick={handleClickIssue}>Feedback</MenuItem>
         <MenuItem onClick={handleClickKeyShortcuts}>
           Keyboard shortcuts
