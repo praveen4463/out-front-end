@@ -602,7 +602,7 @@ const NewBuild = () => {
               />
             </ElementRow>
             <ElementRow>
-              {getLabel(BuildConfigLabels.BCAP, BuildConfigFields.BCAP)}
+              {getInfoLabel(BuildConfigKeys.BCAP, BuildConfigFields.BCAP)}
               <StyledSelect
                 id={BuildConfigFields.BCAP}
                 selected={

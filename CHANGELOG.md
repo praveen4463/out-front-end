@@ -100,3 +100,12 @@ Additions.
 #### :nail_care: Enhancement
 
 - Improved text in dashboard
+
+## 0.2.12 (2021-07-13)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Removed key names form 'parse all', 'build' etc tooltips in IDE
+- Added an info for build caps as people are finding it difficult to understand what is a build caps. Ideally there has to be an add new in the select but for now that is fine.

@@ -154,7 +154,7 @@ const TopNavigation = () => {
         <div>
           <MainMenu />
         </div>
-        <Tooltip title="Run Build B">
+        <Tooltip title="Run Build">
           <span>
             <IconButton
               aria-label="Run Build"
@@ -165,7 +165,7 @@ const TopNavigation = () => {
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title="Parse All P">
+        <Tooltip title="Parse All">
           <span>
             <IconButton
               aria-label="Parse"
@@ -179,7 +179,7 @@ const TopNavigation = () => {
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title="Dry Run All D">
+        <Tooltip title="Dry Run All">
           <span>
             <IconButton
               aria-label="Dry Run"
@@ -203,7 +203,7 @@ const TopNavigation = () => {
         is stopped but not doing it for now, this is a TODO */}
         {/* For now parsing has no option to stop */}
         {(build.runOngoing && build.sessionId) || dry.runOngoing ? (
-          <Tooltip title="Stop ^C">
+          <Tooltip title="Stop">
             <span>
               <IconButton
                 aria-label="Stop"

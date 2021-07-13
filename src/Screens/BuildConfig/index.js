@@ -339,7 +339,7 @@ const BuildConfig = ({
           </Box>
           <Box display="flex" flexDirection="column" px={1}>
             <ElementRow>
-              {getLabel(BuildConfigLabels.BCAP, BuildConfigFields.BCAP)}
+              {getInfoLabel(BuildConfigKeys.BCAP, BuildConfigFields.BCAP)}
               <StyledSelect
                 id={BuildConfigFields.BCAP}
                 selected={

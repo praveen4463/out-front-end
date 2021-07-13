@@ -247,6 +247,8 @@ export const BuildConfigInfo = {
     'An optional name for the build. If not given, builds are displayed' +
     ' using their build id. You may assign it a git commit message, committer username or ' +
     ' any other useful information.',
+  BCAP:
+    'A Build capability is required to run a build. It tells which OS and browser this build will run. It also allows to configure various test specific settings. To add a new build capability from IDE, use Edit menu > Build Capability or Shift + A. Get to know IDE from https://docs.zylitics.io/ide/introduction.',
   SV:
     'Select tests that need to run as a suite in builds. Tests can' +
     ' be from across files and can include any versions. Giving a' +
