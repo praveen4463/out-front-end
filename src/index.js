@@ -100,7 +100,7 @@ axios.defaults.baseURL = isProduction
       'HOST',
       document.location.hostname
     );
-axios.defaults.timeout = 5000;
+axios.defaults.timeout = 15000; // raised timeouts to cover calls for which we don't wait.
 
 // **React-Query =================================================================
 // configure react-query

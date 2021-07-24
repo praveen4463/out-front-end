@@ -109,3 +109,21 @@ Additions.
 
 - Removed key names form 'parse all', 'build' etc tooltips in IDE
 - Added an info for build caps as people are finding it difficult to understand what is a build caps. Ideally there has to be an add new in the select but for now that is fine.
+
+## 0.3.0 (2021-07-24)
+
+Additions and bug fixes.
+
+#### :nail_care: Enhancement
+
+- Opening zylitics for everyone by introducing easy signup
+- verify, signup and google sign in added.
+- remove beta plan verification support in email verifications
+- verify-email will now just verify emails
+- finish-signup will support normal and team sign up only, no email verifications
+- beta invitation links are redirected to signup
+- password, email, forgot password will show appropriate warning if user is not email/pwd user
+
+#### :bug: Bug Fix
+
+- Fixed a bug in usage page so it shows plan reset appropriately

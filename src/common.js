@@ -6,6 +6,8 @@ import {captureException} from '@sentry/react';
 import queryString from 'query-string';
 import localforage from 'localforage';
 import {normalize} from 'normalizr';
+import firebase from 'firebase/app';
+import 'firebase/auth';
 import {
   Os,
   Browsers,
@@ -766,4 +768,63 @@ export const updateBuildConfigSelectedVersions = (
     default:
       throw new Error(`Unrecognized itemType ${itemType}`);
   }
+};
+
+// make it more generic later on when we've more providers by adding one more function,
+// signUpWithProviders and giving it with profile and credential.
+export const signUpWithGoogle = (
+  auth,
+  googleUser,
+  planName,
+  emailVerificationId,
+  onSuccess,
+  onError
+) => {
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const utcOffsetInMinutes = new Date().getTimezoneOffset();
+  const profile = googleUser.getBasicProfile();
+  const payload = {
+    firstName: profile.getGivenName(),
+    lastName: profile.getFamilyName(),
+    email: profile.getEmail(),
+    timezone,
+    utcOffsetInMinutes,
+    emailVerificationId,
+    planName,
+    usingLoginProvider: true,
+  };
+  invokeApiWithAnonymousAuth(
+    auth,
+    {
+      url: Endpoints.USERS,
+      method: 'post',
+      data: payload,
+    },
+    ({data}) => {
+      // Store extra user data in local storage. This
+      // is done because firebase doesn't allow to store extra details with
+      // user object. We can't put it as browser state because if user opens
+      // up multiple tabs, we will have to fetch this data multiple times
+      // whereas with local storage, we will fetch it on logins only.
+      // it will have to be re fetched whenever some of it's data changes from
+      // profile page or email change etc.
+      storeUserBuiltUsingApiData(data.user);
+      // sign in user in firebase
+      // sign in using a token and link to the given account.
+      auth.signInUsingToken(data.customToken, (user) => {
+        const credential = firebase.auth.GoogleAuthProvider.credential(
+          googleUser.getAuthResponse().id_token
+        );
+        // https://firebase.google.com/docs/reference/js/firebase.User?authuser=0#linkwithcredential
+        // All errors listed here don't apply here because we do this linking as a workaround
+        // to signup user using identity provider while using our own UID.
+        user.linkWithCredential(credential);
+        // let caller handle actions after successful signup. Caller may either redirect
+        // to home or show a terms/pricing page.
+        onSuccess();
+      });
+    },
+    // Errors may occur only during internal api call such as email already in use.
+    onError
+  );
 };

@@ -25,6 +25,23 @@ const useProvideAuth = (onSignIn, onSignOut, showGlobalError) => {
     handleAuthError(error, showGlobalError);
   };
 
+  const signInPostProcess = (userCredentials, onSuccess = null) => {
+    const u = userCredentials.user;
+    setUser(u);
+    // invoke onSignIn form here so that when some code
+    // tries to invoke something in onSuccess handler that depends on
+    // initializations done in the callback, it works without having to
+    // wait for observer to run. For example axios default header values
+    // before making api calls must be ready.
+    u.getIdTokenResult().then((res) => {
+      setTokenExpTimeSecsRef(res.claims);
+      onSignIn(u.uid, res.token, u.email);
+      if (onSuccess) {
+        onSuccess(u);
+      }
+    });
+  };
+
   // remember setting was removed because Session persistence of firebase only
   // persist login auth in current tab, if a new tab is opened, user has to relogin.
   // There is option of only Local persistence that persist state across tabs and
@@ -36,20 +53,31 @@ const useProvideAuth = (onSignIn, onSignOut, showGlobalError) => {
       .auth()
       .signInWithEmailAndPassword(email, password)
       .then((userCredentials) => {
-        const u = userCredentials.user;
-        setUser(u);
-        // invoke onSignIn form here so that when some code
-        // tries to invoke something in onSuccess handler that depends on
-        // initializations done in the callback, it works without having to
-        // wait for observer to run. For example axios default header values
-        // before making api calls must be ready.
-        u.getIdTokenResult().then((res) => {
-          setTokenExpTimeSecsRef(res.claims);
-          onSignIn(u.uid, res.token, u.email);
-          if (onSuccess) {
-            onSuccess(u);
-          }
-        });
+        signInPostProcess(userCredentials, onSuccess);
+      })
+      .catch((error) => handlerOrShowGlobalError(error, onError));
+  };
+
+  const signInUsingToken = (token, onSuccess = null, onError = null) => {
+    firebase
+      .auth()
+      .signInWithCustomToken(token)
+      .then((userCredentials) => {
+        signInPostProcess(userCredentials, onSuccess);
+      })
+      .catch((error) => handlerOrShowGlobalError(error, onError));
+  };
+
+  const signInWithCredential = (
+    credential,
+    onSuccess = null,
+    onError = null
+  ) => {
+    firebase
+      .auth()
+      .signInWithCredential(credential)
+      .then((userCredentials) => {
+        signInPostProcess(userCredentials, onSuccess);
       })
       .catch((error) => handlerOrShowGlobalError(error, onError));
   };
@@ -157,6 +185,13 @@ const useProvideAuth = (onSignIn, onSignOut, showGlobalError) => {
     getToken0(_user_, onSuccess, onError);
   };
 
+  const getSignInMethodsForEmail = (email, onSuccess) => {
+    firebase
+      .auth()
+      .fetchSignInMethodsForEmail(email)
+      .then((methods) => onSuccess(methods));
+  };
+
   // Whenever user is signed in or out, this observer gets invoked and reset the
   // state causing the page to re render, so a page can know if user is no more
   // signed in or user just signed in.
@@ -199,11 +234,18 @@ const useProvideAuth = (onSignIn, onSignOut, showGlobalError) => {
     authStateLoaded,
     tokenExpTimeSecsRef,
     signIn,
+    signInUsingToken,
+    signInWithCredential,
     signOut,
     signInAnonymously,
     updatePassword,
     getToken,
     getTokenOfUser,
+    getSignInMethodsForEmail,
+    GOOGLE_SIGN_IN_METHOD:
+      firebase.auth.GoogleAuthProvider.GOOGLE_SIGN_IN_METHOD,
+    EMAIL_PASSWORD_SIGN_IN_METHOD:
+      firebase.auth.EmailAuthProvider.EMAIL_PASSWORD_SIGN_IN_METHOD,
   };
 };
 

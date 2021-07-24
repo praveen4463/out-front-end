@@ -9,7 +9,7 @@ import {useQuery} from 'react-query';
 import {Helmet} from 'react-helmet-async';
 import Loader from '../components/Loader';
 import {SettingsSnackbarContext} from '../contexts';
-import {PlanType, QueryKeys} from '../Constants';
+import {Plan, QueryKeys} from '../Constants';
 import {userInStorageFetch, userPlanFetch} from '../api/fetches';
 import {composePageTitle, handleApiError} from '../common';
 import {formatTimestamp} from '../utils';
@@ -46,7 +46,7 @@ const Usage = () => {
   );
   const [, setSnackbarAlertError] = useContext(SettingsSnackbarContext);
   const {
-    planType,
+    planName,
     displayName,
     consumedMinutes,
     totalParallel,
@@ -122,7 +122,9 @@ const Usage = () => {
               <Box display="flex" flexDirection="column">
                 {getText(
                   `${
-                    planType === PlanType.FREE ? 'Plan ends on' : 'Usage reset'
+                    planName === Plan.BETA_TEST || planName === Plan.FREE_TRIAL
+                      ? 'Plan ends on'
+                      : 'Usage reset'
                   }`
                 )}
                 {getText(

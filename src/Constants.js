@@ -309,6 +309,13 @@ export const PlanType = {
   PAID: 'PAID',
 };
 
+export const Plan = {
+  BETA_TEST: 'BETA_TEST',
+  FREE_TRIAL: 'FREE_TRIAL',
+  ADMIN: 'ADMIN',
+  FREE: 'FREE',
+};
+
 export const PromptBehavior = {
   DISMISS: 'dismiss',
   ACCEPT: 'accept',
@@ -424,7 +431,7 @@ export const Endpoints = {
   DRIVER_LOGS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getDriverLogs`,
   PERFORMANCE_LOGS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getPerformanceLogs`,
   ELEMENT_SHOT_NAMES: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getElementShotNames`,
-  EMAIL_VERIFICATION: '/emailVerifications',
+  EMAIL_VERIFICATION: '/emailVerifications', // obsolete now, remove it soon
   VALIDATE_EMAIL_VERIFICATION: `/emailVerifications/${CODE_ENDPOINT_VAR_TEMPLATE}/validate`,
   SINGLE_USER: `/users/current`,
   USER_PLAN: `/users/current/getUserPlan`,
@@ -463,8 +470,9 @@ export const PageUrl = {
   SSO: '/sso',
   LOGIN: '/login',
   SIGNUP: '/signup',
-  FINISH_SIGNUP: '/finish-signup/:code',
+  FINISH_SIGNUP: '/finish-signup',
   REQUEST_RESET_PWD: '/request-reset-pwd',
+  VERIFY_EMAIL: '/verify-email/:code',
   RESET_PWD: '/reset-pwd/:code',
   REQUEST_EMAIL_CHANGE: '/request-change-email',
   EMAIL_CHANGE: '/change-email/:code',
@@ -516,6 +524,11 @@ export const SnackbarHorPos = {
   LEFT: 'left',
   RIGHT: 'right',
   CENTER: 'center',
+};
+
+export const SignupUserType = {
+  NORMAL: 'normal',
+  TEAM_MEMBER: 'team_member',
 };
 
 export const OFFLINE_MSG = "You're offline, waiting for network...";

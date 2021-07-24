@@ -24,6 +24,8 @@ import RootErrorFallback, {rootErrorHandler} from './ErrorBoundary';
 import useSnackbarAlert from './hooks/useSnackbarAlert';
 import {AppSnackbarContext} from './contexts';
 import ChangeEmail from './ChangeEmail';
+import Signup from './Signup';
+import VerifyEmail from './VerifyEmail';
 
 const Ide = lazy(() => import('./ide'));
 
@@ -46,7 +48,7 @@ const App = () => {
       if (user.isAnonymous) {
         // when user is anonymous, tokens can never expire as we sign in just
         // before making a call
-        console.warn('interceptor returning as user is anonymous');
+        // console.warn('interceptor returning as user is anonymous');
         return config;
       }
       // console.log('config request interceptor', config);
@@ -126,6 +128,12 @@ const App = () => {
               </Route>
               <Route path={PageUrl.LOGIN}>
                 <Login />
+              </Route>
+              <Route path={PageUrl.SIGNUP}>
+                <Signup />
+              </Route>
+              <Route path={PageUrl.VERIFY_EMAIL}>
+                <VerifyEmail />
               </Route>
               <Route path={PageUrl.FINISH_SIGNUP}>
                 <FinishSignup />

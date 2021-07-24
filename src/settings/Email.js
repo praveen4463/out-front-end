@@ -1,4 +1,4 @@
-import React, {useState, useContext, useEffect} from 'react';
+import React, {useState, useContext, useEffect, useRef} from 'react';
 import Box from '@material-ui/core/Box';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
@@ -61,8 +61,28 @@ const Email = () => {
   const setProgressAtTopBar = useContext(HomeLinearProgressContext);
   const [, setSnackbarAlertError] = useContext(AppSnackbarContext);
   const [sending, setSending] = useState(false);
+  const [usingIdentityProvider, setUsingIdentityProvider] = useState(false);
+  const userIdentityCheckedRef = useRef(false);
   const auth = useAuthContext();
   const classes = useStyles();
+
+  useEffect(() => {
+    if (userIdentityCheckedRef.current) {
+      return;
+    }
+    auth.getSignInMethodsForEmail(auth.user.email, (methods) => {
+      if (methods[0] === auth.GOOGLE_SIGN_IN_METHOD) {
+        setStatus(
+          new Status(
+            "Your email can't be changed from here because you signed up using Google Sign In. Please contact us if you've any questions.",
+            true
+          )
+        );
+        setUsingIdentityProvider(true);
+        userIdentityCheckedRef.current = true;
+      }
+    });
+  });
 
   useEffect(() => {
     setProgressAtTopBar(sending);
@@ -185,7 +205,7 @@ const Email = () => {
         <Button
           variant="contained"
           color="secondary"
-          disabled={sending}
+          disabled={sending || usingIdentityProvider}
           className={classes.buttonSave}
           onClick={handleUpdate}>
           {sending ? 'Sending link...' : 'Change email'}

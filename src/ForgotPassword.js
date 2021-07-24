@@ -72,36 +72,54 @@ const ForgotPassword = () => {
     }
   };
 
+  const onSuccess = () =>
+    setStatus(
+      new Status(
+        'A password reset link will be sent if a Zylitics account is found for this email'
+      )
+    );
+
   const handleSubmit = () => {
     const emailNormalized = email.trim();
     if (!emailNormalized.length) {
       setError('Email is required');
       return;
     }
-    setSending(true);
-    invokeApiWithAnonymousAuth(
-      auth,
-      {
-        url: Endpoints.SEND_PASSWORD_RESET,
-        method: 'post',
-        data: {
-          email: emailNormalized,
-        },
-        timeout: Timeouts.SYNC_EMAIL_SENDER,
-      },
-      () =>
+    auth.getSignInMethodsForEmail(emailNormalized, (methods) => {
+      if (methods[0] === auth.GOOGLE_SIGN_IN_METHOD) {
         setStatus(
           new Status(
-            'A password reset link will be sent if a Zylitics account is found for this email'
+            'You signed up using Google Sign In. Please login with that.',
+            true
           )
-        ),
-      (ex) =>
-        handleApiError(ex, (errorMsg) => setStatus(new Status(errorMsg, true))),
-      () => {
-        setSending(false);
-        setEmail('');
+        );
+      } else if (methods[0] === auth.EMAIL_PASSWORD_SIGN_IN_METHOD) {
+        setSending(true);
+        invokeApiWithAnonymousAuth(
+          auth,
+          {
+            url: Endpoints.SEND_PASSWORD_RESET,
+            method: 'post',
+            data: {
+              email: emailNormalized,
+            },
+            timeout: Timeouts.SYNC_EMAIL_SENDER,
+          },
+          onSuccess,
+          (ex) =>
+            handleApiError(ex, (errorMsg) =>
+              setStatus(new Status(errorMsg, true))
+            ),
+          () => {
+            setSending(false);
+            setEmail('');
+          }
+        );
+      } else if (!methods.length) {
+        // don't tell this account doesn't exist to prevent ppl from finding an existing account
+        onSuccess();
       }
-    );
+    });
   };
 
   const keyUpHandler = (e) => {

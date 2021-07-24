@@ -5,7 +5,8 @@ import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
 import {Link as RouterLink, useLocation} from 'react-router-dom';
 import Link from '@material-ui/core/Link';
-import {getLocation, getZyliticsLogo} from '../common';
+import {getLocation} from '../common';
+import logo from '../assets/logo.svg';
 import {PageUrl} from '../Constants';
 import Application from '../config/application';
 
@@ -30,6 +31,15 @@ const useStyles = makeStyles((theme) => ({
 const BlankCentered = ({linkOnLogo, children}) => {
   const location = useLocation();
   const classes = useStyles();
+
+  const getZyliticsLogo = () => (
+    <img
+      src={logo}
+      alt="Zylitics Logo"
+      style={{width: '194px', height: '150px'}}
+    />
+  );
+
   return (
     <>
       <CssBaseline />
@@ -40,7 +50,7 @@ const BlankCentered = ({linkOnLogo, children}) => {
           alignItems="center"
           width="100%"
           style={{margin: '0 auto'}}>
-          <Box pt={5} pb={3}>
+          <Box>
             {linkOnLogo ? (
               <Link
                 component={RouterLink}
@@ -55,9 +65,8 @@ const BlankCentered = ({linkOnLogo, children}) => {
           </Box>
           <Box className={classes.contentBox}>
             {children}
-            <Box pt={2}>
+            <Box pt={2} fontWeight={500} fontSize="body2.fontSize">
               <Link
-                variant="body2"
                 href={Application.ABOUT_ZYLITICS_URL}
                 aria-label="About zylitics"
                 title="About zylitics">
@@ -65,7 +74,6 @@ const BlankCentered = ({linkOnLogo, children}) => {
               </Link>
               {'  .  '}
               <Link
-                variant="body2"
                 href={`${Application.ABOUT_ZYLITICS_URL}/contact`}
                 aria-label="Contact zylitics"
                 title="Contact zylitics">
@@ -73,7 +81,6 @@ const BlankCentered = ({linkOnLogo, children}) => {
               </Link>
               {'  .  '}
               <Link
-                variant="body2"
                 href={Application.COMMUNITY_ZYLITICS_URL}
                 aria-label="Community"
                 title="Community">

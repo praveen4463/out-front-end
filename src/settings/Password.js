@@ -1,4 +1,4 @@
-import React, {useState, useContext, useEffect} from 'react';
+import React, {useState, useContext, useEffect, useRef} from 'react';
 import Box from '@material-ui/core/Box';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
@@ -80,9 +80,29 @@ const Password = () => {
   );
   const [resetting, setResetting] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [usingIdentityProvider, setUsingIdentityProvider] = useState(false);
+  const userIdentityCheckedRef = useRef(false);
   const auth = useAuthContext();
   const history = useHistory();
   const classes = useStyles();
+
+  useEffect(() => {
+    if (userIdentityCheckedRef.current) {
+      return;
+    }
+    auth.getSignInMethodsForEmail(auth.user.email, (methods) => {
+      if (methods[0] === auth.GOOGLE_SIGN_IN_METHOD) {
+        setStatus(
+          new Status(
+            "Your password can't be changed from here because you signed up using Google Sign In.",
+            true
+          )
+        );
+        setUsingIdentityProvider(true);
+        userIdentityCheckedRef.current = true;
+      }
+    });
+  });
 
   useEffect(() => {
     setProgressAtTopBar(resetting || updating);
@@ -240,7 +260,7 @@ const Password = () => {
             color="primary"
             onClick={sendPasswordReset}
             style={{textTransform: 'none', padding: 0}}
-            disabled={resetting}>
+            disabled={resetting || usingIdentityProvider}>
             {resetting
               ? 'Emailing password reset link'
               : 'Forgot your password?'}
@@ -263,7 +283,7 @@ const Password = () => {
         <Button
           variant="contained"
           color="secondary"
-          disabled={updating}
+          disabled={updating || usingIdentityProvider}
           className={classes.buttonSave}
           onClick={handleUpdate}>
           {updating ? 'Changing password...' : 'Change password'}
