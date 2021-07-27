@@ -127,3 +127,11 @@ Additions and bug fixes.
 #### :bug: Bug Fix
 
 - Fixed a bug in usage page so it shows plan reset appropriately
+
+## 0.3.1 (2021-07-27)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Updating title and desc to new ones
