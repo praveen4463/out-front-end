@@ -8,6 +8,7 @@ import axios from 'axios';
 import {QueryClient, QueryClientProvider} from 'react-query';
 import {ReactQueryDevtools} from 'react-query/devtools';
 import firebase from 'firebase/app';
+import 'firebase/analytics';
 import {BrowserRouter as Router} from 'react-router-dom';
 import localforage from 'localforage';
 import {HelmetProvider} from 'react-helmet-async';
@@ -142,6 +143,7 @@ const firebaseLocalConfig = {
 
 if (!firebase.apps.length) {
   firebase.initializeApp(isProduction ? firebaseConfig : firebaseLocalConfig);
+  firebase.analytics();
 }
 
 ReactDOM.render(

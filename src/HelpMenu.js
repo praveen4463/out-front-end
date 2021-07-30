@@ -159,31 +159,23 @@ const HelpMenu = () => {
         }}>
         <MenuItem
           component="a"
-          href={Application.COMMUNITY_ZYLITICS_URL}
+          href={Application.DOCS_ZYLITICS_URL}
           rel="noopener"
           target="_blank"
           aria-label="Documentation">
-          Ask questions, report and discuss issues with community
+          Documentation
         </MenuItem>
         <MenuItem
           component="a"
           href={Application.DISCORD_INVITE}
           rel="noopener"
           target="_blank"
-          aria-label="Chat on discord">
-          Chat on discord
+          aria-label="Chat on Discord">
+          Chat on Discord
         </MenuItem>
         <MenuItem onClick={handleClickIssue}>Feedback</MenuItem>
         <MenuItem onClick={handleClickKeyShortcuts}>
           Keyboard shortcuts
-        </MenuItem>
-        <MenuItem
-          component="a"
-          href={Application.DOCS_ZYLITICS_URL}
-          rel="noopener"
-          target="_blank"
-          aria-label="Documentation">
-          Documentation
         </MenuItem>
         <MenuItem
           component="a"

@@ -135,3 +135,12 @@ Additions.
 #### :nail_care: Enhancement
 
 - Updating title and desc to new ones
+
+## 0.3.2 (2021-07-30)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Removed community link from help for now
+- Added analytics
