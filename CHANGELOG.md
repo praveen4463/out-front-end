@@ -151,7 +151,6 @@ Additions.
 
 #### :nail_care: Enhancement
 
-- disallowing `null` in code
 - decreased all type of default timeouts
 - added `assertEqual`, `assertNotEqual`, `dateAdd`, `randomFromRange`
 - added more `by`. These are `altTest`, `labelText`, `placeholderText`

@@ -58,6 +58,9 @@ const getConstantHints = (constant, options, toFilterStartingValue = '') => {
     case maps.timeUnit:
       hints = filter(Constants.timeUnit);
       break;
+    case maps.duration:
+      hints = filter(Constants.duration);
+      break;
     default:
       throw new Error(`Could not hint on ${constant}`);
   }

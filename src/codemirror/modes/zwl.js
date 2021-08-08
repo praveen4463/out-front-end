@@ -34,7 +34,7 @@ CodeMirror.defineSimpleMode('zwl', {
     {regex: /([a-zA-Z_]\w*)([(])/, token: ['def', null]},
     {regex: ZwlLexer.IDENTIFIER, token: 'variable'},
     // add any other token that is frequently used but not allowed in zwl
-    {regex: /;|null/, token: 'error'},
+    {regex: /;/, token: 'error'},
   ],
   // multi line raw string state
   rawString: [
