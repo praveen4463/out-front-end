@@ -1,7 +1,6 @@
 // exported from zl-zwl/wd-funcs-definition.yaml
 const all = [
   'acceptAlert()',
-  'activeElement()',
   'addCookie(name, value, path, domain, expiry, isSecure, isHttpOnly)',
   'allElementsDisplayed(...elemIds)',
   'allElementsEnabled(...elemIds)',
@@ -15,7 +14,6 @@ const all = [
   'captureElementScreenshot(elemId)',
   'captureElementScreenshot(elemId, fileName)',
   'clear(elemId)',
-  'clearActive()',
   'clearAll(...elemIds)',
   'click(elemId)',
   'clickAll(...elemIds)',
@@ -140,7 +138,6 @@ const all = [
   'type(elemId, ...text)',
   'typeActive(...text)',
   'typeIntoElements(text, ...elemIds)',
-  'typeUsingMap(map)',
   'untilAlertPresent()',
   'untilAllDisabled(...elemIds)',
   'untilAllEnabled(...elemIds)',

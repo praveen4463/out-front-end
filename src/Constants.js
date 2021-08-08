@@ -288,9 +288,9 @@ export const MaxLengths = {
 };
 
 export const BuildCapsTimeouts = {
-  ST: 30000,
-  PLT: 300000,
-  EAT: 60000,
+  ST: 10000,
+  PLT: 30000,
+  EAT: 10000,
 };
 
 export const EmailVerificationUserType = {

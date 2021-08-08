@@ -144,3 +144,15 @@ Additions.
 
 - Removed community link from help for now
 - Added analytics
+
+## 0.3.3 (2021-08-08)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- disallowing `null` in code
+- decreased all type of default timeouts
+- added `assertEqual`, `assertNotEqual`, `dateAdd`, `randomFromRange`
+- added more `by`. These are `altTest`, `labelText`, `placeholderText`
+- Removed wd functions `activeElement`, `clearActive`, `typeUsingMap`

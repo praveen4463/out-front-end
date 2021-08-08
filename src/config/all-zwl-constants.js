@@ -6,13 +6,16 @@
 import {Browsers, Platforms} from '../Constants';
 
 export const by = [
+  'altText',
   'ariaLabel',
   'className',
   'cssSelector',
   'id',
+  'labelText',
   'linkText',
   'name',
   'partialLinkText',
+  'placeholderText',
   'role',
   'tagName',
   'testId',
@@ -243,6 +246,16 @@ export const platforms = Object.values(Platforms).map((o) => o.VALUE);
 
 export const timeUnit = ['microsecond', 'millisecond', 'second'];
 
+export const duration = [
+  'seconds',
+  'minutes',
+  'hours',
+  'days',
+  'weeks',
+  'months',
+  'years',
+];
+
 // variables those are maps
 export const maps = {
   browser: 'browser',
@@ -255,6 +268,7 @@ export const maps = {
   platforms: 'platforms',
   timeouts: 'timeouts',
   timeUnit: 'timeUnit',
+  duration: 'duration',
 };
 
 export const readOnlyVars = [...Object.keys(maps), 'platform'];
