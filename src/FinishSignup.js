@@ -21,20 +21,16 @@ import {
   composePageTitle,
   handleApiError,
   invokeApiWithAnonymousAuth,
+  readPlanFromQS,
   signUpWithGoogle,
   storeUserBuiltUsingApiData,
 } from './common';
-import {
-  Endpoints,
-  MIN_PWD_LENGTH,
-  PageUrl,
-  Plan,
-  SignupUserType,
-} from './Constants';
+import {Endpoints, MIN_PWD_LENGTH, PageUrl, SignupUserType} from './Constants';
 import Application from './config/application';
 import logo from './assets/logo.svg';
 import GoogleSignIn from './components/GoogleSignIn';
 import {AppSnackbarContext} from './contexts';
+import usePricingDialog from './hooks/usePricingDialog';
 
 const FNAME = 'First name';
 const LNAME = 'Last name';
@@ -133,6 +129,8 @@ const FinishSignup = () => {
   const {email} = userType ? locState : {};
   const isTeamInvite = userType === SignupUserType.TEAM_MEMBER;
   const {orgName, emailVerificationId} = isTeamInvite ? locState : {};
+  const selectedPlan = readPlanFromQS(location.search);
+  const [setPricingDlg, pricingDialog] = usePricingDialog();
 
   const classes = useStyles();
 
@@ -214,19 +212,7 @@ const FinishSignup = () => {
     }
   };
 
-  const handleSave = () => {
-    setSnackbarAlertProps(null);
-    setMsgAlert(null);
-    const keysSkipValidate = [];
-    if (isTeamInvite) {
-      keysSkipValidate.push(ORG);
-    }
-    const errors = validateOnSubmit(keysSkipValidate);
-    if (Object.keys(errors).length > 0) {
-      setError({...error, ...errors});
-      return;
-    }
-    setSaving(true);
+  const doEmailSignup = (plan) => {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const utcOffsetInMinutes = new Date().getTimezoneOffset();
     const payload = {
@@ -238,7 +224,7 @@ const FinishSignup = () => {
       utcOffsetInMinutes,
       emailVerificationId: emailVerificationId || null,
       organizationName: isTeamInvite ? null : input[ORG].trim(),
-      planName: isTeamInvite ? null : Plan.FREE,
+      planName: isTeamInvite ? null : plan,
     };
     invokeApiWithAnonymousAuth(
       auth,
@@ -271,6 +257,26 @@ const FinishSignup = () => {
         setSaving(false);
       }
     );
+  };
+
+  const handleSave = () => {
+    setSnackbarAlertProps(null);
+    setMsgAlert(null);
+    const keysSkipValidate = [];
+    if (isTeamInvite) {
+      keysSkipValidate.push(ORG);
+    }
+    const errors = validateOnSubmit(keysSkipValidate);
+    if (Object.keys(errors).length > 0) {
+      setError({...error, ...errors});
+      return;
+    }
+    setSaving(true);
+    if (isTeamInvite || selectedPlan) {
+      doEmailSignup(selectedPlan);
+      return;
+    }
+    setPricingDlg(doEmailSignup);
   };
 
   const keyUpHandler = (e) => {
@@ -548,6 +554,7 @@ const FinishSignup = () => {
           </Box>
         </Box>
       </Box>
+      {pricingDialog}
     </>
   );
 };

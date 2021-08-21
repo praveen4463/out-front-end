@@ -155,3 +155,13 @@ Additions.
 - added `assertEqual`, `assertNotEqual`, `dateAdd`, `randomFromRange`
 - added more `by`. These are `altTest`, `labelText`, `placeholderText`
 - Removed wd functions `activeElement`, `clearActive`, `typeUsingMap`
+
+## 0.3.4 (2021-08-08)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Reading incoming plan to signup.
+- When no incoming plan, show user plan page.
+- Update argument names in date related functions.

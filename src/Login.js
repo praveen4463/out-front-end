@@ -24,7 +24,7 @@ import 'firebase/auth';
 import isEmail from 'validator/lib/isEmail';
 import {useAuthContext} from './Auth';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
-import {Endpoints, PageUrl, Plan} from './Constants';
+import {Endpoints, PageUrl} from './Constants';
 import {
   getFromApiAndStoreUser,
   handleApiError,
@@ -36,6 +36,7 @@ import Application from './config/application';
 import {AppSnackbarContext} from './contexts';
 import logo from './assets/logo.svg';
 import GoogleSignIn from './components/GoogleSignIn';
+import usePricingDialog from './hooks/usePricingDialog';
 
 const EMAIL = 'Email';
 const PWD = 'Password';
@@ -132,6 +133,7 @@ const Login = () => {
   const [setSnackbarAlertProps, setSnackbarAlertError] = useContext(
     AppSnackbarContext
   );
+  const [setPricingDlg, pricingDialog] = usePricingDialog();
 
   const classes = useStyles();
 
@@ -212,29 +214,30 @@ const Login = () => {
       auth.getSignInMethodsForEmail(email, (methods) => {
         if (!methods?.length) {
           // email doesn't exist, let's create new user.
-          // for now use a hardcoded free plan
-          setCreatingNewUser(true); // show a full loader because it takes sometime when creating new
-          signUpWithGoogle(
-            auth,
-            googleUser,
-            Plan.FREE,
-            null,
-            () => {
-              // We've created a new user. In this case we follow special flow rather
-              // than what we do in sign-in. For now go straight to home,
-              // later we could also show a terms and/or choose plan page.
-              // ! Special flow means we will not go to discourse SSO etc in this case
-              // because we might ask user to choose a plan etc and show our system first.
-              history.replace(PageUrl.HOME);
-            },
-            (ex) => {
-              // currently for signUpWithGoogle we're expecting only api errors
-              handleApiError(ex, setSnackbarAlertError);
-              // reset only when fails, else we're at home
-              setLogging(false);
-              setCreatingNewUser(false);
-            }
-          );
+          setPricingDlg((plan) => {
+            setCreatingNewUser(true); // show a full loader because it takes sometime when creating new
+            signUpWithGoogle(
+              auth,
+              googleUser,
+              plan,
+              null,
+              () => {
+                // We've created a new user. In this case we follow special flow rather
+                // than what we do in sign-in. For now go straight to home,
+                // later we could also show a terms and/or choose plan page.
+                // ! Special flow means we will not go to discourse SSO etc in this case
+                // because we might ask user to choose a plan etc and show our system first.
+                history.replace(PageUrl.HOME);
+              },
+              (ex) => {
+                // currently for signUpWithGoogle we're expecting only api errors
+                handleApiError(ex, setSnackbarAlertError);
+                // reset only when fails, else we're at home
+                setLogging(false);
+                setCreatingNewUser(false);
+              }
+            );
+          });
         } else if (methods[0] === auth.EMAIL_PASSWORD_SIGN_IN_METHOD) {
           setAlertInfoMessage(
             'Please sign in using your primary sign in method: Email/Password.'
@@ -262,6 +265,7 @@ const Login = () => {
       auth,
       history,
       onLoginSuccess,
+      setPricingDlg,
       setSnackbarAlertError,
       setSnackbarAlertProps,
     ]
@@ -553,6 +557,7 @@ const Login = () => {
           </Box>
         </Box>
       </Box>
+      {pricingDialog}
     </>
   );
 };

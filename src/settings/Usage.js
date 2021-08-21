@@ -122,7 +122,7 @@ const Usage = () => {
               <Box display="flex" flexDirection="column">
                 {getText(
                   `${
-                    planName === Plan.BETA_TEST || planName === Plan.FREE_TRIAL
+                    planName === Plan.BETA_TEST || planName.includes('TRIAL')
                       ? 'Plan ends on'
                       : 'Usage reset'
                   }`

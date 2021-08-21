@@ -311,9 +311,35 @@ export const PlanType = {
 
 export const Plan = {
   BETA_TEST: 'BETA_TEST',
-  FREE_TRIAL: 'FREE_TRIAL',
   ADMIN: 'ADMIN',
   FREE: 'FREE',
+  STARTUP_TRIAL: 'STARTUP_TRIAL',
+  SB_TRIAL: 'SB_TRIAL',
+  BUSINESS_TRIAL: 'BUSINESS_TRIAL',
+  COMPANY_TRIAL: 'COMPANY_TRIAL',
+  STARTUP: 'STARTUP',
+  SB: 'SB',
+  BUSINESS: 'BUSINESS',
+  COMPANY: 'COMPANY',
+};
+
+export const FeaturesDesc = {
+  PROJECTS:
+    'Projects are used to organize testing resources such as test cases, assets and run history.',
+  FILES_TESTS:
+    'Files in Zylitics are just like file system files. Tests are the test cases defined for various functionalities.',
+  BUILD_MIN:
+    'Whenever tests are run on our infrastructure, they consume certain amount of computing/virtual machine time. Every run is called a Build and the consumed time is termed as build minutes. More build minutes allow for worry free development and build runs during deployments.',
+  PARALLEL:
+    'Parallel builds define the ability to run builds (test runs) simultaneously on our infrastructure. More parallel means more tests can be run together. If you frequently deploy code, having more parallel will allow you to run test cases on multiple machines which in turn help in quick deployment.',
+  BUILD_HISTORY:
+    'When builds are run, we generate and store several detail about them such as screenshot, previews, logs, output, code etc. These details are then saved forever in our platform and accessible from the console.',
+  BASIC_MANAGEMENT:
+    'Includes only the basic user permissions such as sharing projects and defining admins and developers.',
+  ADVANCED_MANAGEMENT:
+    'Allows for granular access management. Define who can view or edit tests, or who can just run and re-run builds together with other permissions.',
+  TRAINING:
+    'Get training from the developers of Zylitics. We will train your team on best practices and ways to build tests efficiently.',
 };
 
 export const PromptBehavior = {

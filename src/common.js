@@ -828,3 +828,8 @@ export const signUpWithGoogle = (
     onError
   );
 };
+
+export const readPlanFromQS = (locSearch) => {
+  const parsed = queryString.parse(locSearch);
+  return parsed.plan;
+};

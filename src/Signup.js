@@ -12,7 +12,7 @@ import Typography from '@material-ui/core/Typography';
 import Divider from '@material-ui/core/Divider';
 import {makeStyles} from '@material-ui/core/styles';
 import Alert from '@material-ui/lab/Alert';
-import {useHistory} from 'react-router-dom';
+import {useHistory, useLocation} from 'react-router-dom';
 import {Helmet} from 'react-helmet-async';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import {captureException} from '@sentry/react';
@@ -21,17 +21,19 @@ import 'firebase/auth';
 import isEmail from 'validator/lib/isEmail';
 import {useAuthContext} from './Auth';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
-import {PageUrl, Plan, SignupUserType} from './Constants';
+import {PageUrl, SignupUserType} from './Constants';
 import {
   handleApiError,
   handleAuthError,
   composePageTitle,
   signUpWithGoogle,
   getLocation,
+  readPlanFromQS,
 } from './common';
 import {AppSnackbarContext} from './contexts';
 import logo from './assets/logo.svg';
 import GoogleSignIn from './components/GoogleSignIn';
+import usePricingDialog from './hooks/usePricingDialog';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -108,10 +110,13 @@ const Signup = () => {
   const [beginSignup, setBeginSignup] = useState(false);
   const auth = useAuthContext();
   const history = useHistory();
+  const location = useLocation();
+  const selectedPlan = readPlanFromQS(location.search);
   const userAlreadyLoggedInCheckedRef = useRef(false);
   const [setSnackbarAlertProps, setSnackbarAlertError] = useContext(
     AppSnackbarContext
   );
+  const [setPricingDlg, pricingDialog] = usePricingDialog();
 
   const classes = useStyles();
 
@@ -137,6 +142,31 @@ const Signup = () => {
     userAlreadyLoggedInCheckedRef.current = true;
   }, [auth.authStateLoaded, auth.user, history]);
 
+  const doGoogleSignup = useCallback(
+    (googleUser) => (plan) => {
+      setSigningUp(true);
+      // email doesn't exist, let's create new user.
+      // for now use a hardcoded free plan
+      signUpWithGoogle(
+        auth,
+        googleUser,
+        plan,
+        null,
+        () => {
+          history.replace(PageUrl.HOME);
+        },
+        (ex) => {
+          // currently for signUpWithGoogle we're expecting only api errors
+          handleApiError(ex, setSnackbarAlertError);
+          // reset only when fails, else we're at home
+          setSigningUp(false);
+          setBeginSignup(false);
+        }
+      );
+    },
+    [auth, history, setSnackbarAlertError]
+  );
+
   const onGoogleSignIn = useCallback(
     (googleUser) => {
       // reset
@@ -150,25 +180,12 @@ const Signup = () => {
       // https://firebase.google.com/docs/reference/js/firebase.auth.EmailAuthProvider?authuser=0#static-email_password_sign_in_method
       auth.getSignInMethodsForEmail(email, (methods) => {
         if (!methods?.length) {
-          setSigningUp(true);
-          // email doesn't exist, let's create new user.
-          // for now use a hardcoded free plan
-          signUpWithGoogle(
-            auth,
-            googleUser,
-            Plan.FREE,
-            null,
-            () => {
-              history.replace(PageUrl.HOME);
-            },
-            (ex) => {
-              // currently for signUpWithGoogle we're expecting only api errors
-              handleApiError(ex, setSnackbarAlertError);
-              // reset only when fails, else we're at home
-              setSigningUp(false);
-              setBeginSignup(false);
-            }
-          );
+          const signUpCb = doGoogleSignup(googleUser);
+          if (selectedPlan) {
+            signUpCb(selectedPlan);
+          } else {
+            setPricingDlg(signUpCb);
+          }
         } else if (methods[0] === auth.EMAIL_PASSWORD_SIGN_IN_METHOD) {
           setAlertInfoMessage(
             'Your account already exists. Please sign in using email and password.'
@@ -196,7 +213,15 @@ const Signup = () => {
         }
       });
     },
-    [auth, history, setSnackbarAlertError, setSnackbarAlertProps]
+    [
+      auth,
+      doGoogleSignup,
+      history,
+      selectedPlan,
+      setPricingDlg,
+      setSnackbarAlertError,
+      setSnackbarAlertProps,
+    ]
   );
 
   const onGoogleSignInError = useCallback((ex) => {
@@ -245,7 +270,7 @@ const Signup = () => {
     auth.getSignInMethodsForEmail(emailNormalized, (methods) => {
       if (!methods?.length) {
         history.push(
-          getLocation(PageUrl.FINISH_SIGNUP, null, {
+          getLocation(PageUrl.FINISH_SIGNUP, location.search, {
             userType: SignupUserType.NORMAL,
             email: emailNormalized,
           })
@@ -393,6 +418,7 @@ const Signup = () => {
           </Box>
         </Box>
       </Box>
+      {pricingDialog}
     </>
   );
 };
