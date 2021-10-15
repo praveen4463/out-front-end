@@ -12,7 +12,6 @@ export const VERSION_CODE_SAVE_COMPLETED = 'VERSION_CODE_SAVE_COMPLETED';
 
 // Explorer actions
 export const EXP_LOAD_FILES = 'EXP_LOAD_FILES';
-export const EXP_UNLOAD_FILE = 'EXP_UNLOAD_FILE';
 export const EXP_NEW_ITEM = 'EXP_NEW_ITEM';
 export const EXP_RENAME_ITEM = 'EXP_RENAME_ITEM';
 export const EXP_DELETE_ITEM = 'EXP_DELETE_ITEM';

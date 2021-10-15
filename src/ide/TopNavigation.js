@@ -56,13 +56,7 @@ const TopNavigation = () => {
   const parse = useContext(IdeParseContext);
   const classes = useStyles();
 
-  const anyFiles = useMemo(
-    () =>
-      files &&
-      files.result.length &&
-      files.result.some((fid) => files.entities.files[fid].loadToTree),
-    [files]
-  );
+  const anyFiles = useMemo(() => files && files.result.length > 0, [files]);
 
   const runButtonsDisabled = useMemo(
     () => build.runOngoing || dry.runOngoing || parse.runOngoing || !anyFiles,

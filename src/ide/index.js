@@ -17,7 +17,7 @@ import {Helmet} from 'react-helmet-async';
 import TopNavigation from './TopNavigation';
 import Content from './Content';
 import darkTheme from './Themes';
-import {filesSchema, LastRunError, File, Test, Version} from './Explorer/model';
+import {LastRunError} from './Explorer/model';
 import {
   globalVarsSchema,
   buildVarsSchema,
@@ -114,12 +114,12 @@ import {
   handleApiError,
   prepareEndpoint,
   getNewIntlComparer,
-  getFilesWithTests,
-  fromJson,
   getNewBuildEndpoint,
   getStopBuildEndpoint,
   getBuildStatusEndpoint,
   removeFromSearchQuery,
+  getFilesWithTestsEndpoint,
+  filesWithTestsApiDataToNormalizedSorted,
 } from '../common';
 import useRequiredAuth from '../hooks/useRequiredAuth';
 import PageLoadingIndicator from '../components/PageLoadingIndicator';
@@ -364,8 +364,7 @@ const Ide = () => {
     setLoading(true);
 
     // get data from api via separate requests in parallel
-    const getFilesIdentifier = () =>
-      axios(prepareEndpoint(Endpoints.FILES, pId));
+    const getFilesWithTests = () => axios(getFilesWithTestsEndpoint(pId));
 
     const getBuildVars = () =>
       axios(prepareEndpoint(Endpoints.BUILD_VARS, pId));
@@ -373,38 +372,10 @@ const Ide = () => {
     const getGlobalVars = () =>
       axios(prepareEndpoint(Endpoints.GLOBAL_VARS, pId));
 
-    const apiCalls = [getFilesIdentifier(), getBuildVars(), getGlobalVars()];
-    // see if there is any file in qs
-    const fileId = getNumberParamFromUrl(SearchKeys.FILE_QS);
-    if (fileId) {
-      apiCalls.push(getFilesWithTests(fileId, pId));
-    }
+    const apiCalls = [getFilesWithTests(), getBuildVars(), getGlobalVars()];
     Promise.all(apiCalls)
       .then((result) => {
-        const [filesIdentifier, varsBuild, varsGlobal, fileWithTest] = result;
-
-        // after receiving data, make sure to sort everything. For files with
-        // tests, sort tests and versions within tests.
-        const files = filesIdentifier.data.map((f) => {
-          if (f.id === fileId && fileWithTest && fileWithTest.data.length) {
-            // when fileId has no associated tests, fileWithTest is empty array
-            const withTests = fileWithTest.data[0];
-            withTests.tests = withTests.tests.map((t) => fromJson(Test, t));
-            withTests.tests.sort((a, b) =>
-              getNewIntlComparer()(a.name, b.name)
-            );
-            withTests.tests.forEach((t) => {
-              // eslint-disable-next-line no-param-reassign
-              t.versions = t.versions.map((v) => fromJson(Version, v));
-              t.versions.sort((a, b) => getNewIntlComparer()(a.name, b.name));
-            });
-            // assign loadToTree = true to the incoming fileId
-            withTests.loadToTree = true;
-            return fromJson(File, withTests);
-          }
-          return fromJson(File, f);
-        });
-        files.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+        const [filesWithTests, varsBuild, varsGlobal] = result;
 
         const buildVars = varsBuild.data.map(
           (b) => new BuildVars(b.id, b.key, b.value, b.isPrimary)
@@ -418,9 +389,12 @@ const Ide = () => {
 
         // data processed, set to state.
         const actions = [];
+        const files = filesWithTests.data;
         if (files.length) {
-          const normalizedFiles = normalize(files, filesSchema);
-          actions.push({type: SET_FILES, payload: {files: normalizedFiles}});
+          actions.push({
+            type: SET_FILES,
+            payload: {files: filesWithTestsApiDataToNormalizedSorted(files)},
+          });
         }
         if (globalVars.length) {
           actions.push({

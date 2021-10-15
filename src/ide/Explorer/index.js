@@ -1,11 +1,9 @@
 import React, {
-  useState,
   useRef,
   useCallback,
   useContext,
   useEffect,
   useReducer,
-  useMemo,
 } from 'react';
 import PropTypes from 'prop-types';
 import Box from '@material-ui/core/Box';
@@ -15,7 +13,6 @@ import TreeItem from '@material-ui/lab/TreeItem';
 import Typography from '@material-ui/core/Typography';
 import Skeleton from '@material-ui/lab/Skeleton';
 import IconButton from '@material-ui/core/IconButton';
-import FileIcon from '@material-ui/icons/InsertDriveFile';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ArrowRightIcon from '@material-ui/icons/ArrowRight';
@@ -38,7 +35,6 @@ import {EXP_NEW_ITEM, EDR_EXP_VERSION_CLICK} from '../actionTypes';
 import {Version, Test, File} from './model';
 import ColoredItemIcon from '../../components/ColoredItemIcon';
 import {getNodeId, getBrokenNodeId} from './internal';
-import LoadFiles from './LoadFiles';
 import useSnackbarTypeError from '../../hooks/useSnackbarTypeError';
 
 const useStyles = makeStyles((theme) => ({
@@ -298,7 +294,6 @@ const Explorer = React.memo(({closeButton}) => {
   const dispatchGlobal = useContext(IdeDispatchContext);
   const projectId = useContext(IdeProjectIdContext);
   const files = useContext(IdeFilesContext);
-  const [showLoadFiles, setShowLoadFiles] = useState(false);
   const etFiles = files !== null ? files.entities.files : null;
   const etTests = files !== null ? files.entities.tests : null;
   const etVersions = files !== null ? files.entities.versions : null;
@@ -385,10 +380,6 @@ const Explorer = React.memo(({closeButton}) => {
     // nodeIds have all expanded nodeIds, including ones opened on 'new item'
     // call, thus it's safe to reset entire array.
     dispatchLocal({type: actionTypes.NODE_TOGGLE, payload: {nodeIds}});
-  };
-
-  const handleOnLoad = () => {
-    setShowLoadFiles(true);
   };
 
   const onNewFile = () => {
@@ -571,14 +562,6 @@ const Explorer = React.memo(({closeButton}) => {
     />
   );
 
-  const loadedFiles = useMemo(() => {
-    return (
-      files &&
-      Array.isArray(files.result) &&
-      files.result.filter((fid) => files.entities.files[fid].loadToTree)
-    );
-  }, [files]);
-
   return (
     <>
       <Box className={classes.explorer} data-testid="explorer">
@@ -598,17 +581,6 @@ const Explorer = React.memo(({closeButton}) => {
                 className={classes.iconButton}
                 disabled={!projectId}
                 onClick={onNewFile}>
-                <FileIcon className={classes.icon} />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title="Load Existing File(s)">
-            <span>
-              <IconButton
-                aria-label="Load Existing File(s)"
-                className={classes.iconButton}
-                disabled={!projectId}
-                onClick={handleOnLoad}>
                 <AddCircleOutlineIcon className={classes.icon} />
               </IconButton>
             </span>
@@ -627,8 +599,8 @@ const Explorer = React.memo(({closeButton}) => {
             {Boolean(state.addNewItem) &&
               state.addNewItem.type === ExplorerItemType.FILE &&
               getNewItemEditor(getNamesByIdMapping(filesResult, etFiles))}
-            {loadedFiles && loadedFiles.length ? (
-              loadedFiles.map((fid) => (
+            {filesResult?.length ? (
+              filesResult.map((fid) => (
                 <TreeItem
                   nodeId={getNodeId(ExplorerItemType.FILE, fid)}
                   key={fid}
@@ -740,12 +712,6 @@ const Explorer = React.memo(({closeButton}) => {
           </TreeView>
         </Box>
       </Box>
-      {showLoadFiles && (
-        <LoadFiles
-          showDialog={showLoadFiles}
-          setShowDialog={setShowLoadFiles}
-        />
-      )}
       {snackbarTypeError}
     </>
   );

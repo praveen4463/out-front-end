@@ -3,7 +3,6 @@ import Typography from '@material-ui/core/Typography';
 import {makeStyles} from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
 import IconButton from '@material-ui/core/IconButton';
-import RemoveCircleOutlineIcon from '@material-ui/icons/RemoveCircleOutline';
 import EditIcon from '@material-ui/icons/Edit';
 import DeleteIcon from '@material-ui/icons/Delete';
 import Box from '@material-ui/core/Box';
@@ -35,7 +34,6 @@ import {
 } from '../Contexts';
 import batchActions from '../actionCreators';
 import {
-  EXP_UNLOAD_FILE,
   EXP_RENAME_ITEM,
   EXP_DELETE_ITEM,
   EXP_DELETE_REVERT,
@@ -452,44 +450,6 @@ const TreeItemContent = React.memo(
       setShowDeleteDialog(true);
     };
 
-    const unloadAcceptHandler = () => {
-      const actions = [{type: EXP_UNLOAD_FILE, payload: {itemType, itemId}}];
-      // find all versions within this file, all of them need to be removed from
-      // tabs
-      const et = files.entities;
-      const versionIds = [];
-      // eslint-disable-next-line no-unused-expressions
-      Array.isArray(et.files[itemId].tests) &&
-        et.files[itemId].tests.forEach((t) =>
-          et.tests[t].versions.forEach((v) => versionIds.push(v))
-        );
-      if (versionIds.length > 0) {
-        actions.push(
-          {
-            type: EDR_EXP_VERSIONS_DELETED,
-            payload: {versionIds},
-          },
-          {
-            type: CONFIG_BUILD_ON_VERSIONS_DELETE,
-            payload: {versionIds},
-          }
-        );
-      }
-      dispatch(batchActions(actions));
-    };
-
-    const [setShowUnloadDialog, unloadDialog] = useConfirmationDialog(
-      unloadAcceptHandler,
-      'Unload',
-      `Are you sure you want to unload ${itemType.toLowerCase()} ${itemName} from workspace?`,
-      'unload-alert-dialog-description'
-    );
-
-    const unloadHandler = (e) => {
-      e.stopPropagation();
-      setShowUnloadDialog(true);
-    };
-
     const getRunTextPerExplorerItem = (runType) => {
       let runText;
       switch (runType) {
@@ -595,18 +555,6 @@ const TreeItemContent = React.memo(
               <Box>
                 {itemType === FILE && (
                   <>
-                    <Tooltip title="Unload File From Workspace">
-                      <IconButton
-                        aria-label="Unload File From Workspace"
-                        onClick={unloadHandler}
-                        size="small"
-                        className={classes.iconButton}>
-                        <RemoveCircleOutlineIcon
-                          fontSize="small"
-                          classes={{fontSizeSmall: classes.fontSizeSmall}}
-                        />
-                      </IconButton>
-                    </Tooltip>
                     <Tooltip title="Create New Test">
                       <IconButton
                         aria-label="Create New Test"
@@ -690,11 +638,6 @@ const TreeItemContent = React.memo(
             {itemType === FILE && (
               <>
                 <MenuItem
-                  onClick={unloadHandler}
-                  className={classes.contextMenuItem}>
-                  Unload File From Workspace
-                </MenuItem>
-                <MenuItem
                   onClick={newItemHandler}
                   className={classes.contextMenuItem}>
                   Add New Test
@@ -721,7 +664,6 @@ const TreeItemContent = React.memo(
           </>
         </ContextMenu>
         {deleteDialog}
-        {unloadDialog}
         {snackbarTypeError}
       </>
     );

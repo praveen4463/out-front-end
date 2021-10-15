@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useReducer,
   useState,
+  useMemo,
 } from 'react';
 import Accordion from '@material-ui/core/Accordion';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
@@ -60,6 +61,7 @@ import {
   IdeVersionIdsCodeSaveInProgressContext,
   IdeDryRunConfigContext,
   IdeProjectIdContext,
+  IdeFilesContext,
 } from '../Contexts';
 import Tooltip from '../../TooltipCustom';
 import {LastRun, LastRunError} from '../Explorer/model';
@@ -314,6 +316,28 @@ const TabPanel = React.memo(
     // console.log('re rendering..');
     const dispatchGlobal = useContext(IdeDispatchContext);
     const vars = useContext(IdeVarsContext);
+    const files = useContext(IdeFilesContext);
+    const filesForSuggestion = useMemo(() => {
+      if (!files?.result?.length) {
+        return [];
+      }
+      const et = files.entities;
+      // return an array of array [[fn, tn, vn], [fn, tn, vn], ...]
+      const arr = [];
+      files.result.forEach((fid) => {
+        et.files[fid].tests.forEach((tid) => {
+          et.tests[tid].versions.forEach((vid) => {
+            arr.push([
+              et.files[fid].name,
+              et.tests[tid].name,
+              et.versions[vid].name,
+            ]);
+          });
+        });
+      });
+      return arr;
+    }, [files]);
+
     const buildRunOngoing = useContext(IdeBuildRunOngoingContext);
     const dryRunOngoing = useContext(IdeDryRunOngoingContext);
     const parseRunOngoing = useContext(IdeParseRunOngoingContext);
@@ -708,8 +732,8 @@ const TabPanel = React.memo(
     // auto complete event depends on vars context, thus it's kept separate.
     useEffect(() => {
       const handleAutoComplete = (editor, event) => {
-        // The key should be either a-z 0-9 or a dot char
-        if (!event.isTrusted || !/(^\w|\.)$/.test(event.key)) {
+        // The key should be either a-z 0-9 or a dot char or (
+        if (!event.isTrusted || !/(^\w|\.|\()$/.test(event.key)) {
           return;
         }
         // send only keys that are valid identifiers, otherwise accessing non
@@ -732,6 +756,7 @@ const TabPanel = React.memo(
                   .filter((k) => ZwlLexer.IDENTIFIER_WITH_START_END.test(k))
               )
             : [],
+          filesForSuggestion,
         });
       };
 
@@ -744,7 +769,7 @@ const TabPanel = React.memo(
       return () => {
         manageEvents(false);
       };
-    }, [vars.build, vars.global]);
+    }, [vars.build, vars.global, filesForSuggestion]);
 
     useEffect(() => {
       dispatchUncontrolled({

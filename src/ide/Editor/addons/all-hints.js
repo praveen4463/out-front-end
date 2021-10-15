@@ -67,6 +67,27 @@ const getConstantHints = (constant, options, toFilterStartingValue = '') => {
   return hints;
 };
 
+// files [[f, t, v], [f, t, v],...]
+const suggestFiles = (files, filter = '') => {
+  const filterNormalized = filter.trim().toLocaleLowerCase();
+  if (filterNormalized === '') {
+    return files.map((f) => `'${f[0]}/${f[1]}/${f[2]}'`);
+  }
+  const preciseList = [];
+  const fuzzyList = [];
+  files.forEach((f) => {
+    const fn = f[0].toLocaleLowerCase();
+    const tn = f[1].toLocaleLowerCase();
+    if (fn.startsWith(filter) || tn.startsWith(filter)) {
+      preciseList.push(f);
+    } else if (fn.includes(filter) || tn.includes(filter)) {
+      fuzzyList.push(f);
+    }
+  });
+
+  return [...preciseList, ...fuzzyList].map((f) => `'${f[0]}/${f[1]}/${f[2]}'`);
+};
+
 // TODO: somehow this runs twice on each keyup, find out later.
 // Note: if we ever need Ctrl+Space to open hints, convert this function to a
 // helper using Codemirror.registerHelper.
@@ -74,7 +95,26 @@ const allHints = (editor, options) => {
   const {maps} = Constants;
   const cur = editor.getCursor();
   const tok = editor.getTokenAt(cur);
-  if (tok.string === '.' && tok.start > 0) {
+  const tokText = tok.string;
+  const allCurTokens = editor.getLineTokens(cur.line);
+  if (allCurTokens[0].string === 'callTest') {
+    const files = options.filesForSuggestion;
+    if (!files.length) {
+      return null;
+    }
+    const isVarToken = tok.type === 'variable';
+    if (tokText !== '(' && !isVarToken) {
+      return null;
+    }
+    const filter = isVarToken ? tokText : '';
+    return {
+      list: suggestFiles(files, filter),
+      from: CodeMirror.Pos(cur.line, tok.start + (tokText === '(' ? 1 : 0)),
+      to: CodeMirror.Pos(cur.line, tok.end),
+    };
+  }
+
+  if (tokText === '.' && tok.start > 0) {
     const tokBeforeDot = editor.getTokenAt({...cur, ch: tok.start});
     if (
       tokBeforeDot.type !== 'variable' ||
@@ -94,7 +134,6 @@ const allHints = (editor, options) => {
   if (tok.type !== 'variable') {
     return null;
   }
-  const curVariable = tok.string;
 
   // find out if user is typing after getting hints on constants means after dot operator
   // if so, filter constant hints by what they typed
@@ -107,7 +146,7 @@ const allHints = (editor, options) => {
         Object.keys(maps).includes(tokBeforeDot.string)
       ) {
         return {
-          list: getConstantHints(tokBeforeDot.string, options, tok.string),
+          list: getConstantHints(tokBeforeDot.string, options, tokText),
           from: CodeMirror.Pos(cur.line, tok.start),
           to: CodeMirror.Pos(cur.line, tok.end),
         };
@@ -124,9 +163,9 @@ const allHints = (editor, options) => {
       const name = fn.match(FUNC_NAME);
       if (name) {
         const nameOnly = name[0];
-        if (nameOnly.lastIndexOf(curVariable, 0) === 0) {
+        if (nameOnly.lastIndexOf(tokText, 0) === 0) {
           preciseList.add({text: nameOnly, displayText: fn});
-        } else if (matches(nameOnly, curVariable)) {
+        } else if (matches(nameOnly, tokText)) {
           fuzzyList.add({text: nameOnly, displayText: fn});
         }
       }
@@ -138,9 +177,9 @@ const allHints = (editor, options) => {
 
   const addElements = (elements) => {
     elements.forEach((el) => {
-      if (el.lastIndexOf(curVariable, 0) === 0) {
+      if (el.lastIndexOf(tokText, 0) === 0) {
         preciseList.add(el);
-      } else if (matches(el, curVariable)) {
+      } else if (matches(el, tokText)) {
         fuzzyList.add(el);
       }
     });
@@ -165,8 +204,8 @@ const allHints = (editor, options) => {
       if (Array.isArray(variableTokens)) {
         for (let i = 0; i < variableTokens.length; i += 1) {
           const text = variableTokens[i].string;
-          if (text.lastIndexOf(curVariable, 0) === 0) {
-            if (line !== cur.line || text !== curVariable) {
+          if (text.lastIndexOf(tokText, 0) === 0) {
+            if (line !== cur.line || text !== tokText) {
               preciseList.add(text);
             }
           }

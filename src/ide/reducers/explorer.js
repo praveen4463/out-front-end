@@ -4,7 +4,6 @@ import {ExplorerItemType} from '../Constants';
 import {Version, Test, File} from '../Explorer/model';
 import {
   EXP_LOAD_FILES,
-  EXP_UNLOAD_FILE,
   EXP_NEW_ITEM,
   EXP_RENAME_ITEM,
   EXP_DELETE_ITEM,
@@ -17,34 +16,6 @@ const loadFiles = (draft, payload) => {
     throw new Error('Insufficient arguments passed to loadFiles.');
   }
   draft.files = payload.files;
-};
-
-const unloadFile = (draft, payload) => {
-  if (payload.itemType === undefined || payload.itemId === undefined) {
-    throw new Error('Insufficient arguments passed to unloadFile.');
-  }
-  if (payload.itemType !== ExplorerItemType.FILE) {
-    throw new Error(
-      `Only item of type ${ExplorerItemType.FILE} could be unloaded.`
-    );
-  }
-  const et = draft.files.entities;
-  const fid = payload.itemId;
-  // !! several components like TestSelect depends on this logic of removing
-  // all tests from a file that's going to be unloaded.
-  if (Array.isArray(et.files[fid].tests)) {
-    et.files[fid].tests.forEach((tid) => {
-      if (Array.isArray(et.tests[tid].versions)) {
-        et.tests[tid].versions.forEach((vid) => {
-          delete et.versions[vid];
-        });
-      }
-      delete et.tests[tid];
-    });
-    et.files[fid].tests = null;
-  }
-  et.files[fid].showAsErrorInExplorer = false;
-  et.files[fid].loadToTree = false;
 };
 
 const newItem = (draft, payload) => {
@@ -68,7 +39,6 @@ const newItem = (draft, payload) => {
       }
       // never mutate a payload, always clone it.
       const newFile = {...payload.item};
-      newFile.loadToTree = true;
       if (draft.files === null) {
         draft.files = {
           entities: {files: {[newFile.id]: newFile}},
@@ -266,9 +236,6 @@ const explorerReducer = produce((draft, action) => {
   switch (action.type) {
     case EXP_LOAD_FILES:
       loadFiles(draft, payload);
-      break;
-    case EXP_UNLOAD_FILE:
-      unloadFile(draft, payload);
       break;
     case EXP_NEW_ITEM:
       newItem(draft, payload);

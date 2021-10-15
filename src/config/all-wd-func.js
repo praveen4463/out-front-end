@@ -11,6 +11,7 @@ const all = [
   'anyElementEnabled(...elemIds)',
   'anyElementSelected(...elemIds)',
   'back(number)',
+  'callTest(testPath)',
   'captureElementScreenshot(elemId)',
   'captureElementScreenshot(elemId, fileName)',
   'clear(elemId)',

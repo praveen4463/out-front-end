@@ -165,3 +165,13 @@ Additions.
 - Reading incoming plan to signup.
 - When no incoming plan, show user plan page.
 - Update argument names in date related functions.
+
+## 0.3.4 (2021-10-15)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Removed load files, files are loaded into explorer directly.
+- Added new function `callTest`
+- Added suggestions for `callTest`
