@@ -69,9 +69,14 @@ const getConstantHints = (constant, options, toFilterStartingValue = '') => {
 
 // files [[f, t, v], [f, t, v],...]
 const suggestFiles = (files, filter = '') => {
+  const prepareFilePath = (f) => {
+    const s = `${f[0]}/${f[1]}/${f[2]}`.replace("'", "\\'");
+    return `'${s}'`;
+  };
+
   const filterNormalized = filter.trim().toLocaleLowerCase();
   if (filterNormalized === '') {
-    return files.map((f) => `'${f[0]}/${f[1]}/${f[2]}'`);
+    return files.map(prepareFilePath);
   }
   const preciseList = [];
   const fuzzyList = [];
@@ -85,7 +90,7 @@ const suggestFiles = (files, filter = '') => {
     }
   });
 
-  return [...preciseList, ...fuzzyList].map((f) => `'${f[0]}/${f[1]}/${f[2]}'`);
+  return [...preciseList, ...fuzzyList].map(prepareFilePath);
 };
 
 // TODO: somehow this runs twice on each keyup, find out later.

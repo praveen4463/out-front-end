@@ -166,7 +166,7 @@ Additions.
 - When no incoming plan, show user plan page.
 - Update argument names in date related functions.
 
-## 0.3.4 (2021-10-15)
+## 0.3.5 (2021-10-15)
 
 Additions.
 
@@ -175,3 +175,12 @@ Additions.
 - Removed load files, files are loaded into explorer directly.
 - Added new function `callTest`
 - Added suggestions for `callTest`
+
+## 0.3.6 (2021-10-20)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Escape single quote in file suggestions for callTest
+- No error underline in case of build run.

@@ -902,15 +902,22 @@ const TabPanel = React.memo(
           type: actionTypes.SET_OUTPUT_ERROR,
           payload: {versionId: version.id, outputError: error.msg},
         });
-        // markText requires 0 index based line:ch but api's line is not index
-        // based and starts from 1, thus -1 to it.
-        const from = {...error.fromPos, line: error.fromPos.line - 1};
-        const to = {...error.toPos, line: error.toPos.line - 1};
-        doc.markText(from, to, {
-          className: 'cm-errorText',
-        });
-        editor.scrollIntoView({from, to});
-        // scroll to the mark but don't change cursor position.
+        // Don't set mark error on build runs. We added `callTest` and similar
+        // functions that jump on to another file and run its code. During the
+        // code run of another files, if some error occurs in them, we don't want to mark
+        // that line as error in the parent file.
+        // TODO: For now just don't do this and figure out later on if we need it.
+        if (run.runType !== RunType.BUILD_RUN) {
+          // markText requires 0 index based line:ch but api's line is not index
+          // based and starts from 1, thus -1 to it.
+          const from = {...error.fromPos, line: error.fromPos.line - 1};
+          const to = {...error.toPos, line: error.toPos.line - 1};
+          doc.markText(from, to, {
+            className: 'cm-errorText',
+          });
+          editor.scrollIntoView({from, to});
+          // scroll to the mark but don't change cursor position.
+        }
       }
       if (run.output) {
         actions.push({
