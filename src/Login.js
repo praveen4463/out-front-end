@@ -397,7 +397,7 @@ const Login = () => {
   return (
     <>
       <Helmet title={composePageTitle('Sign in')}>
-        <meta name="description" content="Sign in to Zylitics" />
+        <meta name="description" content="Sign in to Outomated" />
       </Helmet>
       <CssBaseline />
       <Box classes={{root: classes.root}}>
@@ -437,7 +437,7 @@ const Login = () => {
               className={classes.login}>
               <Box pb={3}>
                 <Typography variant="h5" style={{fontWeight: 600}}>
-                  Sign in to Zylitics
+                  Sign in to Outomated
                 </Typography>
               </Box>
               {msgAlert ? (

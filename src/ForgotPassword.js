@@ -75,7 +75,7 @@ const ForgotPassword = () => {
   const onSuccess = () =>
     setStatus(
       new Status(
-        'A password reset link will be sent if a Zylitics account is found for this email'
+        'A password reset link will be sent if a Outomated account is found for this email'
       )
     );
 

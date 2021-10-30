@@ -300,8 +300,8 @@ const Signup = () => {
 
   return (
     <>
-      <Helmet title={composePageTitle('Sign up for Zylitics')}>
-        <meta name="description" content="Sign up for Zylitics" />
+      <Helmet title={composePageTitle('Sign up for Outomated')}>
+        <meta name="description" content="Sign up for Outomated" />
       </Helmet>
       <CssBaseline />
       <Box classes={{root: classes.root}}>
@@ -341,7 +341,7 @@ const Signup = () => {
               className={classes.login}>
               <Box pb={3}>
                 <Typography variant="h5" style={{fontWeight: 600}}>
-                  Create your free Zylitics account
+                  Create your free Outomated account
                 </Typography>
               </Box>
               {msgAlert ? (

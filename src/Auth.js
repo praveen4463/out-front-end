@@ -274,7 +274,7 @@ ProvideAuth.propTypes = {
 };
 
 /*
-Authentication on zylitics work using react context. We use auth context at top
+Authentication on outomated work using react context. We use auth context at top
 level and all components consume it using following context consumer. Once the
 context's value is initialized, it doesn't change component by component and
 all use the same context state. So when a page is loaded, context initialize,

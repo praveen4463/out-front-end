@@ -150,7 +150,7 @@ const App = () => {
               <Route path={PageUrl.IDE}>
                 <Suspense
                   fallback={
-                    <PageLoadingIndicator loadingText="Loading Zylitics IDE" />
+                    <PageLoadingIndicator loadingText="Loading Outomated IDE" />
                   }>
                   {/* Had to put boundary for ide here rather than inside it to
                   catch error thrown at reducer level and those are not in components

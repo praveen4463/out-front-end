@@ -66,7 +66,7 @@ const Default = () => {
   return (
     <Box className={classes.defaultRoot}>
       <Helmet title={composePageTitle('Settings')} />
-      <Typography variant="h4">Zylitics settings</Typography>
+      <Typography variant="h4">Outomated settings</Typography>
       <Typography variant="body1">
         Edit your profile, view or change billing, usage quotas, and more.
       </Typography>

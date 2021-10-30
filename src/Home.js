@@ -150,7 +150,7 @@ const Default = () => {
   return (
     <Box className={classes.defaultRoot}>
       <Helmet title={composePageTitle('Dashboard')} />
-      <Typography variant="h3">Welcome to Zylitics!</Typography>
+      <Typography variant="h3">Welcome to Outomated!</Typography>
       <Typography variant="body1">
         Write, run, debug and watch your end to end tests using our easy to use
         platform.

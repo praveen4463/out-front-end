@@ -63,7 +63,7 @@ const Default = () => {
   return (
     <Box className={classes.defaultRoot}>
       <Helmet title="Manage projects, capabilities, variables, and more." />
-      <Typography variant="h4">Zylitics management</Typography>
+      <Typography variant="h4">Outomated management</Typography>
       <Typography variant="body1">
         Manage projects, capabilities, variables, and more.
       </Typography>

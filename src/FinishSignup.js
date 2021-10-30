@@ -353,7 +353,7 @@ const FinishSignup = () => {
               </Box>
               <Box pb={3} textAlign="center">
                 <Typography variant="subtitle1" color="textSecondary">
-                  Create a Zylitics account for {email} to continue.
+                  Create a Outomated account for {email} to continue.
                 </Typography>
               </Box>
               {msgAlert ? (
@@ -503,7 +503,7 @@ const FinishSignup = () => {
                   onClick={handleSave}
                   disabled={saving}
                   tabIndex="0">
-                  Continue to Zylitics
+                  Continue to Outomated
                 </Button>
               </Box>
               {userType === SignupUserType.TEAM_MEMBER ? (

@@ -116,9 +116,9 @@ const queryClient = new QueryClient({
 
 // **LocalForage =======================================================================
 localforage.config({
-  name: 'ZyliticsLocalStorageDb',
+  name: 'OutomatedLocalStorageDb',
   version: 1.0,
-  storeName: 'ZyliticsLocalStorage', // Should be alphanumeric, with underscores.
+  storeName: 'OutomatedLocalStorage', // Should be alphanumeric, with underscores.
 });
 
 // **Firebase

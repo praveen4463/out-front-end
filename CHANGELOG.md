@@ -192,3 +192,11 @@ Additions.
 #### :nail_care: Enhancement
 
 - Changed logos to outomated
+
+## 0.3.8 (2021-10-30)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Changed every text to outomated

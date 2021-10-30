@@ -62,15 +62,15 @@ const BlankCentered = ({linkOnLogo, children}) => {
             <Box pt={2} fontWeight={500} fontSize="body2.fontSize">
               <Link
                 href={Application.ABOUT_ZYLITICS_URL}
-                aria-label="About zylitics"
-                title="About zylitics">
+                aria-label="About outomated"
+                title="About outomated">
                 About
               </Link>
               {'  .  '}
               <Link
                 href={`${Application.ABOUT_ZYLITICS_URL}/contact`}
-                aria-label="Contact zylitics"
-                title="Contact zylitics">
+                aria-label="Contact outomated"
+                title="Contact outomated">
                 Contact
               </Link>
               {'  .  '}

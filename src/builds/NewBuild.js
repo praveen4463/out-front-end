@@ -687,7 +687,7 @@ const NewBuild = () => {
                   aria-controls="runnerPreferences-content"
                   id="runnerPreferences-header">
                   <Typography className={classes.text}>
-                    Advanced Zylitics Runner Preferences
+                    Advanced Outomated Runner Preferences
                   </Typography>
                 </AccordionSummary>
                 <AccordionDetails className={classes.accordionRunnerPrefs}>

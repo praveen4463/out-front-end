@@ -202,7 +202,7 @@ export const BuildCapsInfo = {
     'Indicates the timeout in milliseconds until webdriver waits for a page to' +
     ' finish loading before raising error.',
   EAT:
-    'Indicates the timeout in milliseconds until zylitics test runner waits for' +
+    'Indicates the timeout in milliseconds until outomated test runner waits for' +
     ' an element to appear on page before raising error.',
   SFI:
     'Indicates whether webdriver validate every file input element on page to be' +
@@ -327,7 +327,7 @@ export const FeaturesDesc = {
   PROJECTS:
     'Projects are used to organize testing resources such as test cases, assets and run history.',
   FILES_TESTS:
-    'Files in Zylitics are just like file system files. Tests are the test cases defined for various functionalities.',
+    'Files in Outomated are just like file system files. Tests are the test cases defined for various functionalities.',
   BUILD_MIN:
     'Whenever tests are run on our infrastructure, they consume certain amount of computing/virtual machine time. Every run is called a Build and the consumed time is termed as build minutes. More build minutes allow for worry free development and build runs during deployments.',
   PARALLEL:
@@ -339,7 +339,7 @@ export const FeaturesDesc = {
   ADVANCED_MANAGEMENT:
     'Allows for granular access management. Define who can view or edit tests, or who can just run and re-run builds together with other permissions.',
   TRAINING:
-    'Get training from the developers of Zylitics. We will train your team on best practices and ways to build tests efficiently.',
+    'Get training from the developers of Outomated. We will train your team on best practices and ways to build tests efficiently.',
 };
 
 export const PromptBehavior = {

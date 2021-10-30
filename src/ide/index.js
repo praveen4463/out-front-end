@@ -1038,7 +1038,7 @@ const Ide = () => {
 
   return (
     <ThemeProvider theme={darkTheme}>
-      <Helmet title="Zylitics IDE: write, parse, debug, and run tests." />
+      <Helmet title="Outomated IDE: write, parse, debug, and run tests." />
       <IdeDispatchContext.Provider value={dispatch}>
         <IdeStateContext.Provider value={state}>
           <IdeProjectIdContext.Provider value={state.projectId}>
