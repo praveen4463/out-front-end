@@ -184,3 +184,11 @@ Additions.
 
 - Escape single quote in file suggestions for callTest
 - No error underline in case of build run.
+
+## 0.3.7 (2021-10-30)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Changed logos to outomated

@@ -334,15 +334,8 @@ const FinishSignup = () => {
           alignItems="center"
           width="100%"
           style={{margin: '0 auto'}}>
-          <Box display="flex" width="100%" justifyContent="center">
-            <img
-              src={logo}
-              alt="Zylitics Logo"
-              style={{
-                width: '194px',
-                height: '150px',
-              }}
-            />
+          <Box display="flex" width="100%" justifyContent="center" py={5}>
+            <img src={logo} alt="Outomated Logo" />
           </Box>
           <Box className={classes.contentBox}>
             <Box

@@ -312,14 +312,9 @@ const Signup = () => {
           width="100%"
           style={{margin: '0 auto'}}>
           <Box display="flex" width="100%" justifyContent="center">
-            <img
-              src={logo}
-              alt="Zylitics Logo"
-              style={{
-                width: '194px',
-                height: '150px',
-              }}
-            />
+            <Box py={5}>
+              <img src={logo} alt="Outomated Logo" />
+            </Box>
             <Box position="absolute" right="1%" top="2%">
               <Typography
                 variant="body2"

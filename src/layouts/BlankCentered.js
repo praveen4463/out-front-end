@@ -32,13 +32,7 @@ const BlankCentered = ({linkOnLogo, children}) => {
   const location = useLocation();
   const classes = useStyles();
 
-  const getZyliticsLogo = () => (
-    <img
-      src={logo}
-      alt="Zylitics Logo"
-      style={{width: '194px', height: '150px'}}
-    />
-  );
+  const getZyliticsLogo = () => <img src={logo} alt="Outomated Logo" />;
 
   return (
     <>
@@ -50,7 +44,7 @@ const BlankCentered = ({linkOnLogo, children}) => {
           alignItems="center"
           width="100%"
           style={{margin: '0 auto'}}>
-          <Box>
+          <Box py={5}>
             {linkOnLogo ? (
               <Link
                 component={RouterLink}

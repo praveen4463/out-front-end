@@ -602,7 +602,7 @@ export const getLocation = (pathname, search, state = {}) => ({
 export const getZyliticsLogo = () => (
   <img
     src={logo}
-    alt="Zylitics Logo"
+    alt="Outomated Logo"
     style={{width: '120px', height: '36px'}}
   />
 );
