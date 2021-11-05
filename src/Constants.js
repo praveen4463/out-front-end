@@ -469,6 +469,7 @@ export const Endpoints = {
   VALIDATE_EMAIL_CHANGE: `/emailChanges/${CODE_ENDPOINT_VAR_TEMPLATE}/validate`,
   CHANGE_EMAIL: `/emailChanges/${EMAIL_CHANGE_ID_ENDPOINT_VAR_TEMPLATE}/changeEmail`,
   DISCOURSE_SSO: '/discourseSSO/getUserDetailForSSO',
+  INVITATION_REQ: '/invitationRequest',
 };
 
 export const LocalStorageKeys = {
@@ -518,6 +519,7 @@ export const PageUrl = {
   UPDATE_WITHOUT_PARAM: '/update',
   UPDATE: '/update/:id',
   SELECT_PROJECT: '/select-project',
+  QA_TASKS: '/qa-tasks',
 };
 
 export const SearchKeys = {

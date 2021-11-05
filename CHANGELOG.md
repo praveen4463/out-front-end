@@ -200,3 +200,11 @@ Additions.
 #### :nail_care: Enhancement
 
 - Changed every text to outomated
+
+## 0.3.9 (2021-11-05)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Added qa task screen

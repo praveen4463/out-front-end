@@ -17,6 +17,7 @@ import {Helmet} from 'react-helmet-async';
 import {filterSearchQuery, getLocation} from '../common';
 import {PageUrl, SearchKeys} from '../Constants';
 import ManageProjects from './ManageProjects';
+import ManageTasks from './ManageTasks';
 import useSnackbarAlert from '../hooks/useSnackbarAlert';
 import {ManagementSnackbarContext} from '../contexts';
 import NotFound from '../NotFound';
@@ -65,7 +66,7 @@ const Default = () => {
       <Helmet title="Manage projects, capabilities, variables, and more." />
       <Typography variant="h4">Outomated management</Typography>
       <Typography variant="body1">
-        Manage projects, capabilities, variables, and more.
+        Manage projects, QA tasks, capabilities, variables, and more.
       </Typography>
       <Divider variant="fullWidth" className={classes.divider} />
       <Typography variant="body2" color="textSecondary">
@@ -114,6 +115,9 @@ const Management = () => {
           <List style={{padding: 0}}>
             {getLink(PageUrl.PROJECTS, 'Projects')}
           </List>
+          <List style={{padding: 0}}>
+            {getLink(PageUrl.QA_TASKS, 'QA tasks')}
+          </List>
         </Box>
         <Box flex={1} display="flex" justifyContent="center">
           <ManagementSnackbarContext.Provider
@@ -124,6 +128,9 @@ const Management = () => {
               </Route>
               <Route path={`${path}${PageUrl.PROJECTS}`}>
                 <ManageProjects />
+              </Route>
+              <Route path={`${path}${PageUrl.QA_TASKS}`}>
+                <ManageTasks />
               </Route>
               <Route path="*">
                 {/* Keep this in the end of switch */}

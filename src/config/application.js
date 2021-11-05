@@ -8,7 +8,7 @@ const Application = {
   ZYLITICS_ADMIN_EMAILS: ['admin@zylitics.io', 'praveen@zylitics.io'],
   SUPPORT_EMAIL: 'support@outomated.com',
   ABOUT_ZYLITICS_URL: 'https://outomated.com',
-  DOCS_ZYLITICS_URL: 'https://docs.zylitics.io',
+  DOCS_ZYLITICS_URL: 'https://docs.outomated.com',
   COMMUNITY_ZYLITICS_URL: 'https://community.outomated.com',
   DISCORD_INVITE: 'https://discord.gg/MutZHJXvwZ',
   TERMS_PAGE: '/terms',
