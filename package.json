@@ -1,6 +1,6 @@
 {
   "name": "zl-main-app",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "private": true,
   "dependencies": {
     "@fontsource/fira-mono": "^4.2.1",

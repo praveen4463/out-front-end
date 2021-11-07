@@ -89,7 +89,7 @@ const Pricing = ({onSelect}) => {
           <Grid container spacing={4}>
             <Grid item xs={12} sm={6} md={4} lg>
               <Typography variant="h5" style={{fontWeight: 700}}>
-                Personal
+                Free
               </Typography>
               <Box py={1} />
               <Typography variant="h4" style={{fontWeight: 700}}>
@@ -122,7 +122,7 @@ const Pricing = ({onSelect}) => {
                   FeaturesDesc.FILES_TESTS
                 )}
                 {getTextChecked('1 team member')}
-                {getTextChecked('100 build minutes', FeaturesDesc.BUILD_MIN)}
+                {getTextChecked('50 build minutes', FeaturesDesc.BUILD_MIN)}
                 {getTextChecked('1 parallel build', FeaturesDesc.PARALLEL)}
                 {getTextChecked('Community support')}
                 {getTextChecked(
@@ -133,60 +133,16 @@ const Pricing = ({onSelect}) => {
             </Grid>
             <Grid item xs={12} sm={6} md={4} lg>
               <Typography variant="h5" style={{fontWeight: 700}}>
-                Startup
+                Starter
               </Typography>
               <Box py={1} />
               <Typography variant="h4" style={{fontWeight: 700}}>
-                $39
+                $59
               </Typography>
               <Typography variant="caption" className={classes.lightText}>
                 per month, billed annually
                 <br />
-                or $49 month-to-month
-              </Typography>
-              <Box py={1} />
-              <Button
-                onClick={() => planSelect(Plan.STARTUP_TRIAL)}
-                variant="outlined"
-                color="primary"
-                tabIndex="0">
-                Start 14 days free trial
-              </Button>
-              <Box py={1} />
-              <Box
-                fontSize="body2.fontSize"
-                color="text.secondary"
-                fontWeight={500}>
-                <span>Begin automating together with your team.</span>
-                <Box py={1} />
-                <span style={{fontWeight: 600}}>
-                  Everything in personal, plus
-                </span>
-                {getTextChecked('Unlimited team members')}
-                {getTextChecked(
-                  'Basic user management',
-                  FeaturesDesc.BASIC_MANAGEMENT
-                )}
-                {getTextChecked('800 build minutes', FeaturesDesc.BUILD_MIN)}
-                {getTextChecked('Priority email support')}
-                {getTextChecked(
-                  'Unlimited builds history',
-                  FeaturesDesc.BUILD_HISTORY
-                )}
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={6} md={4} lg>
-              <Typography variant="h5" style={{fontWeight: 700}}>
-                Small Business
-              </Typography>
-              <Box py={1} />
-              <Typography variant="h4" style={{fontWeight: 700}}>
-                $79
-              </Typography>
-              <Typography variant="caption" className={classes.lightText}>
-                per month, billed annually
-                <br />
-                or $99 month-to-month
+                or $79 month-to-month
               </Typography>
               <Box py={1} />
               <Button
@@ -201,18 +157,25 @@ const Pricing = ({onSelect}) => {
                 fontSize="body2.fontSize"
                 color="text.secondary"
                 fontWeight={500}>
-                <span>Priority chat support and more build minutes.</span>
+                <span>Email support and more build minutes.</span>
                 <Box py={1} />
-                <span style={{fontWeight: 600}}>
-                  Everything in startup, plus
-                </span>
-                {getTextChecked('2000 build minutes', FeaturesDesc.BUILD_MIN)}
-                {getTextChecked('Priority chat support')}
+                <span style={{fontWeight: 600}}>Everything in free, plus</span>
+                {getTextChecked('10 team members')}
+                {getTextChecked(
+                  'Basic user management',
+                  FeaturesDesc.BASIC_MANAGEMENT
+                )}
+                {getTextChecked('480 build minutes', FeaturesDesc.BUILD_MIN)}
+                {getTextChecked('Priority email support')}
+                {getTextChecked(
+                  '30 days builds history',
+                  FeaturesDesc.BUILD_HISTORY
+                )}
               </Box>
             </Grid>
             <Grid item xs={12} sm={6} md={4} lg>
               <Typography variant="h5" style={{fontWeight: 700}}>
-                Business
+                Pro
               </Typography>
               <Box py={1} />
               <Typography variant="h4" style={{fontWeight: 700}}>
@@ -226,46 +189,6 @@ const Pricing = ({onSelect}) => {
               <Box py={1} />
               <Button
                 onClick={() => planSelect(Plan.BUSINESS_TRIAL)}
-                variant="contained"
-                color="primary"
-                tabIndex="0">
-                Start 14 days free trial
-              </Button>
-              <Box py={1} />
-              <Box
-                fontSize="body2.fontSize"
-                color="text.secondary"
-                fontWeight={500}>
-                <span>1:1 call support, more parallel and build minutes.</span>
-                <Box py={1} />
-                <span style={{fontWeight: 600}}>
-                  Everything in small biz, plus
-                </span>
-                {getTextChecked('5000 build minutes', FeaturesDesc.BUILD_MIN)}
-                {getTextChecked('2 parallel builds', FeaturesDesc.PARALLEL)}
-                {getTextChecked('1:1 call support')}
-                {getTextChecked(
-                  'Advanced permissions',
-                  FeaturesDesc.ADVANCED_MANAGEMENT
-                )}
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={6} md={4} lg>
-              <Typography variant="h5" style={{fontWeight: 700}}>
-                Company
-              </Typography>
-              <Box py={1} />
-              <Typography variant="h4" style={{fontWeight: 700}}>
-                $799
-              </Typography>
-              <Typography variant="caption" className={classes.lightText}>
-                per month, billed annually
-                <br />
-                or $999 month-to-month
-              </Typography>
-              <Box py={1} />
-              <Button
-                onClick={() => planSelect(Plan.COMPANY_TRIAL)}
                 variant="outlined"
                 color="primary"
                 tabIndex="0">
@@ -276,21 +199,56 @@ const Pricing = ({onSelect}) => {
                 fontSize="body2.fontSize"
                 color="text.secondary"
                 fontWeight={500}>
-                <span>Training and enterprise grade features.</span>
+                <span>Priority support and more parallel.</span>
                 <Box py={1} />
                 <span style={{fontWeight: 600}}>
-                  Everything in business, plus
+                  Everything in starter, plus
                 </span>
+                {getTextChecked('1200 build minutes', FeaturesDesc.BUILD_MIN)}
+                {getTextChecked('2 parallel builds', FeaturesDesc.PARALLEL)}
+                {getTextChecked('Priority support')}
+                {getTextChecked('Unlimited team members')}
                 {getTextChecked(
-                  'Unlimited build minutes',
-                  FeaturesDesc.BUILD_MIN
+                  'Advanced permissions',
+                  FeaturesDesc.ADVANCED_MANAGEMENT
                 )}
-                {getTextChecked('4 parallel builds', FeaturesDesc.PARALLEL)}
-                {getTextChecked('SAML SSO')}
-                {getTextChecked('User provisioning (SCIM)')}
-                {getTextChecked('Custom reports')}
-                {getTextChecked('Custom data retention')}
-                {getTextChecked('Live team training', FeaturesDesc.TRAINING)}
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4} lg>
+              <Typography variant="h5" style={{fontWeight: 700}}>
+                QA specialist
+              </Typography>
+              <Box py={1} />
+              <Typography variant="h4" style={{fontWeight: 700}}>
+                $1590
+              </Typography>
+              <Typography variant="caption" className={classes.lightText}>
+                per month, billed annually
+                <br />
+                or $1990 month-to-month
+              </Typography>
+              <Box py={1} />
+              <Button
+                onClick={() => planSelect(Plan.SB_TRIAL_PLUS_QA)}
+                variant="contained"
+                color="primary"
+                tabIndex="0">
+                Start 14 days free trial
+              </Button>
+              <Box py={1} />
+              <Box
+                fontSize="body2.fontSize"
+                color="text.secondary"
+                fontWeight={500}>
+                <span>Unlimited testing by a QA specialist.</span>
+                <Box py={1} />
+                <span style={{fontWeight: 600}}>
+                  Everything in starter, plus
+                </span>
+                {getTextChecked('Unlimited test writing service')}
+                {getTextChecked('Premium support and team training')}
+                {getTextChecked('1:1 help getting started')}
+                {getTextChecked('Dedicated customer success manager')}
               </Box>
             </Grid>
           </Grid>

@@ -208,3 +208,11 @@ Additions.
 #### :nail_care: Enhancement
 
 - Added qa task screen
+
+## 0.3.10 (2021-11-07)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Updated plans
