@@ -216,3 +216,11 @@ Additions.
 #### :nail_care: Enhancement
 
 - Updated plans
+
+## 0.3.11 (2021-11-25)
+
+Bug fixes
+
+#### :bug: Bug Fix
+
+- Fixed a bug in files in explorer where files with no tests weren't visible.

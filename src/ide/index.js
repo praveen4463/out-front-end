@@ -364,7 +364,10 @@ const Ide = () => {
     setLoading(true);
 
     // get data from api via separate requests in parallel
-    const getFilesWithTests = () => axios(getFilesWithTestsEndpoint(pId));
+    const getFilesWithTests = () =>
+      axios(getFilesWithTestsEndpoint(pId), {
+        params: {includeNoTestFiles: true},
+      });
 
     const getBuildVars = () =>
       axios(prepareEndpoint(Endpoints.BUILD_VARS, pId));

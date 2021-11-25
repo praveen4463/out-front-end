@@ -699,16 +699,18 @@ export const filesWithTestsApiDataToNormalizedSorted = (data) => {
   }
   const filesWithTests = data.map((f) => fromJson(File, f));
   filesWithTests.sort((a, b) => getNewIntlComparer()(a.name, b.name));
-  filesWithTests.forEach((f) => {
-    // eslint-disable-next-line no-param-reassign
-    f.tests = f.tests.map((t) => fromJson(Test, t));
-    f.tests.sort((a, b) => getNewIntlComparer()(a.name, b.name));
-    f.tests.forEach((t) => {
+  filesWithTests
+    .filter((f) => f.tests)
+    .forEach((f) => {
       // eslint-disable-next-line no-param-reassign
-      t.versions = t.versions.map((v) => fromJson(Version, v));
-      t.versions.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+      f.tests = f.tests.map((t) => fromJson(Test, t));
+      f.tests.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+      f.tests.forEach((t) => {
+        // eslint-disable-next-line no-param-reassign
+        t.versions = t.versions.map((v) => fromJson(Version, v));
+        t.versions.sort((a, b) => getNewIntlComparer()(a.name, b.name));
+      });
     });
-  });
   return normalize(filesWithTests, filesSchema);
 };
 
