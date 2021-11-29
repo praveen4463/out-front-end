@@ -224,3 +224,11 @@ Bug fixes
 #### :bug: Bug Fix
 
 - Fixed a bug in files in explorer where files with no tests weren't visible.
+
+## 0.3.12 (2021-11-29)
+
+Bug fixes
+
+#### :bug: Bug Fix
+
+- Checking whether tests are available before iterating them.

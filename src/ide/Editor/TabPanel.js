@@ -325,7 +325,7 @@ const TabPanel = React.memo(
       // return an array of array [[fn, tn, vn], [fn, tn, vn], ...]
       const arr = [];
       files.result.forEach((fid) => {
-        et.files[fid].tests.forEach((tid) => {
+        et.files[fid].tests?.forEach((tid) => {
           et.tests[tid].versions.forEach((vid) => {
             arr.push([
               et.files[fid].name,
