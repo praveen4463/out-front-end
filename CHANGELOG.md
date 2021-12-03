@@ -240,3 +240,12 @@ Additions.
 #### :nail_care: Enhancement
 
 - Added partial team member addition
+
+## 0.3.14 (2021-12-03)
+
+Bug fixes
+
+#### :bug: Bug Fix
+
+- Fixed a problem where projectId was being passed on logout, leading to wrong
+  projectId if user logins as a different user.
