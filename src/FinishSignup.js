@@ -128,7 +128,7 @@ const FinishSignup = () => {
   const {userType} = locState || {};
   const {email} = userType ? locState : {};
   const isTeamInvite = userType === SignupUserType.TEAM_MEMBER;
-  const {orgName, emailVerificationId} = isTeamInvite ? locState : {};
+  const {organizationName, emailVerificationId} = isTeamInvite ? locState : {};
   const selectedPlan = readPlanFromQS(location.search);
   const [setPricingDlg, pricingDialog] = usePricingDialog();
 
@@ -347,7 +347,7 @@ const FinishSignup = () => {
               <Box pb={3} textAlign="center">
                 <Typography variant="h5" style={{fontWeight: 600}}>
                   {isTeamInvite
-                    ? `You have been invited to ${orgName}`
+                    ? `You have been invited to ${organizationName}`
                     : 'Finish signing up'}
                 </Typography>
               </Box>

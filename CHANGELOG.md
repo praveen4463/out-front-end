@@ -232,3 +232,11 @@ Bug fixes
 #### :bug: Bug Fix
 
 - Checking whether tests are available before iterating them.
+
+## 0.3.13 (2021-12-3)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Added partial team member addition

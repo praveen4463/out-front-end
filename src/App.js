@@ -26,6 +26,7 @@ import {AppSnackbarContext} from './contexts';
 import ChangeEmail from './ChangeEmail';
 import Signup from './Signup';
 import VerifyEmail from './VerifyEmail';
+import FinishTeamInvite from './FinishTeamInvite';
 
 const Ide = lazy(() => import('./ide'));
 
@@ -137,6 +138,9 @@ const App = () => {
               </Route>
               <Route path={PageUrl.FINISH_SIGNUP}>
                 <FinishSignup />
+              </Route>
+              <Route path={PageUrl.FINISH_TEAM_INVITE}>
+                <FinishTeamInvite />
               </Route>
               <Route path={PageUrl.REQUEST_RESET_PWD}>
                 <ForgotPassword />

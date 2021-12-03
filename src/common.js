@@ -434,6 +434,9 @@ export const getValidateEmailVerificationEndpoint = (code) =>
     code
   );
 
+export const getValidateTeamInviteEndpoint = (code) =>
+  Endpoints.VALIDATE_TEAM_INVITE.replace(CODE_ENDPOINT_VAR_TEMPLATE, code);
+
 export const getValidatePasswordResetEndpoint = (code) =>
   Endpoints.VALIDATE_PASSWORD_RESET.replace(CODE_ENDPOINT_VAR_TEMPLATE, code);
 

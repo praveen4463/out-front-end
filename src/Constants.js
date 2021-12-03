@@ -461,6 +461,7 @@ export const Endpoints = {
   ELEMENT_SHOT_NAMES: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getElementShotNames`,
   EMAIL_VERIFICATION: '/emailVerifications', // obsolete now, remove it soon
   VALIDATE_EMAIL_VERIFICATION: `/emailVerifications/${CODE_ENDPOINT_VAR_TEMPLATE}/validate`,
+  VALIDATE_TEAM_INVITE: `/teamInvite/${CODE_ENDPOINT_VAR_TEMPLATE}/validate`,
   SINGLE_USER: `/users/current`,
   USER_PLAN: `/users/current/getUserPlan`,
   UPDATE_USER_PROFILE: `/users/current/updateUserProfile`,
@@ -500,6 +501,7 @@ export const PageUrl = {
   LOGIN: '/login',
   SIGNUP: '/signup',
   FINISH_SIGNUP: '/finish-signup',
+  FINISH_TEAM_INVITE: '/finish-team-invite/:code',
   REQUEST_RESET_PWD: '/request-reset-pwd',
   VERIFY_EMAIL: '/verify-email/:code',
   RESET_PWD: '/reset-pwd/:code',
