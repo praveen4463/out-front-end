@@ -61,12 +61,7 @@ const UserAvatar = React.memo(() => {
     // TODO: later set a message to let user know they are logged out, using some query
     // so that auth listeners on pages know it's a logout and don't overwrite the
     // message with something like 'you need to be logged in to continue'
-    // Don't wait for sign out and redirect user to login immediately
-    // so that the hooks on pages don't run before this. We want to send to
-    // login without anything in state for now so that user is always sent to
-    // home upon re-login and don't keep any query string like project.
-    auth.signOut();
-    history.push(PageUrl.LOGIN);
+    auth.signOut(() => history.push(PageUrl.LOGIN));
   };
 
   if (!data) {

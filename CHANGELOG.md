@@ -249,3 +249,11 @@ Bug fixes
 
 - Fixed a problem where projectId was being passed on logout, leading to wrong
   projectId if user logins as a different user.
+
+## 0.3.15 (2021-12-03)
+
+Bug fixes
+
+#### :bug: Bug Fix
+
+- Signing out before redirecting to fix an auth bug.

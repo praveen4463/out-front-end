@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "zl-main-app",
+    "site": "zl-front-end",
     "public": "build",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
