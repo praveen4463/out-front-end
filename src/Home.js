@@ -183,7 +183,7 @@ const Home = () => {
       if (!exists && location.pathname === PageUrl.HOME) {
         window.location = Application.ABOUT_ZYLITICS_URL;
       } else {
-        history.push(getLocation(PageUrl.LOGIN, location.search, {location}));
+        history.push(getLocation(PageUrl.LOGIN, null, {location}));
       }
     });
   });

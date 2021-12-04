@@ -257,3 +257,13 @@ Bug fixes
 #### :bug: Bug Fix
 
 - Signing out before redirecting to fix an auth bug.
+
+## 0.3.16 (2021-12-03)
+
+Bug fixes
+
+#### :bug: Bug Fix
+
+- Not sending any query string to prevent project being added from home page
+  auth check.
+- Removed discord link for now.

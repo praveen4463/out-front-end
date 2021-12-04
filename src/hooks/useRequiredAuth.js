@@ -26,7 +26,7 @@ const useRequiredAuth = (redirectFn = null) => {
       if (redirectFn) {
         redirectFn();
       } else {
-        history.push(getLocation(PageUrl.LOGIN, location.search, {location}));
+        history.push(getLocation(PageUrl.LOGIN, null, {location}));
       }
     }
   }, [
