@@ -1,5 +1,6 @@
 import {useContext, useEffect} from 'react';
 import {useHistory, useLocation} from 'react-router-dom';
+import {useQueryClient} from 'react-query';
 import {useAuthContext} from '../Auth';
 import {getLocation} from '../common';
 import {PageUrl} from '../Constants';
@@ -14,6 +15,7 @@ const useRequiredAuth = (redirectFn = null) => {
   const auth = useAuthContext();
   const history = useHistory();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [setSnackbarAlertProps] = useContext(AppSnackbarContext);
 
   useEffect(() => {
@@ -23,6 +25,7 @@ const useRequiredAuth = (redirectFn = null) => {
     }
     // console.log('auth user', auth.user);
     if (!auth.user || auth.user.isAnonymous) {
+      queryClient.invalidateQueries({refetchActive: false});
       if (redirectFn) {
         redirectFn();
       } else {
@@ -36,6 +39,7 @@ const useRequiredAuth = (redirectFn = null) => {
     location,
     redirectFn,
     setSnackbarAlertProps,
+    queryClient,
   ]);
 
   return auth;

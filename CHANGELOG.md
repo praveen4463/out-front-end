@@ -267,3 +267,14 @@ Bug fixes
 - Not sending any query string to prevent project being added from home page
   auth check.
 - Removed discord link for now.
+
+## 0.3.17 (2021-12-04)
+
+Bug fixes
+
+#### :bug: Bug Fix
+
+- There was a problem when another user logs in to same browser and state has
+  previous visit information. React query wasn't refetching projects list upon
+  re-login leading to wrong projects displaying to another user. Invalidating all
+  queries upon logout to prevent that.
