@@ -6,6 +6,7 @@ import {
   fromJson,
   getBuildOutputDetailsEndpoint,
   getCompletedBuildDetailsEndpoint,
+  getCurrentUser,
   getFilesWithTestsEndpoint,
   getNewIntlComparer,
   getRunningBuildSummaryEndpoint,
@@ -23,6 +24,9 @@ import {
 import {BuildVars, buildVarsSchema} from '../variables/model';
 
 export const projectsFetch = async () => {
+  if (!getCurrentUser()) {
+    return {};
+  }
   const {data} = await axios(Endpoints.PROJECTS);
   data.sort((a, b) => getNewIntlComparer()(a.name, b.name));
   return data;

@@ -1,8 +1,6 @@
 import React, {useCallback, Suspense, lazy} from 'react';
 import axios from 'axios';
 import * as Sentry from '@sentry/react';
-import firebase from 'firebase/app';
-import 'firebase/auth';
 import {Switch, Route, useLocation, useHistory} from 'react-router-dom';
 import {ErrorBoundary} from 'react-error-boundary';
 import 'react-date-range/dist/styles.css';
@@ -17,7 +15,12 @@ import SendBetaInvitations from './admin/SendBetaInvitations';
 import {PageUrl, SearchKeys} from './Constants';
 import ForgotPassword from './ForgotPassword';
 import ResetPassword from './ResetPassword';
-import {addInSearchQuery, getLocation, setAxiosAuthToken} from './common';
+import {
+  addInSearchQuery,
+  getCurrentUser,
+  getLocation,
+  setAxiosAuthToken,
+} from './common';
 import SelectAProject from './SelectAProject';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
 import RootErrorFallback, {rootErrorHandler} from './ErrorBoundary';
@@ -41,7 +44,7 @@ const App = () => {
 
   const onInit = useCallback((getTokenOfUser, tokenExpTimeSecsRef) => {
     axios.interceptors.request.use((config) => {
-      const user = firebase.auth().currentUser;
+      const user = getCurrentUser();
       // console.log('request interceptor invoked with config', config);
       if (!user) {
         throw new Error('No authenticated user');

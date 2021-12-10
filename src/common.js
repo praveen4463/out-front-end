@@ -838,3 +838,5 @@ export const readPlanFromQS = (locSearch) => {
   const parsed = queryString.parse(locSearch);
   return parsed.plan;
 };
+
+export const getCurrentUser = () => firebase.auth().currentUser;

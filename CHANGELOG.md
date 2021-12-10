@@ -278,3 +278,12 @@ Bug fixes
   previous visit information. React query wasn't refetching projects list upon
   re-login leading to wrong projects displaying to another user. Invalidating all
   queries upon logout to prevent that.
+
+## 0.3.18 (2021-12-10)
+
+Bug fixes
+
+#### :bug: Bug Fix
+
+- Race situations with react-query resolved in project fetch for now. This fixes
+  console error and occasional post login error of 'user not found'.
