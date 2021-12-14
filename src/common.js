@@ -252,6 +252,15 @@ export const handleAuthError = (error, showError, message) => {
  * @param {*} message message you want appended with the deduced error messages
  * @returns {*} deduced error message if showError is null otherwise null
  */
+
+export const getIfPermissionError = (error) => {
+  let msg = null;
+  const {status, data} = error.response || {};
+  if (status === 401) {
+    msg = data.message;
+  }
+  return msg;
+};
 export const handleApiError = (error, showError, message) => {
   // console.log('handleApiError', error.response, error.request);
   if (error.response) {
@@ -840,3 +849,17 @@ export const readPlanFromQS = (locSearch) => {
 };
 
 export const getCurrentUser = () => firebase.auth().currentUser;
+
+export const copy = (text) => {
+  return new Promise((resolve, reject) => {
+    navigator.permissions.query({name: 'clipboard-write'}).then((_res) => {
+      if (_res.state !== 'granted' && _res.state !== 'prompt') {
+        reject(new Error("Couldn't access clipboard"));
+        return;
+      }
+      navigator.clipboard.writeText(text).then(() => {
+        resolve();
+      });
+    });
+  });
+};

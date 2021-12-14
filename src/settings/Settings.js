@@ -23,6 +23,7 @@ import Password from './Password';
 import Email from './Email';
 import Usage from './Usage';
 import NotFound from '../NotFound';
+import ApiKey from './ApiKey';
 
 const useStyles = makeStyles((theme) => ({
   linkText: {
@@ -122,6 +123,7 @@ const Settings = () => {
             {getLink(PageUrl.EMAIL, 'Email')}
             {getLink(PageUrl.PASSWORD, 'Password')}
             {getLink(PageUrl.USAGE_QUOTA, 'Usage Quotas')}
+            {getLink(PageUrl.API_KEY, 'Api Key')}
             {/* Add members screen once we're in trials, can invite members,
             see members in org, change their role and disable/delete members. TODO: add
             members link then. Remember only admins can manage team members.
@@ -151,6 +153,9 @@ const Settings = () => {
               </Route>
               <Route path={`${path}${PageUrl.USAGE_QUOTA}`}>
                 <Usage />
+              </Route>
+              <Route path={`${path}${PageUrl.API_KEY}`}>
+                <ApiKey />
               </Route>
               <Route path="*">
                 {/* Keep this in the end of switch */}

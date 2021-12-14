@@ -407,6 +407,7 @@ export const QueryKeys = {
   BUILD_OUTPUT: 'buildOutput',
   FILES_WITH_TESTS: 'filesWithTests',
   BUILD_VARS: 'buildVars',
+  API_KEY: 'apiKey',
 };
 
 export const PROJECT_ID_ENDPOINT_VAR_TEMPLATE = '{projectId}';
@@ -464,6 +465,7 @@ export const Endpoints = {
   VALIDATE_TEAM_INVITE: `/teamInvite/${CODE_ENDPOINT_VAR_TEMPLATE}/validate`,
   SINGLE_USER: `/users/current`,
   USER_PLAN: `/users/current/getUserPlan`,
+  API_KEY: `/users/current/getApiKey`,
   UPDATE_USER_PROFILE: `/users/current/updateUserProfile`,
   SEND_PASSWORD_RESET: '/passwordResets',
   VALIDATE_PASSWORD_RESET: `/passwordResets/${CODE_ENDPOINT_VAR_TEMPLATE}/validate`,
@@ -524,6 +526,7 @@ export const PageUrl = {
   UPDATE: '/update/:id',
   SELECT_PROJECT: '/select-project',
   QA_TASKS: '/qa-tasks',
+  API_KEY: '/api-key',
 };
 
 export const SearchKeys = {

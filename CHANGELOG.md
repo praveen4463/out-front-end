@@ -286,4 +286,12 @@ Bug fixes
 #### :bug: Bug Fix
 
 - Race situations with react-query resolved in project fetch for now. This fixes
-  console error and occasional post login error of 'user not found'.
+console error and occasional post login error of 'user not found'.
+
+## 0.3.19 (2021-12-14)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Added api key screen

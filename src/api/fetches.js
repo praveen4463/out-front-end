@@ -38,6 +38,9 @@ export const userInStorageFetch = () =>
 export const userPlanFetch = () =>
   axios(Endpoints.USER_PLAN).then(({data}) => data);
 
+export const apiKeyFetch = () =>
+  axios(Endpoints.API_KEY).then(({data}) => data);
+
 export const browsersFetch = () =>
   axios(Endpoints.BROWSERS).then(({data}) => transformApiBrowserData(data));
 
