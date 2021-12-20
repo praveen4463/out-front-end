@@ -404,6 +404,22 @@ const BuildConfig = ({
               </StyledSelect>
             </ElementRow>
             <ElementRow>
+              {getSwitch(
+                BuildConfigFields.CS,
+                buildConfig[BuildConfigFields.CS],
+                BuildConfigLabels.CS,
+                BuildConfigInfo.CS
+              )}
+            </ElementRow>
+            <ElementRow>
+              {getSwitch(
+                BuildConfigFields.CDL,
+                buildConfig[BuildConfigFields.CDL],
+                BuildConfigLabels.CDL,
+                BuildConfigInfo.CDL
+              )}
+            </ElementRow>
+            <ElementRow>
               {getInfoLabel(BuildConfigKeys.TZ, BuildConfigFields.TZ)}
               <StyledSelect
                 id={BuildConfigFields.TZ}

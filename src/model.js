@@ -17,6 +17,8 @@ function BuildConfig(
   displayResolution,
   timezone = Defaults.TIMEZONE,
   selectedBuildVarIdPerKey = {},
+  captureShots = true,
+  captureDriverLogs = false,
   abortOnFailure = false,
   aetKeepSingleWindow = true,
   aetUpdateUrlBlank = true,
@@ -51,6 +53,8 @@ function BuildConfig(
   }
   this.timezone = timezone;
   this.selectedBuildVarIdPerKey = selectedBuildVarIdPerKey;
+  this.captureShots = captureShots;
+  this.captureDriverLogs = captureDriverLogs;
   this.abortOnFailure = abortOnFailure;
   this.aetKeepSingleWindow = aetKeepSingleWindow;
   this.aetUpdateUrlBlank = aetUpdateUrlBlank;
@@ -182,6 +186,7 @@ function CompletedBuildDetailsObj(
   driverLogsAvailable,
   perfLogsAvailable,
   elemShotsAvailable,
+  shotsAvailable,
   testVersionDetailsList
 ) {
   this.buildId = buildId;
@@ -200,6 +205,7 @@ function CompletedBuildDetailsObj(
   this.driverLogsAvailable = driverLogsAvailable;
   this.perfLogsAvailable = perfLogsAvailable;
   this.elemShotsAvailable = elemShotsAvailable;
+  this.shotsAvailable = shotsAvailable;
   this.testVersionDetailsList = testVersionDetailsList;
 }
 
@@ -208,6 +214,7 @@ function RunningBuildObj(
   buildKey,
   buildName,
   shotBucket,
+  shotsAvailable,
   os,
   browserName
 ) {
@@ -215,6 +222,7 @@ function RunningBuildObj(
   this.buildKey = buildKey;
   this.buildName = buildName;
   this.shotBucket = shotBucket;
+  this.shotsAvailable = shotsAvailable;
   this.os = os;
   this.browserName = browserName;
 }

@@ -712,6 +712,7 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
                   aria-label={SHOT_LABEL}
                   onClick={handleBuildShots}
                   title={SHOT_LABEL}
+                  disabled={!cbd.shotsAvailable}
                   color="inherit"
                   className={classes.icons}>
                   <ViewCarouselIcon fontSize="small" />
@@ -811,6 +812,7 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
         <TestVersionDetailsView
           buildId={cbd.buildId}
           shotBucket={cbd.shotBucket}
+          shotsAvailable={cbd.shotsAvailable}
           testVersionDetailsList={cbd.testVersionDetailsList}
         />
       </Box>

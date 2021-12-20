@@ -8,7 +8,11 @@ import Link from '@material-ui/core/Link';
 import Typography from '@material-ui/core/Typography';
 import PropTypes from 'prop-types';
 import {RightNavs} from './Constants';
-import {IdeBuildContext, IdeCompletedBuildsContext} from './Contexts';
+import {
+  IdeBuildConfigContext,
+  IdeBuildContext,
+  IdeCompletedBuildsContext,
+} from './Contexts';
 
 const useStyles = makeStyles((theme) => ({
   nav: {
@@ -61,6 +65,7 @@ const useStyles = makeStyles((theme) => ({
 const RightNavigation = (props) => {
   const {clickHandler, active} = props;
   const build = useContext(IdeBuildContext);
+  const buildConfig = useContext(IdeBuildConfigContext);
   const completedBuilds = useContext(IdeCompletedBuildsContext);
   const openedLivePreviewOncePerBuild = useRef(false);
   const classes = useStyles();
@@ -75,13 +80,20 @@ const RightNavigation = (props) => {
     if (
       build.runOngoing &&
       build.sessionId &&
+      buildConfig.captureShots &&
       active !== RightNavs.LIVE_PREVIEW &&
       !openedLivePreviewOncePerBuild.current
     ) {
       clickHandler(RightNavs.LIVE_PREVIEW);
       openedLivePreviewOncePerBuild.current = true;
     }
-  }, [active, clickHandler, build.runOngoing, build.sessionId]);
+  }, [
+    active,
+    clickHandler,
+    build.runOngoing,
+    build.sessionId,
+    buildConfig.captureShots,
+  ]);
 
   return (
     <Paper

@@ -295,3 +295,12 @@ Additions.
 #### :nail_care: Enhancement
 
 - Added api key screen
+
+## 0.3.20 (2021-12-20)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Added support for shots and logs preferences from build config
+- Updates in various UI to enable/disabled/hide elements as per availability

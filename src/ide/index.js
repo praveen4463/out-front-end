@@ -774,6 +774,8 @@ const Ide = () => {
         buildCapabilityId,
         displayResolution,
         timezone,
+        captureShots,
+        captureDriverLogs,
         selectedBuildVarIdPerKey,
         abortOnFailure,
         aetKeepSingleWindow,
@@ -788,6 +790,8 @@ const Ide = () => {
             buildCapabilityId,
             displayResolution,
             timezone,
+            captureShots,
+            captureDriverLogs,
             selectedBuildVarIdPerKey,
             runnerPreferences: {
               abortOnFailure,

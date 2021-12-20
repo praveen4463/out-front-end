@@ -414,6 +414,8 @@ const NewBuild = () => {
           displayResolution: buildConfig[BuildConfigFields.DR],
           timezone: buildConfig[BuildConfigFields.TZ],
           selectedBuildVarIdPerKey: buildConfig[BuildConfigFields.SBVIPK],
+          captureShots: buildConfig[BuildConfigFields.CS],
+          captureDriverLogs: buildConfig[BuildConfigFields.CDL],
           runnerPreferences: {
             abortOnFailure: buildConfig[BuildConfigFields.AOF],
             aetKeepSingleWindow: buildConfig[BuildConfigFields.AKSW],
@@ -656,6 +658,22 @@ const NewBuild = () => {
                   </MenuItem>
                 ))}
               </StyledSelect>
+            </ElementRow>
+            <ElementRow>
+              {getSwitch(
+                BuildConfigFields.CS,
+                buildConfig[BuildConfigFields.CS],
+                BuildConfigLabels.CS,
+                BuildConfigInfo.CS
+              )}
+            </ElementRow>
+            <ElementRow>
+              {getSwitch(
+                BuildConfigFields.CDL,
+                buildConfig[BuildConfigFields.CDL],
+                BuildConfigLabels.CDL,
+                BuildConfigInfo.CDL
+              )}
             </ElementRow>
             <ElementRow>
               {getInfoLabel(BuildConfigKeys.TZ, BuildConfigFields.TZ)}

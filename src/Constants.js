@@ -94,6 +94,8 @@ export const BuildConfigKeys = {
   DR: 'DR',
   TZ: 'TZ',
   SBVIPK: 'SBVIPK',
+  CS: 'CS',
+  CDL: 'CDL',
   AOF: 'AOF',
   AKSW: 'AKSW',
   AUUB: 'AUUB',
@@ -136,6 +138,8 @@ export const BuildConfigFields = {
   DR: 'displayResolution',
   TZ: 'timezone',
   SBVIPK: 'selectedBuildVarIdPerKey',
+  CS: 'captureShots',
+  CDL: 'captureDriverLogs',
   AOF: 'abortOnFailure',
   AKSW: 'aetKeepSingleWindow',
   AUUB: 'aetUpdateUrlBlank',
@@ -174,6 +178,8 @@ export const BuildConfigLabels = {
   DR: 'Display Resolution',
   TZ: 'Timezone',
   SBVIPK: 'Build Variables',
+  CS: 'Capture Screenshots',
+  CDL: 'Capture Driver Logs',
   AOF: 'Abort On Failure',
   AKSW: 'Keep Single Window After Each Test',
   AUUB: 'Update Url Blank After Each Test',
@@ -265,6 +271,9 @@ export const BuildConfigInfo = {
     ' shows build variables and the value they currently resolve to.' +
     ' To change the resolved value, expand a variable group and' +
     ' select desired value.',
+  CS: 'Indicates whether screenshot will be taken for this build.',
+  CDL:
+    'Indicates whether webdriver logs will be recorded and saved for this build.',
   AOF:
     'Indicates whether runner abort all remaining tests once a test is failed.',
   AKSW:

@@ -66,6 +66,7 @@ const useStyles = makeStyles((theme) => ({
 const TestVersionDetailsView = ({
   buildId,
   shotBucket,
+  shotsAvailable,
   testVersionDetailsList,
   allTestsDone,
 }) => {
@@ -266,6 +267,7 @@ const TestVersionDetailsView = ({
                       onClick={() => handleVersionShots(testVersionDetails)}
                       color="inherit"
                       disabled={
+                        !shotsAvailable ||
                         !status ||
                         status === TestStatus.RUNNING ||
                         !allTestsDone ||
@@ -323,6 +325,7 @@ const TestVersionDetailsView = ({
 TestVersionDetailsView.propTypes = {
   buildId: PropTypes.number.isRequired,
   shotBucket: PropTypes.string.isRequired,
+  shotsAvailable: PropTypes.bool.isRequired,
   testVersionDetailsList: PropTypes.arrayOf(
     PropTypes.instanceOf(TestVersionDetails)
   ).isRequired,

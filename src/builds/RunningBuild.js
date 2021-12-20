@@ -346,7 +346,9 @@ const RunningBuild = React.memo(({runningBuildObj: rb, removeHandler}) => {
             <Button
               color="secondary"
               onClick={startLivePreview}
-              disabled={currentStatus !== TestStatus.RUNNING}
+              disabled={
+                !rb.shotsAvailable || currentStatus !== TestStatus.RUNNING
+              }
               className={classes.button}>
               Live Preview
             </Button>
@@ -393,6 +395,7 @@ const RunningBuild = React.memo(({runningBuildObj: rb, removeHandler}) => {
         <TestVersionDetailsView
           buildId={buildId}
           shotBucket={rb.shotBucket}
+          shotsAvailable={rb.shotsAvailable}
           testVersionDetailsList={rbs.testVersionDetailsList}
           allTestsDone={!!rbs?.finalStatus}
         />
