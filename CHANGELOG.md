@@ -304,3 +304,12 @@ Additions.
 
 - Added support for shots and logs preferences from build config
 - Updates in various UI to enable/disabled/hide elements as per availability
+
+## 0.3.21 (2022-01-14)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Added support for mobile emulation in build caps
+- Added support for `breakpoints` constants for mobile devices

@@ -72,6 +72,7 @@ function BuildCapabilities(
   wdBrowserName = null,
   wdBrowserVersion = null,
   wdPlatformName = null,
+  wdMeDeviceResolution = null,
   wdAcceptInsecureCerts = false,
   wdTimeoutsScript = BuildCapsTimeouts.ST,
   wdTimeoutsPageLoad = BuildCapsTimeouts.PLT,
@@ -97,6 +98,7 @@ function BuildCapabilities(
   this.wdBrowserName = wdBrowserName;
   this.wdBrowserVersion = wdBrowserVersion;
   this.wdPlatformName = wdPlatformName;
+  this.wdMeDeviceResolution = wdMeDeviceResolution;
   this.wdAcceptInsecureCerts = wdAcceptInsecureCerts;
   this.wdTimeoutsScript = wdTimeoutsScript;
   this.wdTimeoutsPageLoad = wdTimeoutsPageLoad;

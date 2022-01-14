@@ -20,6 +20,11 @@ export const Platforms = {
   },
 };
 
+export const MobileDeviceType = {
+  MOBILE: 'Mobile',
+  TABLET: 'Tablet',
+};
+
 // put os in descending order of release
 export const Os = {
   WIN10: {
@@ -31,6 +36,45 @@ export const Os = {
     DISPLAY_NAME: 'Windows 8.1',
     VALUE: 'win8_1',
     PLATFORM: Platforms.WINDOWS.VALUE,
+  },
+};
+
+// put devices in descending order of release
+export const MobileDevices = {
+  IPHONE13: {
+    DISPLAY_NAME: 'iPhone 13',
+    VALUE: '390x844',
+    TYPE: MobileDeviceType.MOBILE,
+  },
+  IPHONE_XR: {
+    DISPLAY_NAME: 'iPhone XR',
+    VALUE: '414x896',
+    TYPE: MobileDeviceType.MOBILE,
+  },
+  SAMSUNG_GALAXY_S20_ULTRA: {
+    DISPLAY_NAME: 'Samsung galaxy s20 ultra',
+    VALUE: '414x915',
+    TYPE: MobileDeviceType.MOBILE,
+  },
+  SAMSUNG_GALAXY_S8_PLUS: {
+    DISPLAY_NAME: 'Samsung galaxy s8+',
+    VALUE: '360x740',
+    TYPE: MobileDeviceType.MOBILE,
+  },
+  IPAD_MINI: {
+    DISPLAY_NAME: 'iPad mini',
+    VALUE: '768x1024',
+    TYPE: MobileDeviceType.TABLET,
+  },
+  IPAD_AIR: {
+    DISPLAY_NAME: 'iPad air',
+    VALUE: '820x1180',
+    TYPE: MobileDeviceType.TABLET,
+  },
+  IPAD_PRO: {
+    DISPLAY_NAME: 'iPad pro',
+    VALUE: '1024x1366',
+    TYPE: MobileDeviceType.TABLET,
   },
 };
 
@@ -67,6 +111,7 @@ export const BuildCapsKeys = {
   BN: 'BN',
   BV: 'BV',
   PN: 'PN',
+  MD: 'MD',
   AIC: 'AIC',
   CVL: 'CVL',
   CSL: 'CSL',
@@ -111,6 +156,7 @@ export const BuildCapsFields = {
   BN: 'wdBrowserName',
   BV: 'wdBrowserVersion',
   PN: 'wdPlatformName',
+  MD: 'wdMeDeviceResolution',
   AIC: 'wdAcceptInsecureCerts',
   CVL: 'wdChromeVerboseLogging',
   CSL: 'wdChromeSilentOutput',
@@ -152,6 +198,7 @@ export const BuildCapsLabels = {
   NAME: 'Name',
   OS: 'OS',
   BRW: 'Browser',
+  ME: 'Mobile emulation (chrome only)',
   AIC: 'Accept Insecure Certificate',
   CVL: 'Enable Chrome Verbose Logging',
   CSL: 'Enable Chrome Silent Logging',
@@ -189,6 +236,7 @@ export const BuildConfigLabels = {
 };
 
 export const BuildCapsInfo = {
+  ME: 'Available only on chromium browsers',
   AIC:
     'Indicates whether untrusted and self-signed TLS certificates be trusted by the browser.' +
     ' Use it if the application under test could have invalid certificates.',

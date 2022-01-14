@@ -256,6 +256,8 @@ export const duration = [
   'years',
 ];
 
+export const breakpoints = ['xs', 'sm', 'md', 'lg', 'xl'];
+
 // variables those are maps
 export const maps = {
   browser: 'browser',
@@ -269,6 +271,7 @@ export const maps = {
   timeouts: 'timeouts',
   timeUnit: 'timeUnit',
   duration: 'duration',
+  breakpoints: 'breakpoints',
 };
 
 export const readOnlyVars = [...Object.keys(maps), 'platform'];

@@ -41,6 +41,7 @@ import {
   getSortedNames,
   getContextObjShape,
   handleApiError,
+  getMobileDeviceDisplayName,
 } from '../../common';
 import {CONFIG_BUILD_ON_BUILD_CAPS_DELETE} from '../../actions/actionTypes';
 
@@ -248,6 +249,7 @@ const BuildCapability = React.memo(
             data[BuildCapsFields.BN],
             data[BuildCapsFields.BV],
             data[BuildCapsFields.PN],
+            data[BuildCapsFields.MD],
             data[BuildCapsFields.AIC],
             data[BuildCapsFields.ST],
             data[BuildCapsFields.PLT],
@@ -501,6 +503,16 @@ const BuildCapability = React.memo(
                 </Value>
               </Box>
             </ViewRow>
+            {fullCaps[BuildCapsFields.BN] === Browsers.CHROME.VALUE &&
+              fullCaps[BuildCapsFields.MD] && (
+                <>
+                  {getViewRow(
+                    'Mobile emulation',
+                    getMobileDeviceDisplayName(fullCaps[BuildCapsFields.MD]) ||
+                      fullCaps[BuildCapsFields.MD]
+                  )}
+                </>
+              )}
             {getViewRow(
               BuildCapsLabels.AIC,
               fullCaps[BuildCapsFields.AIC],

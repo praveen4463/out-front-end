@@ -61,6 +61,9 @@ const getConstantHints = (constant, options, toFilterStartingValue = '') => {
     case maps.duration:
       hints = filter(Constants.duration);
       break;
+    case maps.breakpoints:
+      hints = filter(Constants.breakpoints);
+      break;
     default:
       throw new Error(`Could not hint on ${constant}`);
   }

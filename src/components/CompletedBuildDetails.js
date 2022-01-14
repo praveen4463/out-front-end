@@ -34,6 +34,7 @@ import {
   getCapturedGlobalVarsEndpoint,
   getNewIntlComparer,
   getRunnerPreferencesEndpoint,
+  getMobileDeviceDisplayName,
 } from '../common';
 import ShotsViewer from './ShotsViewer';
 import Application from '../config/application';
@@ -447,6 +448,16 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
             <Box className={classes.hoverOver}>
               {getDataRow('Browser', getBrowser(false))}
             </Box>
+            {data[BuildCapsFields.BN] === Browsers.CHROME.VALUE &&
+              data[BuildCapsFields.MD] && (
+                <>
+                  {getDataRow(
+                    'Mobile emulation',
+                    getMobileDeviceDisplayName(data[BuildCapsFields.MD]) ||
+                      data[BuildCapsFields.MD]
+                  )}
+                </>
+              )}
             {getDataRow(BuildCapsLabels.AIC, data[BuildCapsFields.AIC], true)}
             {data[BuildCapsFields.BN] === Browsers.CHROME.VALUE && (
               <>

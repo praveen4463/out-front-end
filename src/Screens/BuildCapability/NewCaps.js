@@ -38,6 +38,7 @@ import {
 import Browser, {BuildCapabilities} from '../../model';
 import {getPlatformByOs, handleApiError} from '../../common';
 import {equalIgnoreCase} from '../../utils';
+import MobileDeviceSelect from '../../components/MobileDeviceSelect';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -210,6 +211,13 @@ const NewCaps = React.memo(
         [BuildCapsFields.BV]: browser.version,
       }));
       resetErrorOnChange(ValidatedFields.BRW);
+    };
+
+    const handleMEChange = (md) => {
+      setCaps((c) => ({
+        ...c,
+        [BuildCapsFields.MD]: md,
+      }));
     };
 
     const handleChange = (e) => {
@@ -516,6 +524,22 @@ const NewCaps = React.memo(
                     selectedBrowser={getBrowser()}
                     error={error[ValidatedFields.BRW]}
                     disabled={saving}
+                    accordionClasses={{root: classes.accordionElements}}
+                  />
+                </ElementRow>
+                <ElementRow>
+                  {getLabel(BuildCapsLabels.ME, 'md-header')}
+                  <MobileDeviceSelect
+                    onChange={handleMEChange}
+                    selectedMobileDevice={
+                      caps[BuildCapsFields.BN] === Browsers.CHROME.VALUE
+                        ? caps[BuildCapsFields.MD]
+                        : null
+                    }
+                    disabled={
+                      saving ||
+                      caps[BuildCapsFields.BN] !== Browsers.CHROME.VALUE
+                    }
                     accordionClasses={{root: classes.accordionElements}}
                   />
                 </ElementRow>

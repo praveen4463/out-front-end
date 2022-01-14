@@ -24,6 +24,7 @@ import {
   EMAIL_CHANGE_ID_ENDPOINT_VAR_TEMPLATE,
   Role,
   VERSION_IDS_ENDPOINT_VAR_TEMPLATE,
+  MobileDevices,
 } from './Constants';
 import chrome from './icons/chrome.png';
 import firefox from './icons/firefox.png';
@@ -48,6 +49,27 @@ export const getSortedNames = (ids, propMapping, propName = 'name') => {
   pairs.sort((a, b) => getNewIntlComparer()(a[1], b[1]));
   // no locale specific options for now, TODO: for later.
   return pairs.map((p) => p[0]);
+};
+
+export const getMobileDeviceDisplayName = (deviceValue) => {
+  switch (deviceValue) {
+    case MobileDevices.IPAD_AIR.VALUE:
+      return MobileDevices.IPAD_AIR.DISPLAY_NAME;
+    case MobileDevices.IPAD_MINI.VALUE:
+      return MobileDevices.IPAD_MINI.DISPLAY_NAME;
+    case MobileDevices.IPAD_PRO.VALUE:
+      return MobileDevices.IPAD_PRO.DISPLAY_NAME;
+    case MobileDevices.IPHONE13.VALUE:
+      return MobileDevices.IPHONE13.DISPLAY_NAME;
+    case MobileDevices.IPHONE_XR.VALUE:
+      return MobileDevices.IPHONE_XR.DISPLAY_NAME;
+    case MobileDevices.SAMSUNG_GALAXY_S20_ULTRA.VALUE:
+      return MobileDevices.SAMSUNG_GALAXY_S20_ULTRA.DISPLAY_NAME;
+    case MobileDevices.SAMSUNG_GALAXY_S8_PLUS.VALUE:
+      return MobileDevices.SAMSUNG_GALAXY_S8_PLUS.DISPLAY_NAME;
+    default:
+      return null;
+  }
 };
 
 export const getOsDisplayName = (os) => {
