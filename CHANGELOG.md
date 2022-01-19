@@ -313,3 +313,19 @@ Additions.
 
 - Added support for mobile emulation in build caps
 - Added support for `breakpoints` constants for mobile devices
+
+## 0.3.22 (2022-01-19)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Added completed builds simple view screen
+
+Bug fixes
+
+#### :bug: Bug Fix
+
+- Fixed a bug where back button in completed builds wouldn't appear when
+  the build is opened directly. Now the button will remain disabled but will
+  always render keeping the design tidy.

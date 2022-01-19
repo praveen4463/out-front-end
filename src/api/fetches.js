@@ -6,6 +6,7 @@ import {
   fromJson,
   getBuildOutputDetailsEndpoint,
   getCompletedBuildDetailsEndpoint,
+  getCompletedVersionStatusEndpoint,
   getCurrentUser,
   getFilesWithTestsEndpoint,
   getNewIntlComparer,
@@ -18,6 +19,7 @@ import {
 import {
   BuildOutputDetailsByVersion,
   CompletedBuildDetailsObj,
+  CompletedVersionStatus,
   RunningBuildSummary,
   TestVersionDetails,
 } from '../model';
@@ -72,6 +74,13 @@ export const buildOutputFetch = async ({queryKey}) => {
   const {data} = await axios(endpoint);
   const toArray = Array.isArray(data) ? data : [data];
   return toArray.map((d) => fromJson(BuildOutputDetailsByVersion, d));
+};
+
+export const completedVersionStatusFetch = async ({queryKey}) => {
+  const [, buildId, versionId] = queryKey;
+  const endpoint = getCompletedVersionStatusEndpoint(buildId, versionId);
+  const {data} = await axios(endpoint);
+  return fromJson(CompletedVersionStatus, data);
 };
 
 export const filesWithTestsFetch = async ({queryKey}) => {

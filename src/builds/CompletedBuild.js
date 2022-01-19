@@ -1,5 +1,10 @@
 import React, {useState, useContext, useEffect, useRef} from 'react';
-import {useLocation, useParams, Link as RouterLink} from 'react-router-dom';
+import {
+  useLocation,
+  useParams,
+  Link as RouterLink,
+  useHistory,
+} from 'react-router-dom';
 import {useQuery} from 'react-query';
 import Box from '@material-ui/core/Box';
 import {makeStyles} from '@material-ui/core/styles';
@@ -11,6 +16,7 @@ import {
   ASSET_UPLOAD_IN_PROGRESS_ERROR,
   BuildSourceType,
   QueryKeys,
+  SearchKeys,
   SnackbarHorPos,
   SnackbarType,
   SnackbarVerPos,
@@ -19,12 +25,19 @@ import {
 } from '../Constants';
 import {completedBuildDetailsFetch} from '../api/fetches';
 import {AppSnackbarContext} from '../contexts';
-import {handleApiError, reRunBuildEndpoint} from '../common';
+import {
+  getNumberParamFromUrl,
+  handleApiError,
+  removeFromSearchQuery,
+  reRunBuildEndpoint,
+  updateInSearchQuery,
+} from '../common';
 import Loader from '../components/Loader';
 import {getTestResultPerStatus, newSessionInBackground} from '../buildsCommon';
 import BuildStatusIconSet from '../components/BuildStatusIconSet';
 import {SnackbarAlertProps} from '../model';
 import CompletedBuildDetails from '../components/CompletedBuildDetails';
+import SimpleBuildDetails from '../components/SimpleBuildDetails';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -53,6 +66,11 @@ const CompletedBuild = () => {
   const [reRunSubmitted, setReRunSubmitted] = useState(false);
   const {id} = useParams();
   const location = useLocation();
+  const history = useHistory();
+  const simpleView = getNumberParamFromUrl(
+    SearchKeys.SIMPLE_VIEW,
+    location.search
+  );
   const locationInState =
     location.state && location.state.location ? location.state.location : null;
   const unmounted = useRef(false);
@@ -168,6 +186,23 @@ const CompletedBuild = () => {
     return classes.borderNeutral;
   };
 
+  const getDetailView = () => {
+    return simpleView &&
+      completeBuildDetails.finalStatus === TestStatus.ERROR ? (
+      <SimpleBuildDetails completedBuildDetailsObj={completeBuildDetails} />
+    ) : (
+      <CompletedBuildDetails completedBuildDetailsObj={completeBuildDetails} />
+    );
+  };
+
+  const changeView = () => {
+    if (simpleView) {
+      removeFromSearchQuery(location, history, SearchKeys.SIMPLE_VIEW);
+    } else {
+      updateInSearchQuery(location, history, SearchKeys.SIMPLE_VIEW, 1);
+    }
+  };
+
   return (
     <Box display="flex" flexDirection="column" className={classes.root}>
       {isLoading ? (
@@ -187,18 +222,17 @@ const CompletedBuild = () => {
             py={1}
             boxShadow={3}
             className={getBorderByStatus(completeBuildDetails.finalStatus)}>
-            {locationInState ? (
-              <Box pr={2} display="flex" alignItems="center">
-                <IconButton
-                  component={RouterLink}
-                  to={locationInState}
-                  aria-label="Go Back"
-                  title="Go Back"
-                  className={classes.back}>
-                  <ArrowBackIcon />
-                </IconButton>
-              </Box>
-            ) : null}
+            <Box pr={2} display="flex" alignItems="center">
+              <IconButton
+                component={RouterLink}
+                to={locationInState}
+                disabled={!locationInState}
+                aria-label="Go Back"
+                title="Go Back"
+                className={classes.back}>
+                <ArrowBackIcon />
+              </IconButton>
+            </Box>
             <Box
               display="flex"
               flex={1}
@@ -209,7 +243,7 @@ const CompletedBuild = () => {
               {`# ${completeBuildDetails.buildId} ${
                 completeBuildDetails.buildName || ''
               }`}
-              <Box pt={1}>
+              <Box pt={1} display="flex">
                 <Button
                   variant="contained"
                   color="secondary"
@@ -220,18 +254,28 @@ const CompletedBuild = () => {
                   {reRunning ? 'Build is running...' : ''}
                   {!reRunSubmitted && !reRunning ? 'Re run this build' : ''}
                 </Button>
+                {completeBuildDetails.finalStatus === TestStatus.ERROR ? (
+                  <>
+                    <Box px={2} />
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={changeView}
+                      className={classes.button}>
+                      {simpleView
+                        ? "Switch to developer's view"
+                        : 'Switch to simple view'}
+                    </Button>
+                  </>
+                ) : null}
               </Box>
             </Box>
             {getBuildStatusIconSet(completeBuildDetails.testVersionDetailsList)}
           </Box>
           {/* if allDoneDate isn't there, show an error */}
-          {!completeBuildDetails.allDoneDate ? (
-            getNoDataMessage(ASSET_UPLOAD_IN_PROGRESS_ERROR)
-          ) : (
-            <CompletedBuildDetails
-              completedBuildDetailsObj={completeBuildDetails}
-            />
-          )}
+          {!completeBuildDetails.allDoneDate
+            ? getNoDataMessage(ASSET_UPLOAD_IN_PROGRESS_ERROR)
+            : getDetailView()}
         </>
       ) : null}
     </Box>

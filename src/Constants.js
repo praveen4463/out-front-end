@@ -459,6 +459,7 @@ export const QueryKeys = {
   BROWSERS: 'browsers',
   COMPLETED_BUILDS_SUMMARY: 'completedBuildsSummary',
   COMPLETED_BUILD_DETAILS: 'completedBuildDetails',
+  COMPLETED_VERSION_STATUS: 'completedVersionStatus',
   RUNNING_BUILDS: 'runningBuilds',
   RUNNING_BUILD_SUMMARY: 'runningBuildSummary',
   BUILD_OUTPUT: 'buildOutput',
@@ -500,6 +501,7 @@ export const Endpoints = {
   NEW_SESSION: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/newSession`,
   COMPLETED_BUILD_SUMMARY: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/builds/getCompletedBuildSummary`,
   COMPLETED_BUILD_DETAILS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getCompletedBuildDetails`,
+  COMPLETED_VERSION_STATUS: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/versions/${VERSION_ID_ENDPOINT_VAR_TEMPLATE}/getCompletedVersionStatus`,
   RUNNING_BUILDS: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/builds/getRunningBuilds`,
   RUNNING_BUILD_SUMMARY: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/getRunningBuildSummary`,
   STOP_BUILD: `/builds/${BUILD_ID_ENDPOINT_VAR_TEMPLATE}/stopBuild`,
@@ -598,6 +600,7 @@ export const SearchKeys = {
   OS: 'os',
   BEFORE: 'before',
   AFTER: 'after',
+  SIMPLE_VIEW: 'simple_view',
 };
 
 export const SnackbarType = {

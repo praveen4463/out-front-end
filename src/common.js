@@ -384,6 +384,12 @@ export const getCompletedBuildDetailsEndpoint = (buildId) =>
     buildId
   );
 
+export const getCompletedVersionStatusEndpoint = (buildId, versionId) =>
+  Endpoints.COMPLETED_VERSION_STATUS.replace(
+    BUILD_ID_ENDPOINT_VAR_TEMPLATE,
+    buildId
+  ).replace(VERSION_ID_ENDPOINT_VAR_TEMPLATE, versionId);
+
 export const getRunningBuildsEndpoint = (projectId) =>
   Endpoints.RUNNING_BUILDS.replace(PROJECT_ID_ENDPOINT_VAR_TEMPLATE, projectId);
 

@@ -275,6 +275,12 @@ function BuildDialogState(
   this.openerType = openerType;
 }
 
+function CompletedVersionStatus(status, error, urlUponError) {
+  this.status = status;
+  this.error = error;
+  this.urlUponError = urlUponError;
+}
+
 function FilesWithTestsApiConfig(excludeCode, excludeNoCodeTests) {
   this.excludeCode = excludeCode;
   this.excludeNoCodeTests = excludeNoCodeTests;
@@ -291,5 +297,6 @@ export {
   RunningBuildSummary,
   BuildOutputDetailsByVersion,
   BuildDialogState,
+  CompletedVersionStatus,
   FilesWithTestsApiConfig,
 };
