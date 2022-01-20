@@ -179,15 +179,19 @@ const ShotsViewer = ({
   fileName,
   testName,
   versionName,
+  singleScreenShotMode,
+  showLastShot,
+  defaultAutoPlay,
 }) => {
   const [fullScreen, setFullScreen] = useState(false);
   const [msg, setMsg] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
-  const [autoPlay, setAutoPlay] = useState(false);
+  const [autoPlay, setAutoPlay] = useState(defaultAutoPlay);
   const [index, setIndex] = useState(0); // not a 0 based index
   const [indexBoxValue, setIndexBoxValue] = useState(0);
   const [total, setTotal] = useState(0);
+  const [shotDetailsLoadedAndSet, setShotDetailsLoadedAndSet] = useState(false);
   // the shotId from where shots should be displayed, for example when viewing for
   // entire build, it will be 1 (if there are shots) and when viewing for tests, it will
   // be the id from where that test started, such as 30 or 60
@@ -223,6 +227,7 @@ const ShotsViewer = ({
     }`;
     async function getShotBasicDetails() {
       try {
+        setShotDetailsLoadedAndSet(false);
         const {data} = await axios(getShotBasicDetailsEndpoint(buildId), {
           params: {
             versionId,
@@ -270,9 +275,10 @@ const ShotsViewer = ({
         shotUriTemplateRef.current = `${
           Application.STORAGE_HOST
         }/${shotBucket}/${getShotName(sId, bKey, SHOT_ID_TMPL)}`;
-        setIndex(1); // show shot at first index
+        setIndex(showLastShot ? totalShots : 1); // show shot at first index as default
         setTotal(totalShots);
         setMsg(null);
+        setShotDetailsLoadedAndSet(true);
       } catch (error) {
         handleApiError(
           error,
@@ -283,7 +289,7 @@ const ShotsViewer = ({
     }
     getShotBasicDetails();
     setMsg('Loading...');
-  }, [versionId, shotBucket, buildId]);
+  }, [versionId, shotBucket, buildId, showLastShot]);
 
   useEffect(() => {
     if (unmountedRef.current || index <= 0) {
@@ -335,11 +341,11 @@ const ShotsViewer = ({
         setTimeout(() => startPlay(), AUTO_SLIDE_INTERVAL * speedRef.current);
       }
     };
-    if (!autoPlay) {
+    if (!autoPlay || !shotDetailsLoadedAndSet) {
       return;
     }
     startPlay();
-  }, [autoPlay, total]);
+  }, [autoPlay, total, shotDetailsLoadedAndSet]);
 
   const onIndexBoxCommit = () => {
     let boxValue = indexBoxValue;
@@ -402,16 +408,24 @@ const ShotsViewer = ({
   };
 
   const handleNextIndex = useCallback(() => {
+    if (singleScreenShotMode) {
+      return;
+    }
+
     if (index < total) {
       setIndex((i) => i + 1);
     }
-  }, [index, total]);
+  }, [index, total, singleScreenShotMode]);
 
   const handlePreviousIndex = useCallback(() => {
+    if (singleScreenShotMode) {
+      return;
+    }
+
     if (index > 1) {
       setIndex((i) => i - 1);
     }
-  }, [index]);
+  }, [index, singleScreenShotMode]);
 
   useHotkeys('right', handleNextIndex, {}, [handleNextIndex]);
   useHotkeys('left', handlePreviousIndex, {}, [handlePreviousIndex]);
@@ -435,6 +449,21 @@ const ShotsViewer = ({
     );
   };
 
+  const getDownloadIcon = () => (
+    <Link
+      href={imageSrc}
+      aria-label="Download current screenshot"
+      title="Download current screenshot"
+      color="inherit"
+      className={clsx(classes.iconButton, classes.downloadLink)}>
+      <GetAppIcon
+        fontSize="small"
+        className={classes.icon}
+        style={{verticalAlign: 'middle'}}
+      />
+    </Link>
+  );
+
   return (
     <Box className={clsx(classes.root, fullScreen && classes.fullScreen)}>
       {imageSrc ? (
@@ -444,7 +473,7 @@ const ShotsViewer = ({
             alt="build screenshot"
             className={classes.image}
           />
-          {!autoPlay ? (
+          {!autoPlay && !singleScreenShotMode ? (
             <>
               {index < total ? (
                 <IconButton
@@ -489,7 +518,7 @@ const ShotsViewer = ({
         </Box>
       ) : null}
       <Box className={classes.controlStrip}>
-        {imageSrc ? (
+        {imageSrc && !singleScreenShotMode ? (
           <>
             {!autoPlay && index === total ? (
               <IconButton
@@ -560,20 +589,13 @@ const ShotsViewer = ({
                 ))}
               </Select>
             ) : null}
-            {!autoPlay ? (
-              <Link
-                href={imageSrc}
-                aria-label="Download current screenshot"
-                title="Download current screenshot"
-                color="inherit"
-                className={clsx(classes.iconButton, classes.downloadLink)}>
-                <GetAppIcon
-                  fontSize="small"
-                  className={classes.icon}
-                  style={{verticalAlign: 'middle'}}
-                />
-              </Link>
-            ) : null}
+            {!autoPlay ? getDownloadIcon() : null}
+          </>
+        ) : null}
+        {imageSrc && singleScreenShotMode ? (
+          <>
+            {showRunDetails()}
+            {getDownloadIcon()}
           </>
         ) : null}
         {!imageSrc ? showRunDetails() : null}
@@ -609,6 +631,9 @@ ShotsViewer.propTypes = {
   fileName: PropTypes.string,
   testName: PropTypes.string,
   versionName: PropTypes.string,
+  singleScreenShotMode: PropTypes.bool,
+  showLastShot: PropTypes.bool,
+  defaultAutoPlay: PropTypes.bool,
 };
 
 ShotsViewer.defaultProps = {
@@ -616,6 +641,9 @@ ShotsViewer.defaultProps = {
   fileName: null,
   testName: null,
   versionName: null,
+  singleScreenShotMode: false,
+  showLastShot: false,
+  defaultAutoPlay: false,
 };
 
 export default ShotsViewer;

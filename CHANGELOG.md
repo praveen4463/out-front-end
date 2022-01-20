@@ -329,3 +329,15 @@ Bug fixes
 - Fixed a bug where back button in completed builds wouldn't appear when
   the build is opened directly. Now the button will remain disabled but will
   always render keeping the design tidy.
+
+
+## 0.3.23 (2022-01-20)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Changed simple build view accordian's summary opened color
+- Added Error screenshot to simple build screen
+- Added a feature in shotViewer so that video can be played automatically. This
+  is used in simple build screen.

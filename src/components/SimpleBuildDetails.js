@@ -10,6 +10,7 @@ import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ViewCarouselIcon from '@material-ui/icons/ViewCarouselOutlined';
+import ImageIcon from '@material-ui/icons/Image';
 import {useQuery} from 'react-query';
 import clsx from 'clsx';
 import {CompletedBuildDetailsObj, BuildDialogState} from '../model';
@@ -20,11 +21,7 @@ import {
   getBrowserIcon,
 } from '../common';
 import ShotsViewer from './ShotsViewer';
-import {
-  convertMillisIntoTimeText,
-  DlgOpenerType,
-  SHOT_LABEL,
-} from '../buildsCommon';
+import {convertMillisIntoTimeText, DlgOpenerType} from '../buildsCommon';
 import BuildStatusIcon from './BuildStatusIcon';
 import {formatTimestamp} from '../utils';
 import TitleDialog from './TitleDialog';
@@ -84,7 +81,7 @@ const useSummaryStyles = makeStyles((theme) => ({
   root: {
     paddingLeft: theme.spacing(1),
     '&$expanded': {
-      backgroundColor: theme.palette.action.focus,
+      backgroundColor: theme.palette.action.hover,
     },
     '&:hover': {
       backgroundColor: theme.palette.action.hover,
@@ -241,7 +238,12 @@ const SimpleBuildDetails = ({completedBuildDetailsObj: cbd}) => {
     return <BuildStatusIcon status={status} className={classes.marginR4} />;
   };
 
-  const handleVersionShots = (testVersionDetails) => {
+  const handleVersionShots = (
+    testVersionDetails,
+    singleScreenShotMode,
+    showLastShot,
+    defaultAutoPlay
+  ) => {
     const {versionId, fileName, testName, versionName} = testVersionDetails;
     const content = (
       <ShotsViewer
@@ -251,6 +253,9 @@ const SimpleBuildDetails = ({completedBuildDetailsObj: cbd}) => {
         fileName={fileName}
         testName={testName}
         versionName={versionName}
+        singleScreenShotMode={singleScreenShotMode}
+        showLastShot={showLastShot}
+        defaultAutoPlay={defaultAutoPlay}
       />
     );
     setDlg(
@@ -377,13 +382,38 @@ const SimpleBuildDetails = ({completedBuildDetailsObj: cbd}) => {
                     {currentVersionStatus ? (
                       <Box display="flex" flexDirection="column" flex={1}>
                         {getViewRow(
-                          SHOT_LABEL,
+                          'Error screenshot',
                           <IconButton
-                            aria-label={SHOT_LABEL}
+                            aria-label="Error screenshot"
                             onClick={() =>
-                              handleVersionShots(testVersionDetails)
+                              handleVersionShots(
+                                testVersionDetails,
+                                true,
+                                true,
+                                false
+                              )
                             }
-                            title={SHOT_LABEL}
+                            title="Error screenshot"
+                            disabled={!cbd.shotsAvailable}
+                            color="inherit"
+                            className={classes.icons}>
+                            <ImageIcon fontSize="small" />
+                          </IconButton>,
+                          '15%'
+                        )}
+                        {getViewRow(
+                          'Video',
+                          <IconButton
+                            aria-label="Video"
+                            onClick={() =>
+                              handleVersionShots(
+                                testVersionDetails,
+                                false,
+                                false,
+                                true
+                              )
+                            }
+                            title="Video"
                             disabled={!cbd.shotsAvailable}
                             color="inherit"
                             className={classes.icons}>
