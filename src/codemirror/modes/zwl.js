@@ -18,7 +18,10 @@ CodeMirror.defineSimpleMode('zwl', {
     },
     {regex: /`/, token: 'string', next: 'rawString'},
     {regex: /\s+/, token: null},
-    {regex: /(?:if|for|while|else|in|to)\b/, token: 'keyword'},
+    {
+      regex: /(?:if|for|while|else|in|to|try|catch|finally)\b/,
+      token: 'keyword',
+    },
     {regex: /true|false/, token: 'atom'},
     {regex: /-?(?:(?:0|[1-9]\d*)(?:\.\d+)?)|\.\d+/, token: 'number'},
     {regex: /#.*/, token: 'comment'},

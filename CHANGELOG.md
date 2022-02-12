@@ -341,3 +341,11 @@ Additions.
 - Added Error screenshot to simple build screen
 - Added a feature in shotViewer so that video can be played automatically. This
   is used in simple build screen.
+
+## 0.3.24 (2022-02-12)
+
+minor additions
+
+#### :nail_care: Enhancement
+
+- Added `try-catch-finally` in zwl mode
