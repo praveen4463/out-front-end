@@ -27,6 +27,7 @@ import {convertMillisIntoTimeText, DlgOpenerType} from '../buildsCommon';
 import BuildStatusIcon from './BuildStatusIcon';
 import {formatTimestamp} from '../utils';
 import TitleDialog from './TitleDialog';
+import Tooltip from '../TooltipCustom';
 import BuildPagesDlgTitle from './BuildPagesDlgTitle';
 import Loader from './Loader';
 import {completedVersionStatusFetch} from '../api/fetches';
@@ -184,6 +185,7 @@ const useStyles = makeStyles((theme) => ({
 const SimpleBuildDetails = ({completedBuildDetailsObj: cbd}) => {
   const [currentVersionId, setCurrentVersionId] = useState(null);
   const [errorHover, setErrorHover] = useState(false);
+  const [copyTooltipText, setCopyTooltipText] = useState('Copy to clipboard');
   const {data: currentVersionStatus, error, isLoading} = useQuery(
     [QueryKeys.COMPLETED_VERSION_STATUS, cbd.buildId, currentVersionId],
     completedVersionStatusFetch,
@@ -282,9 +284,14 @@ const SimpleBuildDetails = ({completedBuildDetailsObj: cbd}) => {
     if (!currentVersionStatus) {
       return;
     }
-    copy(currentVersionStatus.error).catch(() => {
-      // TODO: there is a bug on firefox that requires fix
-    });
+    copy(currentVersionStatus.error)
+      .then(() => {
+        setCopyTooltipText('Copied!');
+        setTimeout(() => setCopyTooltipText('Copy to clipboard'), 2000);
+      })
+      .catch(() => {
+        // TODO: there is a bug on firefox that requires fix
+      });
   };
 
   return (
@@ -474,14 +481,15 @@ const SimpleBuildDetails = ({completedBuildDetailsObj: cbd}) => {
                                 position="absolute"
                                 style={{right: '10px', top: '10px'}}>
                                 {errorHover ? (
-                                  <IconButton
-                                    aria-label="Copy to clipboard"
-                                    onClick={handleCopy}
-                                    title="Copy to clipboard"
-                                    style={{color: '#363636'}}
-                                    className={classes.icons}>
-                                    <FileCopyOutlinedIcon fontSize="small" />
-                                  </IconButton>
+                                  <Tooltip title={copyTooltipText}>
+                                    <IconButton
+                                      aria-label="Copy to clipboard"
+                                      onClick={handleCopy}
+                                      style={{color: '#363636'}}
+                                      className={classes.icons}>
+                                      <FileCopyOutlinedIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
                                 ) : null}
                               </Box>
                               {currentVersionStatus.error}

@@ -357,3 +357,11 @@ minor additions
 #### :nail_care: Enhancement
 
 - Added copy-to-clipboard in SimpleBuildDetails
+
+## 0.3.26 (2022-02-16)
+
+minor additions
+
+#### :nail_care: Enhancement
+
+- Added tooltip to copy-to-clipboard in SimpleBuildDetails
