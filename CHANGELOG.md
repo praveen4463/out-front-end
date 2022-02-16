@@ -349,3 +349,11 @@ minor additions
 #### :nail_care: Enhancement
 
 - Added `try-catch-finally` in zwl mode
+
+## 0.3.25 (2022-02-16)
+
+minor additions
+
+#### :nail_care: Enhancement
+
+- Added copy-to-clipboard in SimpleBuildDetails

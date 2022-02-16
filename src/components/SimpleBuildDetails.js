@@ -11,6 +11,7 @@ import AccordionDetails from '@material-ui/core/AccordionDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ViewCarouselIcon from '@material-ui/icons/ViewCarouselOutlined';
 import ImageIcon from '@material-ui/icons/Image';
+import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import {useQuery} from 'react-query';
 import clsx from 'clsx';
 import {CompletedBuildDetailsObj, BuildDialogState} from '../model';
@@ -19,6 +20,7 @@ import {
   getTestStatusDisplayName,
   getBrowserDisplayName,
   getBrowserIcon,
+  copy,
 } from '../common';
 import ShotsViewer from './ShotsViewer';
 import {convertMillisIntoTimeText, DlgOpenerType} from '../buildsCommon';
@@ -181,6 +183,7 @@ const useStyles = makeStyles((theme) => ({
 
 const SimpleBuildDetails = ({completedBuildDetailsObj: cbd}) => {
   const [currentVersionId, setCurrentVersionId] = useState(null);
+  const [errorHover, setErrorHover] = useState(false);
   const {data: currentVersionStatus, error, isLoading} = useQuery(
     [QueryKeys.COMPLETED_VERSION_STATUS, cbd.buildId, currentVersionId],
     completedVersionStatusFetch,
@@ -273,6 +276,15 @@ const SimpleBuildDetails = ({completedBuildDetailsObj: cbd}) => {
           DlgOpenerType.SCREENSHOT
         )
     );
+  };
+
+  const handleCopy = () => {
+    if (!currentVersionStatus) {
+      return;
+    }
+    copy(currentVersionStatus.error).catch(() => {
+      // TODO: there is a bug on firefox that requires fix
+    });
   };
 
   return (
@@ -450,11 +462,28 @@ const SimpleBuildDetails = ({completedBuildDetailsObj: cbd}) => {
                               classes.outputError
                             )}>
                             <Box
+                              onMouseEnter={() => setErrorHover(true)}
+                              onMouseLeave={() => setErrorHover(false)}
                               style={{
                                 wordBreak: 'break-word',
                                 overflowX: 'auto',
                                 whiteSpace: 'pre-wrap',
+                                position: 'relative',
                               }}>
+                              <Box
+                                position="absolute"
+                                style={{right: '10px', top: '10px'}}>
+                                {errorHover ? (
+                                  <IconButton
+                                    aria-label="Copy to clipboard"
+                                    onClick={handleCopy}
+                                    title="Copy to clipboard"
+                                    style={{color: '#363636'}}
+                                    className={classes.icons}>
+                                    <FileCopyOutlinedIcon fontSize="small" />
+                                  </IconButton>
+                                ) : null}
+                              </Box>
                               {currentVersionStatus.error}
                             </Box>
                           </pre>,
