@@ -787,6 +787,7 @@ const Ide = () => {
         const {data} = await axios.post(
           getNewBuildEndpoint(state.projectId),
           {
+            buildName: 'IDE run',
             buildCapabilityId,
             displayResolution,
             timezone,

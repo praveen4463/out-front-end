@@ -365,3 +365,11 @@ minor additions
 #### :nail_care: Enhancement
 
 - Added tooltip to copy-to-clipboard in SimpleBuildDetails
+
+## 0.3.27 (2022-03-1)
+
+minor additions
+
+#### :nail_care: Enhancement
+
+- Added build name to IDE initiated tests
