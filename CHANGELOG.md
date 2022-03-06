@@ -373,3 +373,11 @@ minor additions
 #### :nail_care: Enhancement
 
 - Added build name to IDE initiated tests
+
+## 0.3.28 (2022-03-06)
+
+minor additions
+
+#### :nail_care: Enhancement
+
+- Added `dateIsAfter`, `dateIsBefore`, `withLastDayOfMonth`, `parseNum`.
