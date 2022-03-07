@@ -36,7 +36,8 @@ const GoogleSignIn = ({
           return;
         }
         const auth2 = window.gapi.auth2.init({
-          client_id: `${process.env.REACT_APP_GOOGLE_SIGN_IN_CLIENT_ID}`,
+          client_id:
+            '786012176086-to5548et1n4ipu1amltrorqgc3annbim.apps.googleusercontent.com',
           cookiepolicy: 'single_host_origin',
         });
         auth2.attachClickHandler(

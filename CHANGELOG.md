@@ -381,3 +381,12 @@ minor additions
 #### :nail_care: Enhancement
 
 - Added `dateIsAfter`, `dateIsBefore`, `withLastDayOfMonth`, `parseNum`.
+
+## 0.3.29 (2022-03-07)
+
+minor additions
+
+#### :nail_care: Enhancement
+
+- Google oauth clientId is now inline in the code rather than referring from
+computer that deploys.
