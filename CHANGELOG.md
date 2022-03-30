@@ -390,3 +390,11 @@ minor additions
 
 - Google oauth clientId is now inline in the code rather than referring from
 computer that deploys.
+
+## 0.3.30 (2022-03-30)
+
+minor additions
+
+#### :nail_care: Enhancement
+
+- Removed timezone (VM) field from completed builds page.

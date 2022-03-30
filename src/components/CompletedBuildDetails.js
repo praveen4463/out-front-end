@@ -707,10 +707,6 @@ const CompletedBuildDetails = ({completedBuildDetailsObj: cbd}) => {
                 BuildConfigLabels.DR,
                 <TextValue>{cbd.resolution}</TextValue>
               )}
-              {getViewRow(
-                BuildConfigLabels.TZ,
-                <TextValue>{cbd.timezone}</TextValue>
-              )}
             </Box>
             <Box
               display="flex"
