@@ -398,3 +398,11 @@ minor additions
 #### :nail_care: Enhancement
 
 - Removed timezone (VM) field from completed builds page.
+
+## 0.3.31 (2022-04-06)
+
+minor additions
+
+#### :nail_care: Enhancement
+
+- Wrapped URL is simple view screen for extra long URLs breaking the design

@@ -451,7 +451,13 @@ const SimpleBuildDetails = ({completedBuildDetailsObj: cbd}) => {
                             <Link
                               href={`${currentVersionStatus.urlUponError}`}
                               rel="noopener"
-                              target="_blank">
+                              target="_blank"
+                              style={{
+                                wordBreak: 'break-word',
+                                overflowX: 'auto',
+                                whiteSpace: 'pre-wrap',
+                                position: 'relative',
+                              }}>
                               <TextValue>
                                 {currentVersionStatus.urlUponError}
                               </TextValue>
