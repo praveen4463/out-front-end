@@ -25,12 +25,17 @@ import {
   signUpWithGoogle,
   storeUserBuiltUsingApiData,
 } from './common';
-import {Endpoints, MIN_PWD_LENGTH, PageUrl, SignupUserType} from './Constants';
+import {
+  Endpoints,
+  MIN_PWD_LENGTH,
+  PageUrl,
+  Plan,
+  SignupUserType,
+} from './Constants';
 import Application from './config/application';
 import logo from './assets/logo.svg';
 import GoogleSignIn from './components/GoogleSignIn';
 import {AppSnackbarContext} from './contexts';
-import usePricingDialog from './hooks/usePricingDialog';
 
 const FNAME = 'First name';
 const LNAME = 'Last name';
@@ -130,7 +135,6 @@ const FinishSignup = () => {
   const isTeamInvite = userType === SignupUserType.TEAM_MEMBER;
   const {organizationName, emailVerificationId} = isTeamInvite ? locState : {};
   const selectedPlan = readPlanFromQS(location.search);
-  const [setPricingDlg, pricingDialog] = usePricingDialog();
 
   const classes = useStyles();
 
@@ -276,7 +280,9 @@ const FinishSignup = () => {
       doEmailSignup(selectedPlan);
       return;
     }
-    setPricingDlg(doEmailSignup);
+    // email doesn't exist, let's create new user.
+    // for now use a hardcoded free plan
+    doEmailSignup(Plan.FREE);
   };
 
   const keyUpHandler = (e) => {
@@ -547,7 +553,6 @@ const FinishSignup = () => {
           </Box>
         </Box>
       </Box>
-      {pricingDialog}
     </>
   );
 };

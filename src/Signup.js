@@ -21,7 +21,7 @@ import 'firebase/auth';
 import isEmail from 'validator/lib/isEmail';
 import {useAuthContext} from './Auth';
 import PageLoadingIndicator from './components/PageLoadingIndicator';
-import {PageUrl, SignupUserType} from './Constants';
+import {PageUrl, Plan, SignupUserType} from './Constants';
 import {
   handleApiError,
   handleAuthError,
@@ -33,7 +33,6 @@ import {
 import {AppSnackbarContext} from './contexts';
 import logo from './assets/logo.svg';
 import GoogleSignIn from './components/GoogleSignIn';
-import usePricingDialog from './hooks/usePricingDialog';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -116,8 +115,6 @@ const Signup = () => {
   const [setSnackbarAlertProps, setSnackbarAlertError] = useContext(
     AppSnackbarContext
   );
-  const [setPricingDlg, pricingDialog] = usePricingDialog();
-
   const classes = useStyles();
 
   const setAlertErrorMessage = (msg) => {
@@ -184,7 +181,9 @@ const Signup = () => {
           if (selectedPlan) {
             signUpCb(selectedPlan);
           } else {
-            setPricingDlg(signUpCb);
+            // Removed the pricing dialog for now, put it later once we've a
+            // process in place.
+            signUpCb(Plan.FREE);
           }
         } else if (methods[0] === auth.EMAIL_PASSWORD_SIGN_IN_METHOD) {
           setAlertInfoMessage(
@@ -218,7 +217,6 @@ const Signup = () => {
       doGoogleSignup,
       history,
       selectedPlan,
-      setPricingDlg,
       setSnackbarAlertError,
       setSnackbarAlertProps,
     ]
@@ -413,7 +411,6 @@ const Signup = () => {
           </Box>
         </Box>
       </Box>
-      {pricingDialog}
     </>
   );
 };

@@ -406,3 +406,11 @@ minor additions
 #### :nail_care: Enhancement
 
 - Wrapped URL is simple view screen for extra long URLs breaking the design
+
+## 0.3.32 (2022-05-02)
+
+minor changes
+
+#### :nail_care: Enhancement
+
+- Removed pricing page for now until we've a set process for plan and payments
