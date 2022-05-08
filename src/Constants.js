@@ -481,6 +481,7 @@ export const Endpoints = {
   USERS: '/users',
   PROJECTS: '/projects',
   RENAME_PROJECT: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/renameProject`,
+  DOWNLOAD_PROJECT_FILES: `/projects/${PROJECT_ID_ENDPOINT_VAR_TEMPLATE}/downloadProjectFiles`,
   TEST_FILES: '/testFiles',
   ISSUE: '/issue',
   BUILD_CAPABILITIES: '/buildCapabilities',

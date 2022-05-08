@@ -414,3 +414,12 @@ minor changes
 #### :nail_care: Enhancement
 
 - Removed pricing page for now until we've a set process for plan and payments
+
+
+## 0.3.33 (2022-05-08)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Added project codebase download

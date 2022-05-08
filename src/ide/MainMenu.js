@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useContext, useState} from 'react';
 import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import MenuIcon from '@material-ui/icons/Menu';
@@ -12,10 +12,24 @@ import DialogContent from '@material-ui/core/DialogContent';
 import Slide from '@material-ui/core/Slide';
 import Divider from '@material-ui/core/Divider';
 import {useLocation, useHistory} from 'react-router-dom';
+import axios from 'axios';
 import Tooltip from '../TooltipCustom';
 import TestFileManager from '../Screens/TestFileManager';
-import {getLocation} from '../common';
-import {PageUrl} from '../Constants';
+import {
+  getDownloadProjectEndpoint,
+  getLocation,
+  handleApiError,
+} from '../common';
+import {
+  PageUrl,
+  SnackbarHorPos,
+  SnackbarType,
+  SnackbarVerPos,
+  Timeouts,
+} from '../Constants';
+import {AppSnackbarContext} from '../contexts';
+import {IdeProjectIdContext} from './Contexts';
+import {SnackbarAlertProps} from '../model';
 
 const useStyles = makeStyles((theme) => ({
   menuIcon: {
@@ -48,6 +62,10 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 const MainMenu = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [dlgOpen, setDlgOpen] = useState(false);
+  const projectId = useContext(IdeProjectIdContext);
+  const [setSnackbarAlertProps, setSnackbarAlertError] = useContext(
+    AppSnackbarContext
+  );
   const location = useLocation();
   const history = useHistory();
   const classes = useStyles();
@@ -63,6 +81,36 @@ const MainMenu = () => {
   };
   const handleUploadTestFile = () => {
     setDlgOpen(true);
+    handleClose();
+  };
+  const handleDownloadProjectCodebase = async () => {
+    try {
+      const {data} = await axios.get(getDownloadProjectEndpoint(projectId), {
+        responseType: 'blob',
+        timeout: Timeouts.API_TIMEOUT_LONG,
+      });
+      setSnackbarAlertProps(
+        new SnackbarAlertProps(
+          'Your download will begin shortly.',
+          SnackbarType.SUCCESS,
+          SnackbarVerPos.TOP,
+          SnackbarHorPos.CENTER,
+          5000
+        )
+      );
+      const url = window.URL.createObjectURL(new Blob([data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `codebase-${projectId}.zip`);
+      document.body.appendChild(link);
+      link.click();
+    } catch (error) {
+      handleApiError(
+        error,
+        setSnackbarAlertError,
+        `Couldn't download the codebase`
+      );
+    }
     handleClose();
   };
   const exit = () => {
@@ -98,6 +146,10 @@ const MainMenu = () => {
           horizontal: 'left',
         }}>
         <MenuItem onClick={handleUploadTestFile}>Upload Test File(s)</MenuItem>
+        <Divider />
+        <MenuItem onClick={handleDownloadProjectCodebase}>
+          Download Codebase
+        </MenuItem>
         <Divider />
         <MenuItem onClick={exit}>Exit IDE</MenuItem>
       </Menu>

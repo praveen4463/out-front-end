@@ -495,6 +495,12 @@ export const getChangeEmailEndpoint = (emailChangeId) =>
 export const getRenameProjectEndpoint = (projectId) =>
   Endpoints.RENAME_PROJECT.replace(PROJECT_ID_ENDPOINT_VAR_TEMPLATE, projectId);
 
+export const getDownloadProjectEndpoint = (projectId) =>
+  Endpoints.DOWNLOAD_PROJECT_FILES.replace(
+    PROJECT_ID_ENDPOINT_VAR_TEMPLATE,
+    projectId
+  );
+
 export const getFilesWithTestsEndpoint = (projectId) =>
   prepareEndpoint(Endpoints.FILES_WITH_TESTS, projectId);
 
