@@ -15,6 +15,7 @@ import clsx from 'clsx';
 import {useSpring, animated} from 'react-spring/web.cjs'; // web.cjs is required for IE 11 support
 import ColoredItemIcon from './ColoredItemIcon';
 import {ExplorerItemType} from '../ide/Constants';
+import {isFunction} from '../common';
 
 const MinusSquare = (props) => {
   return (
@@ -228,7 +229,11 @@ const TestSelect = React.memo(
         {files.result
           .filter(
             (fid) =>
-              Array.isArray(etFiles[fid].tests) && etFiles[fid].tests.length
+              Array.isArray(etFiles[fid].tests) &&
+              etFiles[fid].tests.length &&
+              !etFiles[fid].tests.every((tid) =>
+                isFunction(files.entities.tests[tid].name)
+              )
           )
           .map((fid) => (
             <StyledTreeItem
@@ -253,65 +258,67 @@ const TestSelect = React.memo(
                   </Typography>
                 </Box>
               }>
-              {etFiles[fid].tests.map((tid) => (
-                <StyledTreeItem
-                  nodeId={`${TEST}-${tid}`}
-                  key={tid}
-                  label={
-                    <Box display="flex" alignItems="center">
-                      <ItemSelector
-                        itemType={TEST}
-                        itemId={tid}
-                        onItemSelectionChange={onItemSelectionChange}
-                        isSelected={isSelected(TEST, tid)}
-                      />
-                      <ColoredItemIcon itemType={TEST} />
-                      <Typography
-                        variant="body2"
-                        style={{marginLeft: '4px'}}
-                        className={clsx(
-                          files.entities.tests[tid].showAsErrorInExplorer &&
-                            classes.errorText
-                        )}>
-                        {files.entities.tests[tid].name}
-                      </Typography>
-                    </Box>
-                  }>
-                  {files.entities.tests[tid].versions.map((vid) => (
-                    <StyledTreeItem
-                      nodeId={`${VERSION}-${vid}`}
-                      key={vid}
-                      label={
-                        <Box display="flex" alignItems="center">
-                          <ItemSelector
-                            itemType={VERSION}
-                            itemId={vid}
-                            onItemSelectionChange={onItemSelectionChange}
-                            isSelected={isSelected(VERSION, vid)}
-                          />
-                          <ColoredItemIcon itemType={VERSION} />
-                          <Typography
-                            variant="body2"
-                            style={{marginLeft: '4px'}}
-                            className={clsx(
-                              files.entities.versions[vid]
-                                .showAsErrorInExplorer && classes.errorText
-                            )}>
-                            {files.entities.versions[vid].name}
-                          </Typography>
-                          {files.entities.versions[vid].isCurrent && (
-                            <Chip
-                              size="small"
-                              label="Latest"
-                              className={classes.chip}
+              {etFiles[fid].tests
+                .filter((tid) => !isFunction(files.entities.tests[tid].name))
+                .map((tid) => (
+                  <StyledTreeItem
+                    nodeId={`${TEST}-${tid}`}
+                    key={tid}
+                    label={
+                      <Box display="flex" alignItems="center">
+                        <ItemSelector
+                          itemType={TEST}
+                          itemId={tid}
+                          onItemSelectionChange={onItemSelectionChange}
+                          isSelected={isSelected(TEST, tid)}
+                        />
+                        <ColoredItemIcon itemType={TEST} />
+                        <Typography
+                          variant="body2"
+                          style={{marginLeft: '4px'}}
+                          className={clsx(
+                            files.entities.tests[tid].showAsErrorInExplorer &&
+                              classes.errorText
+                          )}>
+                          {files.entities.tests[tid].name}
+                        </Typography>
+                      </Box>
+                    }>
+                    {files.entities.tests[tid].versions.map((vid) => (
+                      <StyledTreeItem
+                        nodeId={`${VERSION}-${vid}`}
+                        key={vid}
+                        label={
+                          <Box display="flex" alignItems="center">
+                            <ItemSelector
+                              itemType={VERSION}
+                              itemId={vid}
+                              onItemSelectionChange={onItemSelectionChange}
+                              isSelected={isSelected(VERSION, vid)}
                             />
-                          )}
-                        </Box>
-                      }
-                    />
-                  ))}
-                </StyledTreeItem>
-              ))}
+                            <ColoredItemIcon itemType={VERSION} />
+                            <Typography
+                              variant="body2"
+                              style={{marginLeft: '4px'}}
+                              className={clsx(
+                                files.entities.versions[vid]
+                                  .showAsErrorInExplorer && classes.errorText
+                              )}>
+                              {files.entities.versions[vid].name}
+                            </Typography>
+                            {files.entities.versions[vid].isCurrent && (
+                              <Chip
+                                size="small"
+                                label="Latest"
+                                className={classes.chip}
+                              />
+                            )}
+                          </Box>
+                        }
+                      />
+                    ))}
+                  </StyledTreeItem>
+                ))}
             </StyledTreeItem>
           ))}
       </TreeView>

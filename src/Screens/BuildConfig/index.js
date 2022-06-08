@@ -270,18 +270,6 @@ const BuildConfig = ({
     );
   };
 
-  const getNotesLabel = (text) => (
-    <Box
-      display="flex"
-      alignItems="center"
-      className={classes.labelPadding}
-      fontSize="body2.fontSize"
-      color="text.secondary">
-      <InfoIcon fontSize="small" className={classes.notesIcon} />
-      {text}
-    </Box>
-  );
-
   const getSwitch = (
     name,
     isChecked,
@@ -367,9 +355,6 @@ const BuildConfig = ({
             ) && (
               <ElementRow>
                 {getInfoLabel(BuildConfigKeys.SV, 'testSelect')}
-                {getNotesLabel(
-                  'Only file(s) that are loaded into explorer will be shown below.'
-                )}
                 <Box
                   className={clsx(
                     classes.testSelect,
@@ -379,10 +364,7 @@ const BuildConfig = ({
                     files={files}
                     onItemSelectionChange={handleTestSelectionChange}
                     selectedVersions={buildConfig[BuildConfigFields.SV]}
-                    noTestMsg={
-                      'No test found. Either add new test from explorer' +
-                      " or load existing ones using the '+' icon on top right of explorer"
-                    }
+                    noTestMsg="No test found."
                   />
                 </Box>
                 <FormHelperText error>

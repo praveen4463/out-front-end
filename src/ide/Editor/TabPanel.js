@@ -74,7 +74,7 @@ import {
   getVersionCodeUpdateAndParseEndpoint,
   getDryRunEndpoint,
 } from '../common';
-import {handleApiError, isBlank} from '../../common';
+import {handleApiError, isBlank, isFunction} from '../../common';
 import '../../codemirror/material-darker.css';
 import '../../codemirror/modes/zwl';
 
@@ -1338,12 +1338,17 @@ const TabPanel = React.memo(
                 run for this particular version. Continuous output appears
                 in bottom panel, and once done then only the final output
                 appears here. */}
-                <Tooltip title="Run Build For This Version">
+                <Tooltip
+                  title={
+                    isFunction(testName)
+                      ? "Functions alone can't be run as a build"
+                      : 'Run Build For This Version'
+                  }>
                   <span>
                     <IconButton
                       aria-label="Run Build For This Version"
                       className={classes.iconButton}
-                      disabled={Boolean(runOngoing)}
+                      disabled={Boolean(runOngoing || isFunction(testName))}
                       onClick={handleBuild}
                       data-testid="outputPanelRunBuild">
                       <PlayArrowIcon

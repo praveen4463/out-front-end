@@ -36,6 +36,8 @@ import {File, filesSchema, Test, Version} from './ide/Explorer/model';
 import {ExplorerItemType} from './ide/Constants';
 import logo from './assets/logo.svg';
 
+export const isFunction = (name) => /^[a-z0-9_]+$/.test(name);
+
 export const composePageTitle = (text) => `${text} . ${Application.ORG}`;
 
 // detects runtime's locale while building collator.
@@ -795,13 +797,15 @@ export const updateBuildConfigSelectedVersions = (
     case ExplorerItemType.FILE: {
       if (isSelected) {
         // when a file is selected, add all it's tests' current versions
-        files.entities.files[itemId].tests.forEach((tid) =>
-          selectedVersions.add(
-            files.entities.tests[tid].versions.find(
-              (v) => files.entities.versions[v].isCurrent
+        files.entities.files[itemId].tests
+          .filter((tid) => !isFunction(files.entities.tests[tid].name))
+          .forEach((tid) =>
+            selectedVersions.add(
+              files.entities.tests[tid].versions.find(
+                (v) => files.entities.versions[v].isCurrent
+              )
             )
-          )
-        );
+          );
         break;
       } else {
         // when a files is deselected, delete all it's tests' version that exists

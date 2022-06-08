@@ -20,7 +20,7 @@ import {
   getTestsEndpoint,
   getVersionRenameEndpoint,
 } from '../common';
-import {handleApiError} from '../../common';
+import {handleApiError, isFunction} from '../../common';
 import {File, Test} from './model';
 import {ExplorerItemType, ExplorerEditOperationType} from '../Constants';
 import TreeItemEditor from './TreeItemEditor';
@@ -227,9 +227,11 @@ const TreeItemContent = React.memo(
       const etVersions = files.entities.versions;
       switch (itemType) {
         case FILE:
-          versionIds = etFiles[itemId].tests.map((tid) =>
-            etTests[tid].versions.find((vid) => etVersions[vid].isCurrent)
-          );
+          versionIds = etFiles[itemId].tests
+            .filter((tid) => !isFunction(etTests[tid].name))
+            .map((tid) =>
+              etTests[tid].versions.find((vid) => etVersions[vid].isCurrent)
+            );
           break;
         case TEST:
           versionIds = [
@@ -291,6 +293,30 @@ const TreeItemContent = React.memo(
         type: EDR_EXP_VERSION_DBL_CLICK,
         payload: {versionId: itemId},
       });
+    };
+
+    const showRunBuild = () => {
+      if (!files) return true;
+
+      const etFiles = files.entities.files;
+      const etTests = files.entities.tests;
+      switch (itemType) {
+        case FILE: {
+          return (
+            Array.isArray(etFiles[itemId].tests) &&
+            etFiles[itemId].tests.length &&
+            !etFiles[itemId].tests.every((tid) => isFunction(etTests[tid].name))
+          );
+        }
+        case TEST: {
+          return !isFunction(itemName);
+        }
+        case VERSION: {
+          return !isFunction(etTests[itemParentId].name);
+        }
+        default:
+          throw new Error(`Can't detect ${itemType}`);
+      }
     };
 
     const deleteAcceptHandler = () => {
@@ -617,12 +643,14 @@ const TreeItemContent = React.memo(
           id={`explorer-cm-${itemType}-${itemId}`}
           className={classes.contextMenu}>
           <>
-            <MenuItem
-              onClick={runBuildHandler}
-              disabled={runDisabled()}
-              className={classes.contextMenuItem}>
-              {getRunTextPerExplorerItem(RunType.BUILD_RUN)}
-            </MenuItem>
+            {showRunBuild() ? (
+              <MenuItem
+                onClick={runBuildHandler}
+                disabled={runDisabled()}
+                className={classes.contextMenuItem}>
+                {getRunTextPerExplorerItem(RunType.BUILD_RUN)}
+              </MenuItem>
+            ) : null}
             <MenuItem
               onClick={runDryHandler}
               disabled={runDisabled()}
