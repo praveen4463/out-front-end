@@ -19,6 +19,7 @@ function BuildConfig(
   selectedBuildVarIdPerKey = {},
   captureShots = true,
   captureDriverLogs = false,
+  notifyOnCompletion = false,
   abortOnFailure = false,
   aetKeepSingleWindow = true,
   aetUpdateUrlBlank = true,
@@ -55,6 +56,7 @@ function BuildConfig(
   this.selectedBuildVarIdPerKey = selectedBuildVarIdPerKey;
   this.captureShots = captureShots;
   this.captureDriverLogs = captureDriverLogs;
+  this.notifyOnCompletion = notifyOnCompletion;
   this.abortOnFailure = abortOnFailure;
   this.aetKeepSingleWindow = aetKeepSingleWindow;
   this.aetUpdateUrlBlank = aetUpdateUrlBlank;

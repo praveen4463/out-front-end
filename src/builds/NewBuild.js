@@ -416,6 +416,7 @@ const NewBuild = () => {
           selectedBuildVarIdPerKey: buildConfig[BuildConfigFields.SBVIPK],
           captureShots: buildConfig[BuildConfigFields.CS],
           captureDriverLogs: buildConfig[BuildConfigFields.CDL],
+          notifyOnCompletion: buildConfig[BuildConfigFields.NOC],
           runnerPreferences: {
             abortOnFailure: buildConfig[BuildConfigFields.AOF],
             aetKeepSingleWindow: buildConfig[BuildConfigFields.AKSW],
@@ -673,6 +674,14 @@ const NewBuild = () => {
                 buildConfig[BuildConfigFields.CDL],
                 BuildConfigLabels.CDL,
                 BuildConfigInfo.CDL
+              )}
+            </ElementRow>
+            <ElementRow>
+              {getSwitch(
+                BuildConfigFields.NOC,
+                buildConfig[BuildConfigFields.NOC],
+                BuildConfigLabels.NOC,
+                BuildConfigInfo.NOC
               )}
             </ElementRow>
             <ElementRow>

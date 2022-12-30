@@ -186,6 +186,7 @@ export const BuildConfigFields = {
   SBVIPK: 'selectedBuildVarIdPerKey',
   CS: 'captureShots',
   CDL: 'captureDriverLogs',
+  NOC: 'notifyOnCompletion',
   AOF: 'abortOnFailure',
   AKSW: 'aetKeepSingleWindow',
   AUUB: 'aetUpdateUrlBlank',
@@ -227,6 +228,7 @@ export const BuildConfigLabels = {
   SBVIPK: 'Build Variables',
   CS: 'Capture Screenshots',
   CDL: 'Capture Driver Logs',
+  NOC: 'Notify On Completion',
   AOF: 'Abort On Failure',
   AKSW: 'Keep Single Window After Each Test',
   AUUB: 'Update Url Blank After Each Test',
@@ -322,6 +324,8 @@ export const BuildConfigInfo = {
   CS: 'Indicates whether screenshot will be taken for this build.',
   CDL:
     'Indicates whether webdriver logs will be recorded and saved for this build.',
+  NOC:
+    'Indicates whether a build completion notification email will be sent for this build',
   AOF:
     'Indicates whether runner abort all remaining tests once a test is failed.',
   AKSW:

@@ -430,3 +430,11 @@ Additions.
 #### :nail_care: Enhancement
 
 - Excluded functions from build run
+
+## 0.3.35 (2022-12-30)
+
+Additions.
+
+#### :nail_care: Enhancement
+
+- Added notify email from console
